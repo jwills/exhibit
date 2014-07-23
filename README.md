@@ -4,7 +4,7 @@ This is a prototype collection of Hive UDFs that allow you to
 treat the array fields within a Hive row as if they were mini-tables
 and execute SQL statements (joins, aggregations, etc.) against them.
 This is one of those things that seems really dumb when you first hear
-about it, but actually allows you to do some interesting things that
+about it, but allows you to do some interesting things that
 would be difficult/impossible using regular SQL.
 
 To get started, you're going to want to run:
@@ -44,7 +44,7 @@ on just that data, like this:
 	AS (product_id1, product_id2)
 	GROUP BY product_id1, product_id2;
 
-We're effectively writing a UDTF for Hive...in SQL. This actually is
+We're effectively writing a UDTF for Hive...in SQL. This is
 surprisingly useful: SQL is the world's most popular statically typed
 language, and we can verify the correctness and the return type of the
 SQL declared inside of the `within` function before we kick off any
