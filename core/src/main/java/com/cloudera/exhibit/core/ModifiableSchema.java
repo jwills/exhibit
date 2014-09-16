@@ -12,7 +12,7 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.udtf;
+package com.cloudera.exhibit.core;
 
 import com.google.common.collect.Maps;
 import net.hydromatic.optiq.Table;
@@ -20,11 +20,11 @@ import net.hydromatic.optiq.impl.AbstractSchema;
 
 import java.util.Map;
 
-public class HiveSchema extends AbstractSchema {
+public class ModifiableSchema extends AbstractSchema {
 
   private final Map<String, Table> tableMap;
 
-  public HiveSchema() {
+  public ModifiableSchema() {
     this.tableMap = Maps.newHashMap();
   }
 
@@ -46,4 +46,5 @@ public class HiveSchema extends AbstractSchema {
   public void put(String name, Table tbl) {
     tableMap.put(name, tbl);
   }
+
 }

@@ -12,7 +12,7 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.udtf;
+package com.cloudera.exhibit.hive;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -89,11 +89,13 @@ public class HiveTable extends AbstractQueryableTable implements TranslatableTab
 
   @Override
   public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schema, String tableName) {
-    final Enumerator<T> enumerator = (values == null ? Linq4j.<T>emptyEnumerator() :
-        (Enumerator<T>) new HiveEnumerator(values, listOI));
     return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
       public Enumerator<T> enumerator() {
-        return enumerator;
+        if (values == null) {
+          return Linq4j.<T>emptyEnumerator();
+        } else {
+          return (Enumerator<T>) new HiveEnumerator(values, listOI);
+        }
       }
     };
   }

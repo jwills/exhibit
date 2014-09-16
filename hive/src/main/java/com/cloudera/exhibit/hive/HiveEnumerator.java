@@ -12,7 +12,7 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.udtf;
+package com.cloudera.exhibit.hive;
 
 import com.google.common.collect.Lists;
 import net.hydromatic.linq4j.Enumerator;
@@ -24,10 +24,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 import java.util.List;
 
-/**
- *
- */
-public class HiveEnumerator implements Enumerator<Object> {
+class HiveEnumerator implements Enumerator<Object> {
 
   private final Object obj;
   private final ListObjectInspector listOI;

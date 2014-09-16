@@ -12,7 +12,8 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.udtf;
+
+package com.cloudera.exhibit.core;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -34,12 +35,12 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 
-public class TempTable extends AbstractQueryableTable {
+public class ResultSetTable extends AbstractQueryableTable {
 
-  private final List<Object[]> values;
+  private final List<Object> values;
   private final RelProtoDataType protoDataType;
 
-  public static TempTable fromResultSet(ResultSet rs) throws SQLException {
+  public static ResultSetTable create(ResultSet rs) throws SQLException {
     int cols = rs.getMetaData().getColumnCount();
     List values = Lists.newArrayList();
     Class elementType = Object[].class;
@@ -57,7 +58,7 @@ public class TempTable extends AbstractQueryableTable {
         values.add(rs.getObject(1));
       }
     }
-    return new TempTable(elementType, values, fromMetadata(rs.getMetaData()));
+    return new ResultSetTable(elementType, values, fromMetadata(rs.getMetaData()));
   }
 
   public static RelProtoDataType fromMetadata(ResultSetMetaData metadata) throws SQLException {
@@ -71,7 +72,7 @@ public class TempTable extends AbstractQueryableTable {
     return new SQLTypeProtoDataType(names, javaTypes);
   }
 
-  public TempTable(Class elementType, List values, RelProtoDataType protoDataType) {
+  public ResultSetTable(Class elementType, List values, RelProtoDataType protoDataType) {
     super(elementType);
     this.values = values;
     this.protoDataType = protoDataType;
