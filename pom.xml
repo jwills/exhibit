@@ -12,6 +12,7 @@
   <properties>
     <hadoop.version>2.3.0-cdh5.1.0</hadoop.version>
     <hive.version>0.12.0-cdh5.1.0</hive.version>
+    <optiq.version>0.9.0-incubating</optiq.version>
   </properties>
 
   <dependencies>
@@ -23,9 +24,9 @@
     </dependency>
 
     <dependency>
-      <groupId>net.hydromatic</groupId>
+      <groupId>org.apache.optiq</groupId>
       <artifactId>optiq-core</artifactId>
-      <version>0.8</version>
+      <version>${optiq.version}</version>
     </dependency>
 
     <dependency>
