@@ -71,8 +71,9 @@ class HiveEnumerator implements Enumerator<Object> {
       currentValue = ((PrimitiveObjectInspector) elOI).getPrimitiveJavaObject(row);
     } else {
       List v = Lists.newArrayList();
-      ObjectInspectorUtils.copyToStandardObject(v, row, (StructObjectInspector) elOI,
-          ObjectInspectorUtils.ObjectInspectorCopyOption.JAVA);
+      StructObjectInspector soi = (StructObjectInspector) elOI;
+      ObjectInspectorUtils.partialCopyToStandardObject(v, row, 0, soi.getAllStructFieldRefs().size(),
+          soi, ObjectInspectorUtils.ObjectInspectorCopyOption.JAVA);
       currentValue = v.toArray();
     }
   }

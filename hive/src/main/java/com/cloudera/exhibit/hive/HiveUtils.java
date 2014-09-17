@@ -42,7 +42,6 @@ public final class HiveUtils {
       .put(Types.BIT, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
       .put(Types.BOOLEAN, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
       .put(Types.CHAR, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
-      .put(Types.DATE, PrimitiveObjectInspectorFactory.javaDateObjectInspector)
       .put(Types.DOUBLE, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector)
       .put(Types.FLOAT, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector) // Note: Yes, this is right.
       .put(Types.INTEGER, PrimitiveObjectInspectorFactory.javaIntObjectInspector)

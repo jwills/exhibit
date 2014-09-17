@@ -21,8 +21,8 @@
 
   <properties>
     <guava.version>11.0.2</guava.version>
-    <hadoop.version>2.3.0</hadoop.version>
-    <hive.version>0.13.0</hive.version>
+    <hadoop.version>2.0.0-cdh4.2.0</hadoop.version>
+    <hive.version>0.10.0-cdh4.2.0</hive.version>
     <mongodb.version>2.12.3</mongodb.version>
     <optiq.version>0.9.0-incubating</optiq.version>
     <junit.version>4.8.2</junit.version>

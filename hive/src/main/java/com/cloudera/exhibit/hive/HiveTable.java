@@ -36,10 +36,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.ByteObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.DateObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.FloatObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveCharObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.ShortObjectInspector;
@@ -69,8 +67,6 @@ public class HiveTable extends AbstractQueryableTable implements TranslatableTab
       .put(FloatObjectInspector.class, Float.class)
       .put(ByteObjectInspector.class, Byte.class)
       .put(ShortObjectInspector.class, Short.class)
-      .put(HiveCharObjectInspector.class, Character.class)
-      .put(DateObjectInspector.class, Date.class)
       .put(TimestampObjectInspector.class, Timestamp.class)
       .build();
 
