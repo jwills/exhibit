@@ -115,7 +115,7 @@ public final class HiveUtils {
       List<String> names = Lists.newArrayList();
       List<ObjectInspector> inspectors = Lists.newArrayList();
       for (int i = 1; i <= colCount; i++) {
-        names.add(metadata.getColumnName(i));
+        names.add(metadata.getColumnLabel(i));
         ObjectInspector oi = getObjectInspectorForSQLType(metadata.getColumnType(i));
         if (oi == null) {
           throw new UDFArgumentException("Unknown column type in result: " + metadata.getColumnTypeName(i));

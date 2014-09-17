@@ -66,7 +66,7 @@ public class ResultSetTable extends AbstractQueryableTable {
     List<String> names = Lists.newArrayListWithExpectedSize(cols);
     List<Class> javaTypes = Lists.newArrayListWithExpectedSize(cols);
     for (int i = 1; i <= cols; i++) {
-      names.add(metadata.getColumnName(i));
+      names.add(metadata.getColumnLabel(i));
       javaTypes.add(TypeUtils.getJavaClassForSQLType(metadata.getColumnType(i)));
     }
     return new SQLTypeProtoDataType(names, javaTypes);
