@@ -50,16 +50,25 @@ public class BSONTable extends AbstractQueryableTable implements TranslatableTab
   private final List<String> columns;
   private final List<Object> defaultValues;
 
-  public BSONTable(List<String> names, List<Object> defaultValues) {
-    this(names, defaultValues, ImmutableMap.<String, String>of());
+  public static BSONTable create(List<String> names, List<Object> defaultValues) {
+    return create(names, defaultValues, ImmutableMap.<String, String>of());
   }
 
-  public BSONTable(List<String> names, List<Object> defaultValues, Map<String, String> mappings) {
-    this(names, defaultValues, mappings, null);
+  public static BSONTable create(List<String> names, List<Object> defaultValues, Map<String, String> mappings) {
+    return new BSONTable(names, defaultValues, mappings, null);
   }
 
-  public BSONTable(List<String> names, List<Object> defaultValues, Map<String, String> mappings,
-                   List<? extends BSONObject> records) {
+  public static BSONTable create(List<? extends BSONObject> records) {
+    return create(records, ImmutableMap.<String, String>of());
+  }
+
+  public static BSONTable create(List<? extends BSONObject> records, Map<String, String> mappings) {
+    List<String> names = getNames(records.get(0));
+    return new BSONTable(names, getTypes(names, records.get(0)), mappings, records);
+  }
+
+  BSONTable(List<String> names, List<Object> defaultValues, Map<String, String> mappings,
+            List<? extends BSONObject> records) {
     super(Object[].class);
     this.names = Preconditions.checkNotNull(names);
     this.defaultValues = Preconditions.checkNotNull(defaultValues);
@@ -67,6 +76,22 @@ public class BSONTable extends AbstractQueryableTable implements TranslatableTab
     Preconditions.checkArgument(!names.isEmpty(), "No column names specified");
     Preconditions.checkArgument(names.size() == defaultValues.size(), "names/defaultValues aren't equal");
     this.records = records;
+  }
+
+  private static List<String> getNames(BSONObject instance) {
+    return ImmutableList.copyOf(instance.keySet());
+  }
+
+  private static List<Object> getTypes(List<String> names, BSONObject instance) {
+    List<Object> types = Lists.newArrayListWithExpectedSize(names.size());
+    for (int i = 0; i < names.size(); i++) {
+      Object value = instance.get(names.get(i));
+      if (value == null) {
+        throw new IllegalArgumentException("No missing values are allowed during type inference");
+      }
+      types.add(value.getClass());
+    }
+    return types;
   }
 
   private static List<String> getColumns(List<String> names, final Map<String, String> mappings) {

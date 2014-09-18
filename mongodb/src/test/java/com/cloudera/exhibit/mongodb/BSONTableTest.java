@@ -34,7 +34,7 @@ public class BSONTableTest {
 
   @Test
   public void testEmpty() throws Exception {
-    BSONTable bst = new BSONTable(
+    BSONTable bst = BSONTable.create(
         ImmutableList.of("a", "b", "c"),
         ImmutableList.<Object>of(Integer.class, Double.class, String.class));
     List<BasicDBObject> records = ImmutableList.of();
@@ -52,14 +52,9 @@ public class BSONTableTest {
 
   @Test
   public void testBasic() throws Exception {
-    BSONTable bst = new BSONTable(
-        ImmutableList.of("a", "b", "c"),
-        ImmutableList.<Object>of(Integer.class, Double.class, String.class));
-    List<BasicDBObject> records = ImmutableList.of(
+    BSONTable bst = BSONTable.create(ImmutableList.of(
         new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 1.0, "c", "foo")),
-        new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 3.0, "c", "bar"))
-    );
-    bst.updateValues(records);
+        new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 3.0, "c", "bar"))));
 
     String[] queries = new String[] {
       "select a, sum(b) as sumb from t1 where c = 'foo' group by a"
@@ -76,7 +71,7 @@ public class BSONTableTest {
 
   @Test
   public void testDefaultValues() throws Exception {
-    BSONTable bst = new BSONTable(
+    BSONTable bst = BSONTable.create(
         ImmutableList.of("a", "b", "c"),
         ImmutableList.<Object>of(Integer.class, 1.0, String.class));
     List<BasicDBObject> records = ImmutableList.of(
@@ -100,14 +95,9 @@ public class BSONTableTest {
 
   @Test
   public void testTempTables() throws Exception {
-    BSONTable bst = new BSONTable(
-        ImmutableList.of("a", "b", "c"),
-        ImmutableList.<Object>of(Integer.class, Double.class, String.class));
-    List<BasicDBObject> records = ImmutableList.of(
+    BSONTable bst = BSONTable.create(ImmutableList.of(
         new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 1.0, "c", "foo")),
-        new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 3.0, "c", "bar"))
-    );
-    bst.updateValues(records);
+        new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 3.0, "c", "bar"))));
 
     String[] queries = new String[] {
         "select a, sum(b) as sumb from t1 where c = 'foo' group by a",
@@ -124,7 +114,7 @@ public class BSONTableTest {
 
   @Test
   public void testColumnMappings() throws Exception {
-    BSONTable bst = new BSONTable(
+    BSONTable bst = BSONTable.create(
         ImmutableList.of("a", "b", "c"),
         ImmutableList.<Object>of(Integer.class, Double.class, String.class),
         ImmutableMap.of("c", "d"));
