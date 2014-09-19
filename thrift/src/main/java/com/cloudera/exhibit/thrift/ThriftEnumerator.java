@@ -15,38 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.avro;
+package com.cloudera.exhibit.thrift;
 
 import com.cloudera.exhibit.core.BaseEnumerator;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.IndexedRecord;
+import org.apache.thrift.TBase;
 
-import java.util.BitSet;
 import java.util.List;
 
-class AvroEnumerator extends BaseEnumerator {
+class ThriftEnumerator extends BaseEnumerator {
 
-  private final List<? extends IndexedRecord> records;
-  private final Schema schema;
-  private final BitSet stringFields;
+  private final List<? extends TBase> records;
+  private final ThriftHelper helper;
 
-  public AvroEnumerator(List<? extends IndexedRecord> records, Schema schema, BitSet stringFields) {
-    super(records.size(), schema.getFields().size());
+  public ThriftEnumerator(List<? extends TBase> records, ThriftHelper helper) {
+    super(records.size(), helper.getNumFields());
     this.records = records;
-    this.schema = schema;
-    this.stringFields = stringFields;
+    this.helper = helper;
   }
-
   @Override
   protected void updateValues(int index, Object[] current) {
-    IndexedRecord record = records.get(index);
-    for (int i = 0; i < schema.getFields().size(); i++) {
-      if (stringFields.get(i)) {
-        Object r = record.get(i);
-        current[i] = r == null ? null : r.toString();
-      } else {
-        current[i] = record.get(i);
-      }
+    TBase tBase = records.get(index);
+    for (int i = 0; i < helper.getNumFields(); i++) {
+      current[i] = helper.getFieldValue(i, tBase);
     }
   }
 }

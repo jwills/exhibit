@@ -8,8 +8,8 @@
     <version>0.2.0</version>
   </parent>
 
-  <artifactId>exhibit-avro</artifactId>
-  <name>Exhibit for Apache Avro</name>
+  <artifactId>exhibit-thrift</artifactId>
+  <name>Exhibit for Apache Thrift</name>
 
   <dependencies>
     <dependency>
@@ -18,8 +18,8 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
+      <groupId>org.apache.thrift</groupId>
+      <artifactId>libthrift</artifactId>
     </dependency>
 
     <dependency>

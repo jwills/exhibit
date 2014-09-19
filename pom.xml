@@ -18,6 +18,7 @@
     <module>avro</module>
     <module>hive</module>
     <module>mongodb</module>
+    <module>thrift</module>
   </modules>
 
   <properties>
@@ -26,6 +27,7 @@
     <avro.version>1.7.7</avro.version>
     <hive.version>0.13.0</hive.version>
     <mongodb.version>2.12.3</mongodb.version>
+    <thrift.version>0.9.1</thrift.version>
     <optiq.version>0.9.0-incubating</optiq.version>
     <junit.version>4.8.2</junit.version>
   </properties>
@@ -84,6 +86,12 @@
         <groupId>org.apache.avro</groupId>
         <artifactId>avro</artifactId>
         <version>${avro.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.thrift</groupId>
+        <artifactId>libthrift</artifactId>
+        <version>${thrift.version}</version>
       </dependency>
 
       <dependency>
