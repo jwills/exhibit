@@ -14,51 +14,27 @@
  */
 package com.cloudera.exhibit.mongodb;
 
+import com.cloudera.exhibit.core.BaseEnumerator;
 import net.hydromatic.linq4j.Enumerator;
 import org.bson.BSONObject;
 
 import java.util.List;
 
-class BSONEnumerator implements Enumerator<Object> {
+class BSONEnumerator extends BaseEnumerator {
 
   private List<? extends BSONObject> records;
   private List<String> columns;
   private List<Object> defaultValues;
-  private Object[] current;
-  private int currentIndex = -1;
 
   public BSONEnumerator(List<? extends BSONObject> records, List<String> columns, List<Object> defaultValues) {
+    super(records.size(), columns.size());
     this.records = records;
     this.columns = columns;
     this.defaultValues = defaultValues;
-    this.current = new Object[columns.size()];
   }
 
   @Override
-  public Object current() {
-    return current;
-  }
-
-  @Override
-  public boolean moveNext() {
-    currentIndex++;
-    boolean hasNext = currentIndex < records.size();
-    if (hasNext) {
-      updateValues();
-    }
-    return hasNext;
-  }
-
-  @Override
-  public void reset() {
-    currentIndex = -1;
-  }
-
-  @Override
-  public void close() {
-  }
-
-  private void updateValues() {
+  protected void updateValues(int currentIndex, Object[] current) {
     BSONObject bson = records.get(currentIndex);
     for (int i = 0; i < columns.size(); i++) {
       current[i] = bson.get(columns.get(i));
