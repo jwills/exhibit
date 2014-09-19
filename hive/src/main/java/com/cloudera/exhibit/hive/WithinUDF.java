@@ -22,6 +22,7 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 import java.sql.ResultSet;
@@ -33,7 +34,6 @@ public class WithinUDF extends GenericUDF {
 
   private OptiqHelper helper;
   private transient List<HiveTable> tables;
-  private transient Object[] result;
 
   public WithinUDF() {
     this.helper = new OptiqHelper();
@@ -62,8 +62,7 @@ public class WithinUDF extends GenericUDF {
 
     try {
       StructObjectInspector res = HiveUtils.fromMetaData(helper);
-      this.result = new Object[res.getAllStructFieldRefs().size()];
-      return res;
+      return ObjectInspectorFactory.getStandardListObjectInspector(res);
     } catch (SQLException e) {
       throw new IllegalStateException("Schema validation query failure: " + e.getMessage(), e);
     }
@@ -78,9 +77,13 @@ public class WithinUDF extends GenericUDF {
     try {
       stmt = helper.newStatement();
       ResultSet rs = helper.execute(stmt);
-      rs.next();
-      for (int i = 0; i < result.length; i++) {
-        result[i] = rs.getObject(i + 1);
+      List result = Lists.newArrayList();
+      while (rs.next()) {
+        Object[] ret = new Object[rs.getMetaData().getColumnCount()];
+        for (int i = 0; i < ret.length; i++) {
+          ret[i] = rs.getObject(i + 1);
+        }
+        result.add(ret);
       }
       return result;
     } catch (SQLException e) {
