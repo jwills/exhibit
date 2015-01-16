@@ -16,6 +16,7 @@ package com.cloudera.exhibit.core;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -29,6 +30,7 @@ public class TypeUtils {
       .put(Types.BOOLEAN, Boolean.class)
       .put(Types.CHAR, String.class)
       .put(Types.DATE, Date.class)
+      .put(Types.DECIMAL, BigDecimal.class)
       .put(Types.DOUBLE, Double.class)
       .put(Types.FLOAT, Double.class) // Note: Yes, this is right.
       .put(Types.INTEGER, Integer.class)

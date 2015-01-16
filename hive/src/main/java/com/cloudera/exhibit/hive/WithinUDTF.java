@@ -83,7 +83,7 @@ public class WithinUDTF extends GenericUDTF {
       ResultSet rs = helper.execute(stmt);
       while (rs.next()) {
         for (int i = 0; i < results.length; i++) {
-          results[i] = rs.getObject(i + 1);
+          results[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
         }
         forward(results);
       }

@@ -81,7 +81,7 @@ public class WithinUDF extends GenericUDF {
       while (rs.next()) {
         Object[] ret = new Object[rs.getMetaData().getColumnCount()];
         for (int i = 0; i < ret.length; i++) {
-          ret[i] = rs.getObject(i + 1);
+          ret[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
         }
         result.add(ret);
       }

@@ -17,6 +17,8 @@ package com.cloudera.exhibit.hive;
 import com.cloudera.exhibit.core.OptiqHelper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -28,6 +30,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -43,6 +46,7 @@ public final class HiveUtils {
       .put(Types.BOOLEAN, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
       .put(Types.CHAR, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
       .put(Types.DATE, PrimitiveObjectInspectorFactory.javaDateObjectInspector)
+      .put(Types.DECIMAL, PrimitiveObjectInspectorFactory.javaHiveDecimalObjectInspector)
       .put(Types.DOUBLE, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector)
       .put(Types.FLOAT, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector) // Note: Yes, this is right.
       .put(Types.INTEGER, PrimitiveObjectInspectorFactory.javaIntObjectInspector)
@@ -126,6 +130,22 @@ public final class HiveUtils {
     } finally {
       helper.closeStatement(stmt);
     }
+  }
+
+  public static Object asJavaType(Object v) {
+    if (v instanceof HiveDecimal) {
+      return ((HiveDecimal) v).bigDecimalValue();
+    } else if (v instanceof HiveVarchar) {
+      return ((HiveVarchar) v).getValue();
+    }
+    return v;
+  }
+
+  public static Object asHiveType(Object v) {
+    if (v instanceof BigDecimal) {
+      return HiveDecimal.create((BigDecimal) v);
+    }
+    return v;
   }
 
   private HiveUtils() {}

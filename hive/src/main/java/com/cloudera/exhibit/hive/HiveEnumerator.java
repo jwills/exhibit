@@ -16,12 +16,14 @@ package com.cloudera.exhibit.hive;
 
 import com.google.common.collect.Lists;
 import net.hydromatic.linq4j.Enumerator;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 class HiveEnumerator implements Enumerator<Object> {
@@ -69,10 +71,14 @@ class HiveEnumerator implements Enumerator<Object> {
     Object row = listOI.getListElement(obj, currentIndex);
     if (elOI.getCategory() == ObjectInspector.Category.PRIMITIVE) {
       currentValue = ((PrimitiveObjectInspector) elOI).getPrimitiveJavaObject(row);
+      currentValue = HiveUtils.asJavaType(currentValue);
     } else {
       List v = Lists.newArrayList();
       ObjectInspectorUtils.copyToStandardObject(v, row, (StructObjectInspector) elOI,
           ObjectInspectorUtils.ObjectInspectorCopyOption.JAVA);
+      for (int i = 0; i < v.size(); i++) {
+        v.set(i, HiveUtils.asJavaType(v.get(i)));
+      }
       currentValue = v.toArray();
     }
   }
