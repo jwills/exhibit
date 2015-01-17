@@ -71,7 +71,7 @@ public class WithinUDF extends GenericUDF {
   @Override
   public Object evaluate(DeferredObject[] args) throws HiveException {
     for (int i = 1; i < args.length; i++) {
-      tables.get(i - 1).updateValues(args[i]);
+      tables.get(i - 1).updateValues(args[i].get());
     }
     Statement stmt = null;
     try {
