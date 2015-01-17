@@ -96,10 +96,5 @@ public class WithinUDTF extends GenericUDTF {
 
   @Override
   public void close() throws HiveException {
-    try {
-      helper.close();
-    } catch (SQLException e) {
-      throw new HiveException("SQL exception closing connection", e);
-    }
   }
 }

@@ -28,7 +28,6 @@ import java.util.List;
 
 public class OptiqHelper implements Serializable {
 
-  private transient OptiqConnection conn;
   private transient ModifiableSchema rootSchema;
   private String[] queries;
 
@@ -41,30 +40,32 @@ public class OptiqHelper implements Serializable {
   }
 
   public void initialize(List<? extends Table> tables, String[] queries) throws SQLException {
-    if (conn != null) {
-      conn.close();
-    }
     this.rootSchema = new ModifiableSchema();
     for (int i = 0; i < tables.size(); i++) {
       rootSchema.put("T" + (i + 1), tables.get(i));
     }
     this.queries = Preconditions.checkNotNull(queries);
+  }
+
+  private Connection newConnection() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
-    this.conn = connection.unwrap(OptiqConnection.class);
-    conn.getRootSchema().add("X", rootSchema);
-    conn.setSchema("X");
+    OptiqConnection oconn = connection.unwrap(OptiqConnection.class);
+    oconn.getRootSchema().add("X", rootSchema);
+    oconn.setSchema("X");
+    return oconn;
   }
 
   public String getLastQuery() {
     return queries[queries.length - 1];
   }
 
-  public Statement newStatement() throws SQLException { return conn.createStatement(); }
+  public Statement newStatement() throws SQLException { return newConnection().createStatement(); }
 
   public void closeStatement(Statement stmt) {
     if (stmt != null) {
       try {
         stmt.close();
+        stmt.getConnection().close();
       } catch (SQLException e) {
         //TODO: log this
       }
@@ -81,13 +82,6 @@ public class OptiqHelper implements Serializable {
       return stmt.executeQuery(queries[queries.length - 1]);
     } catch (SQLException e) {
       throw e;
-    }
-  }
-
-  public void close() throws SQLException {
-    if (conn != null) {
-      conn.close();
-      conn = null;
     }
   }
 }

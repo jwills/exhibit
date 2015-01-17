@@ -110,6 +110,14 @@ public class BSONTableTest {
     assertTrue(rs.next());
     assertEquals(2.0, rs.getDouble("added"), 0.001);
     assertFalse(rs.next());
+    stmt.close();
+
+    bst.updateValues(ImmutableList.of(
+        new BasicDBObject(ImmutableMap.<String, Object>of("a", 1728, "b", 2.0, "c", "foo"))));
+    stmt = helper.newStatement();
+    rs = helper.execute(stmt);
+    assertTrue(rs.next());
+    assertEquals(3.0, rs.getDouble("added"), 0.001);
   }
 
   @Test
