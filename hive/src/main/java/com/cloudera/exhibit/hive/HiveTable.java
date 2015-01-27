@@ -95,7 +95,7 @@ public class HiveTable extends AbstractQueryableTable implements TranslatableTab
   @Override
   public Statistic getStatistic() {
     if (values == null) {
-      return Statistics.UNKNOWN;
+      return Statistics.of(0.0, ImmutableList.<BitSet>of());
     }
     return Statistics.of(listOI.getListLength(values), ImmutableList.<BitSet>of());
   }
@@ -150,5 +150,9 @@ public class HiveTable extends AbstractQueryableTable implements TranslatableTab
         throw new UnsupportedOperationException("Optiq does not support union types");
     }
     throw new IllegalStateException("Unknown field type" + oi);
+  }
+
+  public boolean isEmpty() {
+    return values == null || listOI.getListLength(values) == 0;
   }
 }

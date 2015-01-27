@@ -48,8 +48,7 @@ public class AvroTableTest {
       "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     helper.initialize(ImmutableList.of(at), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    ResultSet rs = helper.execute();
     assertFalse(rs.next());
   }
 
@@ -69,8 +68,7 @@ public class AvroTableTest {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     helper.initialize(ImmutableList.of(at), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    ResultSet rs = helper.execute();
     assertTrue(rs.next());
     assertEquals(true, rs.getBoolean(1));
     assertEquals(1729, rs.getInt(2));
@@ -90,8 +88,7 @@ public class AvroTableTest {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     helper.initialize(ImmutableList.of(at), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    ResultSet rs = helper.execute();
     assertTrue(rs.next());
     assertEquals(false, rs.getBoolean(1));
     assertEquals(1729, rs.getInt(2));

@@ -53,19 +53,13 @@ public class ExampleClient {
         tables.add(BSONTable.create((List) base.get(key)));
       }
       helper.initialize(tables, queries);
-      Statement stmt = null;
-      try {
-        stmt = helper.newStatement();
-        ResultSet rs = helper.execute(stmt);
-        while (rs.next()) {
-          List<Object> res = Lists.newArrayList();
-          for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
-            res.add(rs.getObject(i + 1));
-          }
-          System.out.println(Joiner.on(',').join(res));
+      ResultSet rs = helper.execute();
+      while (rs.next()) {
+        List<Object> res = Lists.newArrayList();
+        for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
+          res.add(rs.getObject(i + 1));
         }
-      } finally {
-        helper.closeStatement(stmt);
+        System.out.println(Joiner.on(',').join(res));
       }
     }
     cursor.close();

@@ -15,12 +15,14 @@
 package com.cloudera.exhibit.core;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
 
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -29,6 +31,8 @@ import java.util.List;
 public class OptiqHelper implements Serializable {
 
   private transient ModifiableSchema rootSchema;
+  private transient OptiqConnection conn;
+  private transient List<PreparedStatement> stmts;
   private String[] queries;
 
   public OptiqHelper() {
@@ -45,9 +49,19 @@ public class OptiqHelper implements Serializable {
       rootSchema.put("T" + (i + 1), tables.get(i));
     }
     this.queries = Preconditions.checkNotNull(queries);
+    this.conn = newConnection();
+    this.stmts = Lists.newArrayList();
+    for (int i = 0; i < queries.length - 1; i++) {
+      PreparedStatement ps = conn.prepareStatement(queries[i]);
+      Table tbl = ResultSetTable.create(ps.executeQuery());
+      rootSchema.putTemp("TEMP" + (i + 1), tbl);
+      rootSchema.putTemp("LAST", tbl);
+      stmts.add(ps);
+    }
+    stmts.add(conn.prepareStatement(queries[queries.length - 1]));
   }
 
-  private Connection newConnection() throws SQLException {
+  private OptiqConnection newConnection() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:optiq:");
     OptiqConnection oconn = connection.unwrap(OptiqConnection.class);
     oconn.getRootSchema().add("X", rootSchema);
@@ -59,27 +73,16 @@ public class OptiqHelper implements Serializable {
     return queries[queries.length - 1];
   }
 
-  public Statement newStatement() throws SQLException { return newConnection().createStatement(); }
-
-  public void closeStatement(Statement stmt) {
-    if (stmt != null) {
-      try {
-        stmt.close();
-        stmt.getConnection().close();
-      } catch (SQLException e) {
-        //TODO: log this
-      }
-    }
-  }
-
-  public ResultSet execute(Statement stmt) throws SQLException {
+  public ResultSet execute() throws SQLException {
+    ((OptiqConnection) conn).getRootSchema().add("X", rootSchema);
+    ((OptiqConnection) conn).setSchema("X");
     try {
       for (int i = 0; i < queries.length - 1; i++) {
-        Table tbl = ResultSetTable.create(stmt.executeQuery(queries[i]));
-        rootSchema.put("TEMP" + (i + 1), tbl);
-        rootSchema.put("LAST", tbl);
+        Table tbl = ResultSetTable.create(stmts.get(i).executeQuery());
+        rootSchema.putTemp("TEMP" + (i + 1), tbl);
+        rootSchema.putTemp("LAST", tbl);
       }
-      return stmt.executeQuery(queries[queries.length - 1]);
+      return stmts.get(queries.length - 1).executeQuery();
     } catch (SQLException e) {
       throw e;
     }

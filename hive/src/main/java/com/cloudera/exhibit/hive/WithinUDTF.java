@@ -26,7 +26,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 
 @Description(name = "within",
@@ -36,6 +35,7 @@ public class WithinUDTF extends GenericUDTF {
 
   private OptiqHelper helper;
   private transient List<HiveTable> tables;
+  private transient List<Object[]> emptyResults;
   private transient Object[] results;
 
   public WithinUDTF() {
@@ -64,8 +64,18 @@ public class WithinUDTF extends GenericUDTF {
     }
 
     try {
-      StructObjectInspector res = HiveUtils.fromMetaData(helper);
+      ResultSet rs = helper.execute();
+      StructObjectInspector res = HiveUtils.fromMetaData(rs.getMetaData());
       this.results = new Object[res.getAllStructFieldRefs().size()];
+      // Cache the results for empty input arrays, which will always be the same
+      emptyResults = Lists.newArrayList();
+      while (rs.next()) {
+        Object[] r = new Object[results.length];
+        for (int i = 0; i < r.length; i++) {
+          r[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
+        }
+        emptyResults.add(r);
+      }
       return res;
     } catch (SQLException e) {
       throw new IllegalStateException("Schema validation query failure: " + e.getMessage(), e);
@@ -74,13 +84,21 @@ public class WithinUDTF extends GenericUDTF {
 
   @Override
   public void process(Object[] args) throws HiveException {
+    boolean empty = true;
     for (int i = 1; i < args.length; i++) {
       tables.get(i - 1).updateValues(args[i]);
+      if (!tables.get(i - 1).isEmpty()) {
+        empty = false;
+      }
     }
-    Statement stmt = null;
+    if (empty) {
+      for (Object[] res : emptyResults) {
+        forward(res);
+      }
+      return;
+    }
     try {
-      stmt = helper.newStatement();
-      ResultSet rs = helper.execute(stmt);
+      ResultSet rs = helper.execute();
       while (rs.next()) {
         for (int i = 0; i < results.length; i++) {
           results[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
@@ -89,8 +107,6 @@ public class WithinUDTF extends GenericUDTF {
       }
     } catch (SQLException e) {
       throw new HiveException("Error processing SQL query", e);
-    } finally {
-      helper.closeStatement(stmt);
     }
   }
 

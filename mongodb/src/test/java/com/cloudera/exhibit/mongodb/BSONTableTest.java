@@ -45,8 +45,7 @@ public class BSONTableTest {
     };
 
     helper.initialize(ImmutableList.<Table>of(bst), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    ResultSet rs = helper.execute();
     assertFalse(rs.next());
   }
 
@@ -61,8 +60,7 @@ public class BSONTableTest {
     };
 
     helper.initialize(ImmutableList.<Table>of(bst), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    ResultSet rs = helper.execute();
     assertTrue(rs.next());
     assertEquals(1729, rs.getInt("a"));
     assertEquals(1.0, rs.getDouble("sumb"), 0.001);
@@ -85,8 +83,7 @@ public class BSONTableTest {
     };
 
     helper.initialize(ImmutableList.<Table>of(bst), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    ResultSet rs = helper.execute();
     assertTrue(rs.next());
     assertEquals(1729, rs.getInt("a"));
     assertEquals(1.0, rs.getDouble("sumb"), 0.001);
@@ -105,17 +102,18 @@ public class BSONTableTest {
     };
 
     helper.initialize(ImmutableList.<Table>of(bst), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    long start = System.currentTimeMillis();
+    ResultSet rs = helper.execute();
+    System.out.println("First = " + (System.currentTimeMillis() - start));
     assertTrue(rs.next());
     assertEquals(2.0, rs.getDouble("added"), 0.001);
     assertFalse(rs.next());
-    stmt.close();
 
     bst.updateValues(ImmutableList.of(
         new BasicDBObject(ImmutableMap.<String, Object>of("a", 1728, "b", 2.0, "c", "foo"))));
-    stmt = helper.newStatement();
-    rs = helper.execute(stmt);
+    start = System.currentTimeMillis();
+    rs = helper.execute();
+    System.out.println("Second = " + (System.currentTimeMillis() - start));
     assertTrue(rs.next());
     assertEquals(3.0, rs.getDouble("added"), 0.001);
   }
@@ -137,8 +135,7 @@ public class BSONTableTest {
     };
 
     helper.initialize(ImmutableList.<Table>of(bst), queries);
-    Statement stmt = helper.newStatement();
-    ResultSet rs = helper.execute(stmt);
+    ResultSet rs = helper.execute();
     assertTrue(rs.next());
     assertEquals(1729, rs.getInt("a"));
     assertEquals(1.0, rs.getDouble("sumb"), 0.001);

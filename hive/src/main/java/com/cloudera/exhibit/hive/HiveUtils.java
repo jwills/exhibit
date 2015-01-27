@@ -33,7 +33,6 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 import java.util.List;
 import java.util.Map;
@@ -107,29 +106,22 @@ public final class HiveUtils {
     }
   }
 
-  public static StructObjectInspector fromMetaData(OptiqHelper helper) throws UDFArgumentException, SQLException {
-    Statement stmt = null;
-    try {
-      stmt = helper.newStatement();
-      ResultSetMetaData metadata = helper.execute(stmt).getMetaData();
-      int colCount = metadata.getColumnCount();
-      if (colCount == 0) {
-        throw new UDFArgumentException("No columns returned from query: " + helper.getLastQuery());
-      }
-      List<String> names = Lists.newArrayList();
-      List<ObjectInspector> inspectors = Lists.newArrayList();
-      for (int i = 1; i <= colCount; i++) {
-        names.add(metadata.getColumnLabel(i));
-        ObjectInspector oi = getObjectInspectorForSQLType(metadata.getColumnType(i));
-        if (oi == null) {
-          throw new UDFArgumentException("Unknown column type in result: " + metadata.getColumnTypeName(i));
-        }
-        inspectors.add(oi);
-      }
-      return ObjectInspectorFactory.getStandardStructObjectInspector(names, inspectors);
-    } finally {
-      helper.closeStatement(stmt);
+  public static StructObjectInspector fromMetaData(ResultSetMetaData metadata) throws UDFArgumentException, SQLException {
+    int colCount = metadata.getColumnCount();
+    if (colCount == 0) {
+      throw new UDFArgumentException("No columns returned from query");
     }
+    List<String> names = Lists.newArrayList();
+    List<ObjectInspector> inspectors = Lists.newArrayList();
+    for (int i = 1; i <= colCount; i++) {
+      names.add(metadata.getColumnLabel(i));
+      ObjectInspector oi = getObjectInspectorForSQLType(metadata.getColumnType(i));
+      if (oi == null) {
+        throw new UDFArgumentException("Unknown column type in result: " + metadata.getColumnTypeName(i));
+      }
+      inspectors.add(oi);
+    }
+    return ObjectInspectorFactory.getStandardStructObjectInspector(names, inspectors);
   }
 
   public static Object asJavaType(Object v) {

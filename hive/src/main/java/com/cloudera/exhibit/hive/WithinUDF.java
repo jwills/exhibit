@@ -27,12 +27,12 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 
 public class WithinUDF extends GenericUDF {
 
   private OptiqHelper helper;
+  private transient List<Object[]> emptyResults;
   private transient List<HiveTable> tables;
 
   public WithinUDF() {
@@ -61,7 +61,17 @@ public class WithinUDF extends GenericUDF {
     }
 
     try {
-      StructObjectInspector res = HiveUtils.fromMetaData(helper);
+      ResultSet rs = helper.execute();
+      StructObjectInspector res = HiveUtils.fromMetaData(rs.getMetaData());
+      // Cache the results for empty input arrays, which will always be the same
+      emptyResults = Lists.newArrayList();
+      while (rs.next()) {
+        Object[] r = new Object[rs.getMetaData().getColumnCount()];
+        for (int i = 0; i < r.length; i++) {
+          r[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
+        }
+        emptyResults.add(r);
+      }
       return ObjectInspectorFactory.getStandardListObjectInspector(res);
     } catch (SQLException e) {
       throw new IllegalStateException("Schema validation query failure: " + e.getMessage(), e);
@@ -70,13 +80,18 @@ public class WithinUDF extends GenericUDF {
 
   @Override
   public Object evaluate(DeferredObject[] args) throws HiveException {
+    boolean empty = true;
     for (int i = 1; i < args.length; i++) {
       tables.get(i - 1).updateValues(args[i].get());
+      if (!tables.get(i - 1).isEmpty()) {
+        empty = false;
+      }
     }
-    Statement stmt = null;
+    if (empty) {
+      return emptyResults;
+    }
     try {
-      stmt = helper.newStatement();
-      ResultSet rs = helper.execute(stmt);
+      ResultSet rs = helper.execute();
       List result = Lists.newArrayList();
       while (rs.next()) {
         Object[] ret = new Object[rs.getMetaData().getColumnCount()];
@@ -88,8 +103,6 @@ public class WithinUDF extends GenericUDF {
       return result;
     } catch (SQLException e) {
       throw new HiveException("Error processing SQL query", e);
-    } finally {
-      helper.closeStatement(stmt);
     }
   }
 
