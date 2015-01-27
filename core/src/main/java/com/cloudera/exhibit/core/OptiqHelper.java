@@ -25,7 +25,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 
 public class OptiqHelper implements Serializable {
@@ -54,8 +53,8 @@ public class OptiqHelper implements Serializable {
     for (int i = 0; i < queries.length - 1; i++) {
       PreparedStatement ps = conn.prepareStatement(queries[i]);
       Table tbl = ResultSetTable.create(ps.executeQuery());
-      rootSchema.putTemp("TEMP" + (i + 1), tbl);
-      rootSchema.putTemp("LAST", tbl);
+      rootSchema.put("TEMP" + (i + 1), tbl);
+      rootSchema.put("LAST", tbl);
       stmts.add(ps);
     }
     stmts.add(conn.prepareStatement(queries[queries.length - 1]));
@@ -69,18 +68,14 @@ public class OptiqHelper implements Serializable {
     return oconn;
   }
 
-  public String getLastQuery() {
-    return queries[queries.length - 1];
-  }
-
   public ResultSet execute() throws SQLException {
-    ((OptiqConnection) conn).getRootSchema().add("X", rootSchema);
-    ((OptiqConnection) conn).setSchema("X");
+    conn.getRootSchema().add("X", rootSchema);
+    conn.setSchema("X");
     try {
       for (int i = 0; i < queries.length - 1; i++) {
         Table tbl = ResultSetTable.create(stmts.get(i).executeQuery());
-        rootSchema.putTemp("TEMP" + (i + 1), tbl);
-        rootSchema.putTemp("LAST", tbl);
+        rootSchema.put("TEMP" + (i + 1), tbl);
+        rootSchema.put("LAST", tbl);
       }
       return stmts.get(queries.length - 1).executeQuery();
     } catch (SQLException e) {
