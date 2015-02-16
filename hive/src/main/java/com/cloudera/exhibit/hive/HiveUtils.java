@@ -14,7 +14,7 @@
  */
 package com.cloudera.exhibit.hive;
 
-import com.cloudera.exhibit.core.OptiqHelper;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
@@ -29,7 +29,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -87,20 +86,29 @@ public final class HiveUtils {
     return queries;
   }
 
-  public static HiveTable getHiveTable(ObjectInspector oi) throws UDFArgumentException {
+  private static final Map<Class, ObsDescriptor.FieldType> FIELD_TYPES = ImmutableMap.<Class, ObsDescriptor.FieldType>builder()
+          .put(Boolean.class, ObsDescriptor.FieldType.BOOLEAN)
+          .put(Integer.class, ObsDescriptor.FieldType.INTEGER)
+          .put(Long.class, ObsDescriptor.FieldType.LONG)
+          .put(Float.class, ObsDescriptor.FieldType.FLOAT)
+          .put(Double.class, ObsDescriptor.FieldType.DOUBLE)
+          .put(String.class, ObsDescriptor.FieldType.STRING)
+          .build();
+
+  public static ObsDescriptor.FieldType getFieldType(ObjectInspector oi) {
+    if (oi instanceof PrimitiveObjectInspector) {
+      ObsDescriptor.FieldType ft = FIELD_TYPES.get(((PrimitiveObjectInspector) oi).getJavaPrimitiveClass());
+      if (ft != null) {
+        return ft;
+      }
+    }
+    throw new IllegalArgumentException("Unsupported object inspector type = " + oi);
+  }
+
+  public static HiveFrame getHiveFrame(ObjectInspector oi) throws UDFArgumentException {
     if (oi.getCategory() == ObjectInspector.Category.LIST) {
       ListObjectInspector loi = (ListObjectInspector) oi;
-      ObjectInspector elOI = loi.getListElementObjectInspector();
-      if (elOI.getCategory() == ObjectInspector.Category.STRUCT ||
-          elOI.getCategory() == ObjectInspector.Category.PRIMITIVE) {
-        Type tableType = Object[].class;
-        if (elOI.getCategory() == ObjectInspector.Category.PRIMITIVE) {
-          tableType = ((PrimitiveObjectInspector) elOI).getJavaPrimitiveClass();
-        }
-        return new HiveTable(tableType, loi);
-      } else {
-        throw new UDFArgumentException("Only arrays of structs/primitives are supported at this time");
-      }
+      return new HiveFrame(loi);
     } else {
       throw new UDFArgumentException("Only arrays of structs/primitives are supported at this time");
     }

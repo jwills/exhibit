@@ -1,0 +1,86 @@
+<html>
+  <head>
+    <title>Profile Prototype</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+    <script src="http://fb.me/react-0.12.2.js"></script>
+    <script src="http://fb.me/JSXTransformer-0.12.2.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.min.js"></script>
+  </head>
+  <body>
+    <div id="content" class="container"></div>
+    <script id="profile_attrs" type="x-tmpl-mustache">
+      <ul>
+        <li>Name: {{name}}</li>
+        <li>Age: {{age}}</li>
+        <li>Customer Since: {{since}}</li>
+        <li>Balance as of 2015-02-01: {{balance}}</li>
+      </ul>
+    </script>
+    <script id="transaction" type="x-tmpl-mustache">
+      <div>This is a transaction</div>
+    </script>
+    <script id="webvisit" type="x-tmpl-mustache">
+      <div>This is a webvisit</div>
+    </script>
+    <script id="callcenter" type="x-tmpl-mustache">
+      <div>This is a callcenter</div>
+    </script>
+    <script type="text/jsx">
+      var attrs = {name: "Josh Wills", age: "35", since: "January 1, 1997", balance: "17.29"};
+      var events = [
+        {label: "First", type: "transaction", amount: "5.43", date: "2015-01-01" },
+        {label: "Second", type: "webvisit", length: 20, link: "http://example.com/GUID" },
+        {label: "Third", type: "callcenter", length: 5, resolved: true },
+      ];
+
+      var Profile = React.createClass({
+        render: function() {
+          return (
+            <div id="profile" className="row">
+              <ProfileAttributes attrs={attrs} />
+              <Feed events={events} />
+            </div>
+          );
+        }
+      });
+
+      var ProfileAttributes = React.createClass({
+        render: function() {
+          var template = $("#profile_attrs").html();
+          return (
+            <div id="attributes" className="col-md-4 panel panel-info">
+              <div className="panel-heading"><h3 class="panel-title">About</h3></div>
+              <div className="panel-body" dangerouslySetInnerHTML={{__html: Mustache.render(template, this.props.attrs)}} />
+            </div>
+          );
+        }
+      });
+
+      var Feed = React.createClass({
+        render: function() {
+          var feedEntries = this.props.events.map(function(event) {
+            var template = $("#" + event.type).html();
+            return <div className="list-group-item" dangerouslySetInnerHTML={{__html: Mustache.render(template, event)}} />
+          });
+          return (
+            <div id="feed" className="col-md-8 list-group">
+              {feedEntries}
+            </div>
+          );
+        }
+      });
+
+      React.render(
+        <Profile />,
+        document.getElementById('content')
+      );
+    </script>
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  </body>
+</html>

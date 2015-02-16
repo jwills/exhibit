@@ -14,9 +14,14 @@
  */
 package com.cloudera.exhibit.hive;
 
-import com.cloudera.exhibit.core.OptiqHelper;
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -28,15 +33,14 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 public class WithinUDF extends GenericUDF {
 
-  private OptiqHelper helper;
-  private transient List<Object[]> emptyResults;
-  private transient List<HiveTable> tables;
+  private SQLCalculator calculator;
+  private transient Exhibit exhibit;
 
   public WithinUDF() {
-    this.helper = new OptiqHelper();
   }
 
   @Override
@@ -48,30 +52,17 @@ public class WithinUDF extends GenericUDF {
     ObjectInspector first = args[0];
     String[] queries = HiveUtils.getQueries(first);
 
-    this.tables = Lists.newArrayList();
+    Map<String, Frame> frames = Maps.newHashMap();
     for (int i = 1; i < args.length; i++) {
-      HiveTable tbl = HiveUtils.getHiveTable(args[i]);
-      tables.add(tbl);
+      HiveFrame frame = HiveUtils.getHiveFrame(args[i]);
+      frames.put("T" + i, frame);
     }
+    this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
+    this.calculator = new SQLCalculator(queries);
 
     try {
-      helper.initialize(tables, queries);
-    } catch (SQLException e) {
-      throw new IllegalStateException("Optiq initialization error", e);
-    }
-
-    try {
-      ResultSet rs = helper.execute();
+      ResultSet rs = calculator.apply(exhibit);
       StructObjectInspector res = HiveUtils.fromMetaData(rs.getMetaData());
-      // Cache the results for empty input arrays, which will always be the same
-      emptyResults = Lists.newArrayList();
-      while (rs.next()) {
-        Object[] r = new Object[rs.getMetaData().getColumnCount()];
-        for (int i = 0; i < r.length; i++) {
-          r[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
-        }
-        emptyResults.add(r);
-      }
       return ObjectInspectorFactory.getStandardListObjectInspector(res);
     } catch (SQLException e) {
       throw new IllegalStateException("Schema validation query failure: " + e.getMessage(), e);
@@ -80,18 +71,11 @@ public class WithinUDF extends GenericUDF {
 
   @Override
   public Object evaluate(DeferredObject[] args) throws HiveException {
-    boolean empty = true;
     for (int i = 1; i < args.length; i++) {
-      tables.get(i - 1).updateValues(args[i].get());
-      if (!tables.get(i - 1).isEmpty()) {
-        empty = false;
-      }
-    }
-    if (empty) {
-      return emptyResults;
+      ((HiveFrame) exhibit.frames().get("T" + i)).updateValues(args[i].get());
     }
     try {
-      ResultSet rs = helper.execute();
+      ResultSet rs = calculator.apply(exhibit);
       List result = Lists.newArrayList();
       while (rs.next()) {
         Object[] ret = new Object[rs.getMetaData().getColumnCount()];

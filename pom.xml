@@ -4,7 +4,7 @@
 
   <groupId>com.cloudera.exhibit</groupId>
   <artifactId>exhibit-parent</artifactId>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <packaging>pom</packaging>
 
   <name>Cloudera Exhibit</name>
@@ -15,16 +15,21 @@
 
   <modules>
     <module>core</module>
+    <module>server</module>
+    <module>sql</module>
     <module>avro</module>
+    <module>hcatalog</module>
     <module>hive</module>
     <module>mongodb</module>
     <module>thrift</module>
   </modules>
 
   <properties>
-    <guava.version>11.0.2</guava.version>
+    <guava.version>18.0</guava.version>
     <hadoop.version>2.3.0</hadoop.version>
     <avro.version>1.7.7</avro.version>
+    <dropwizard.version>0.7.1</dropwizard.version>
+    <crunch.version>0.12.0-SNAPSHOT</crunch.version>
     <hive.version>0.13.0</hive.version>
     <mongodb.version>2.12.3</mongodb.version>
     <thrift.version>0.9.1</thrift.version>
@@ -37,6 +42,24 @@
       <dependency>
         <groupId>com.cloudera.exhibit</groupId>
         <artifactId>exhibit-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.cloudera.exhibit</groupId>
+        <artifactId>exhibit-avro</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.cloudera.exhibit</groupId>
+        <artifactId>exhibit-mongodb</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.cloudera.exhibit</groupId>
+        <artifactId>exhibit-sql</artifactId>
         <version>${project.version}</version>
       </dependency>
 
@@ -68,6 +91,30 @@
         <groupId>org.apache.hive</groupId>
         <artifactId>hive-serde</artifactId>
         <version>${hive.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.hive.hcatalog</groupId>
+        <artifactId>hive-hcatalog-core</artifactId>
+        <version>${hive.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.crunch</groupId>
+        <artifactId>crunch-hive</artifactId>
+        <version>${crunch.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.dropwizard</groupId>
+        <artifactId>dropwizard-core</artifactId>
+        <version>${dropwizard.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.dropwizard</groupId>
+        <artifactId>dropwizard-jdbi</artifactId>
+        <version>${dropwizard.version}</version>
       </dependency>
 
       <dependency>

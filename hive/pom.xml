@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.cloudera.exhibit</groupId>
     <artifactId>exhibit-parent</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
   </parent>
 
   <artifactId>exhibit-hive</artifactId>
@@ -15,6 +15,11 @@
     <dependency>
       <groupId>com.cloudera.exhibit</groupId>
       <artifactId>exhibit-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.cloudera.exhibit</groupId>
+      <artifactId>exhibit-sql</artifactId>
     </dependency>
 
     <dependency>
