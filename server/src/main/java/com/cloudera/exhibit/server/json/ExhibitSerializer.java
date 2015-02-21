@@ -31,10 +31,15 @@ public class ExhibitSerializer extends JsonSerializer<Exhibit> {
   public void serialize(Exhibit exhibit, JsonGenerator gen, SerializerProvider provider) throws IOException {
     ExhibitDescriptor desc = exhibit.descriptor();
     gen.writeStartObject();
+    gen.writeObjectFieldStart("attrs");
+    serializeObs(exhibit.attributes(), exhibit.attributes().descriptor(), gen);
+    gen.writeEndObject();
     for (Map.Entry<String, ObsDescriptor> fd : desc.frames().entrySet()) {
       gen.writeArrayFieldStart(fd.getKey());
       for (Obs obs : exhibit.frames().get(fd.getKey())) {
+        gen.writeStartObject();
         serializeObs(obs, fd.getValue(), gen);
+        gen.writeEndObject();
       }
       gen.writeEndArray();
     }
@@ -42,7 +47,6 @@ public class ExhibitSerializer extends JsonSerializer<Exhibit> {
   }
 
   private void serializeObs(Obs obs, ObsDescriptor desc, JsonGenerator gen) throws IOException {
-    gen.writeStartObject();
     for (int i = 0; i < desc.size(); i++) {
       ObsDescriptor.Field f = desc.get(i);
       Object value = obs.get(i);
@@ -73,7 +77,6 @@ public class ExhibitSerializer extends JsonSerializer<Exhibit> {
         }
       }
     }
-    gen.writeEndObject();
   }
 }
 

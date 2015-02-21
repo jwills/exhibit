@@ -46,8 +46,8 @@ public class JsonTest {
 
   ObjectMapper mapper;
 
-  private String expected =
-          "{\"t1\":[{\"a\":1729,\"b\":null,\"c\":\"foo\"},{\"a\":1729,\"b\":3.0,\"c\":null},{\"a\":null,\"b\":17.0,\"c\":null}],\"e\":[]}";
+  private String expected = "{\"attrs\":{}," +
+          "\"t1\":[{\"a\":1729,\"b\":null,\"c\":\"foo\"},{\"a\":1729,\"b\":3.0,\"c\":null},{\"a\":null,\"b\":17.0,\"c\":null}],\"e\":[]}";
 
   @Before
   public void setUp() throws Exception {

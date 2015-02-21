@@ -48,4 +48,20 @@ public class SimpleExhibit implements Exhibit {
   public Map<String, Frame> frames() {
     return frames;
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Obs:\n");
+    sb.append(attributes);
+    sb.append("\n");
+    for (Map.Entry<String, Frame> e : frames.entrySet()) {
+      sb.append("Frame ").append(e.getKey()).append(": [\n");
+      for (Obs obs : e.getValue()) {
+        sb.append(obs).append(",\n");
+      }
+      sb.append("]");
+    }
+    return sb.toString();
+  }
 }

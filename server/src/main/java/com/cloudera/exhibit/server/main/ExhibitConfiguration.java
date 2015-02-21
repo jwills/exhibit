@@ -14,18 +14,31 @@
  */
 package com.cloudera.exhibit.server.main;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
-import io.dropwizard.db.DataSourceFactory;
+import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
 
 public class ExhibitConfiguration extends Configuration {
-  @Valid
-  @JsonProperty
-  private DataSourceFactory database = new DataSourceFactory();
 
-  public DataSourceFactory getDataSourceFactory() {
-    return database;
+  @NotEmpty
+  private String exhibitDatabase;
+
+  @NotEmpty
+  private String exhibitTable;
+
+  @NotEmpty
+  private String exhibitIdColumn;
+
+  public String getExhibitDatabase() {
+    return exhibitDatabase;
+  }
+
+  public String getExhibitTable() {
+    return exhibitTable;
+  }
+
+  public String getExhibitIdColumn() {
+    return exhibitIdColumn;
   }
 }

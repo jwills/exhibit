@@ -39,4 +39,26 @@ public class ExhibitDescriptor {
   public Map<String, ObsDescriptor> frames() {
     return frames;
   }
+
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Attributes:\n");
+    toStringHelper(sb, 2, attributes);
+    sb.append("Frames:\n");
+    for (Map.Entry<String, ObsDescriptor> e : frames.entrySet()) {
+      sb.append("  ").append(e.getKey()).append("\n");
+      toStringHelper(sb, 4, e.getValue());
+    }
+    return sb.toString();
+  }
+
+  private static void toStringHelper(StringBuilder sb, int indent, ObsDescriptor desc) {
+    for (int i = 0; i < desc.size(); i++) {
+      ObsDescriptor.Field f = desc.get(i);
+      for (int j = 0; j < indent; j++) {
+        sb.append(' ');
+      }
+      sb.append(f.name).append(": ").append(f.type).append("\n");
+    }
+  }
 }

@@ -2,30 +2,36 @@ package com.cloudera.exhibit.avro;
 
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Obs;
-import org.apache.avro.generic.IndexedRecord;
+import org.apache.avro.generic.GenericRecord;
 
 public class AvroObs extends Obs {
 
-  private IndexedRecord record;
-  private AvroObsDescriptor descriptor;
+  private GenericRecord record;
+  private ObsDescriptor descriptor;
 
-  public AvroObs(IndexedRecord record) {
+  public AvroObs(GenericRecord record) {
+    this(new AvroObsDescriptor(record.getSchema()), record);
+  }
+
+  public AvroObs(ObsDescriptor descriptor, GenericRecord record) {
+    this.descriptor = descriptor;
     this.record = record;
-    this.descriptor = new AvroObsDescriptor(record.getSchema());
   }
 
   @Override
   public ObsDescriptor descriptor() {
-    return new AvroObsDescriptor(record.getSchema());
+    return descriptor;
   }
 
   @Override
   public Object get(int index) {
-    if (descriptor.get(index).type == ObsDescriptor.FieldType.STRING) {
-      Object r = record.get(index);
+    ObsDescriptor.Field f = descriptor.get(index);
+    Object r = record.get(f.name);
+    if (f.type == ObsDescriptor.FieldType.STRING) {
       return r == null ? null : r.toString();
     } else {
-      return record.get(index);
+      return r;
     }
   }
+
 }

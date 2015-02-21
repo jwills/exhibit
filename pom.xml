@@ -15,13 +15,13 @@
 
   <modules>
     <module>core</module>
-    <module>server</module>
     <module>sql</module>
     <module>avro</module>
     <module>hcatalog</module>
     <module>hive</module>
     <module>mongodb</module>
     <module>thrift</module>
+    <module>server</module>
   </modules>
 
   <properties>
@@ -30,6 +30,7 @@
     <avro.version>1.7.7</avro.version>
     <dropwizard.version>0.7.1</dropwizard.version>
     <crunch.version>0.12.0-SNAPSHOT</crunch.version>
+    <kite.version>0.18.0</kite.version>
     <hive.version>0.13.0</hive.version>
     <mongodb.version>2.12.3</mongodb.version>
     <thrift.version>0.9.1</thrift.version>
@@ -73,6 +74,25 @@
         <groupId>org.apache.optiq</groupId>
         <artifactId>optiq-core</artifactId>
         <version>${optiq.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.kitesdk</groupId>
+        <artifactId>kite-hadoop-cdh5-dependencies</artifactId>
+        <version>${kite.version}</version>
+        <type>pom</type>
+      </dependency>
+
+      <dependency>
+        <groupId>org.kitesdk</groupId>
+        <artifactId>kite-data-core</artifactId>
+        <version>${kite.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.kitesdk</groupId>
+        <artifactId>kite-data-hive</artifactId>
+        <version>${kite.version}</version>
       </dependency>
 
       <dependency>

@@ -38,4 +38,16 @@ public abstract class Obs {
       throw new ArrayIndexOutOfBoundsException("Empty Obs");
     }
   };
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("[");
+    if (descriptor().size() > 0) {
+      sb.append(get(0));
+      for (int i = 1; i < descriptor().size(); i++) {
+        sb.append(',').append(get(i));
+      }
+    }
+    return sb.append(']').toString();
+  }
 }

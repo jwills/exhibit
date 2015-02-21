@@ -16,42 +16,40 @@ package com.cloudera.exhibit.server.main;
 
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitStore;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.core.simple.SimpleExhibit;
-import com.cloudera.exhibit.core.simple.SimpleExhibitStore;
-import com.cloudera.exhibit.core.simple.SimpleFrame;
-import com.cloudera.exhibit.core.simple.SimpleObs;
-import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.cloudera.exhibit.server.checks.ExhibitStoreCheck;
 import com.cloudera.exhibit.server.json.ExhibitSerializer;
+import com.cloudera.exhibit.server.kite.KiteExhibitStore;
 import com.cloudera.exhibit.server.resources.ComputeResource;
 import com.cloudera.exhibit.server.resources.FetchResource;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.dropwizard.Application;
-import io.dropwizard.jdbi.DBIFactory;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import org.skife.jdbi.v2.DBI;
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 
-public class ExhibitApplication extends Application<ExhibitConfiguration> {
+public class ExhibitApplication extends Application<ExhibitConfiguration> implements Configurable {
+
+  private Configuration conf;
 
   public static void main(String[] args) throws Exception {
-    new ExhibitApplication().run(args);
+    ExhibitApplication app = new ExhibitApplication();
+    Configuration conf = new Configuration();
+    app.setConf(conf); //TODO: get settings from command line or exhibitconfig
+    app.run(args);
   }
 
   @Override
   public void initialize(Bootstrap<ExhibitConfiguration> bootstrap) {
-
   }
 
   @Override
-  public void run(ExhibitConfiguration conf, Environment env) throws Exception {
+  public void run(ExhibitConfiguration config, Environment env) throws Exception {
     // basic env stuff
     setupMapper(env.getObjectMapper());
-    ExhibitStore store = getStore(conf, env);
+    ExhibitStore store = getStore(config, env);
 
     // health checks
     env.healthChecks().register("store", new ExhibitStoreCheck(store));
@@ -64,21 +62,22 @@ public class ExhibitApplication extends Application<ExhibitConfiguration> {
   }
 
   ExhibitStore getStore(ExhibitConfiguration config, Environment environment) throws ClassNotFoundException {
-    final DBIFactory factory = new DBIFactory();
-    final DBI jdbi = factory.build(environment, config.getDataSourceFactory(), "exhibit");
-    ObsDescriptor od = SimpleObsDescriptor.of("a", ObsDescriptor.FieldType.INTEGER, "b", ObsDescriptor.FieldType.DOUBLE,
-            "c", ObsDescriptor.FieldType.STRING);
-    SimpleObs o1 = SimpleObs.of(od, 17, 29.0, "josh");
-    SimpleObs o2 = SimpleObs.of(od, 29, 1729.0, "wills");
-    SimpleObs o3 = SimpleObs.of(od, null, null, "some other name");
-    Frame f = SimpleFrame.of(o1, o2, o3);
-    Exhibit e = SimpleExhibit.of("data", f);
-    return SimpleExhibitStore.of("josh", e);
+    return KiteExhibitStore.create(conf, config.getExhibitDatabase(), config.getExhibitTable(), config.getExhibitIdColumn());
   }
 
   void setupMapper(ObjectMapper mapper) {
     SimpleModule mod = new SimpleModule("exhibit", Version.unknownVersion());
     mod.addSerializer(Exhibit.class, new ExhibitSerializer());
     mapper.registerModule(mod);
+  }
+
+  @Override
+  public void setConf(Configuration conf) {
+    this.conf = conf;
+  }
+
+  @Override
+  public Configuration getConf() {
+    return conf;
   }
 }

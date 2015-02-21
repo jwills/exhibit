@@ -14,6 +14,8 @@
  */
 package com.cloudera.exhibit.core;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -32,8 +34,8 @@ public interface ObsDescriptor extends Iterable<ObsDescriptor.Field> {
     public final FieldType type;
 
     public Field(String name, FieldType type) {
-      this.name = name;
-      this.type = type;
+      this.name = Preconditions.checkNotNull(name);
+      this.type = Preconditions.checkNotNull(type);
     }
 
     @Override
