@@ -1,0 +1,8 @@
+<div id="profile-feed">
+  <div class="panel panel-default" ng-repeat="obs in feedCtrl.getFeed(exhibitCtrl.frames)">
+    <div class="panel-heading">
+      <h3 class="panel-title">{{obs.frame}} at {{obs.tstamp}}</h3>
+    </div>
+    <div class="panel-body"><p>{{obs.label}}</p></div>
+  </div>
+</div>

@@ -12,23 +12,41 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.server.main;
+package com.cloudera.exhibit.server.store;
 
-import com.cloudera.exhibit.server.store.ExhibitStoreFactory;
+import com.cloudera.exhibit.core.ExhibitStore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.dropwizard.Configuration;
+import io.dropwizard.setup.Environment;
+import org.apache.hadoop.conf.Configuration;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
-public class ExhibitConfiguration extends Configuration {
+public class ExhibitStoreFactory {
 
   @JsonProperty
-  @NotNull
   @Valid
-  ExhibitStoreFactory exhibitStore;
+  boolean test = false;
 
-  public ExhibitStoreFactory getExhibitStoreFactory() {
-    return exhibitStore;
+
+  @JsonProperty
+  @Valid
+  String database = "";
+
+
+  @JsonProperty
+  @Valid
+  String table = "";
+
+
+  @JsonProperty
+  @Valid
+  String idColumn = "";
+
+  public ExhibitStore build(Environment env, Configuration conf) {
+    if (test) {
+      return new TestExhibitStore();
+    } else {
+      return KiteExhibitStore.create(conf, database, table, idColumn);
+    }
   }
 }

@@ -12,7 +12,7 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.server.kite;
+package com.cloudera.exhibit.server.store;
 
 import com.cloudera.exhibit.avro.AvroExhibit;
 import com.cloudera.exhibit.core.Exhibit;

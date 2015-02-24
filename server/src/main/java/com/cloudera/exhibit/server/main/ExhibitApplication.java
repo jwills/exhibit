@@ -18,13 +18,14 @@ import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitStore;
 import com.cloudera.exhibit.server.checks.ExhibitStoreCheck;
 import com.cloudera.exhibit.server.json.ExhibitSerializer;
-import com.cloudera.exhibit.server.kite.KiteExhibitStore;
+import com.cloudera.exhibit.server.store.KiteExhibitStore;
 import com.cloudera.exhibit.server.resources.ComputeResource;
 import com.cloudera.exhibit.server.resources.FetchResource;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.dropwizard.Application;
+import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.apache.hadoop.conf.Configurable;
@@ -43,26 +44,25 @@ public class ExhibitApplication extends Application<ExhibitConfiguration> implem
 
   @Override
   public void initialize(Bootstrap<ExhibitConfiguration> bootstrap) {
+    bootstrap.addBundle(new AssetsBundle("/assets/", "/", "profile.html"));
   }
 
   @Override
   public void run(ExhibitConfiguration config, Environment env) throws Exception {
     // basic env stuff
     setupMapper(env.getObjectMapper());
-    ExhibitStore store = getStore(config, env);
+    ExhibitStore store = config.getExhibitStoreFactory().build(env, getConf());
 
     // health checks
     env.healthChecks().register("store", new ExhibitStoreCheck(store));
 
+    // API home
+    env.jersey().setUrlPattern("/api/*");
     // resources
     final FetchResource fetch = new FetchResource(store);
     env.jersey().register(fetch);
     final ComputeResource compute = new ComputeResource(store);
     env.jersey().register(compute);
-  }
-
-  ExhibitStore getStore(ExhibitConfiguration config, Environment environment) throws ClassNotFoundException {
-    return KiteExhibitStore.create(conf, config.getExhibitDatabase(), config.getExhibitTable(), config.getExhibitIdColumn());
   }
 
   void setupMapper(ObjectMapper mapper) {
