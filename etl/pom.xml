@@ -8,15 +8,10 @@
     <version>0.4.0</version>
   </parent>
 
-  <artifactId>exhibit-hcatalog</artifactId>
-  <name>Exhibit for Apache HCatalog</name>
+  <artifactId>exhibit-etl</artifactId>
+  <name>Exhibit ETL Tool</name>
 
   <dependencies>
-    <dependency>
-      <groupId>com.cloudera.exhibit</groupId>
-      <artifactId>exhibit-core</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
@@ -30,13 +25,50 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.crunch</groupId>
-      <artifactId>crunch-hive</artifactId>
+      <groupId>com.esotericsoftware.yamlbeans</groupId>
+      <artifactId>yamlbeans</artifactId>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.hive.hcatalog</groupId>
-      <artifactId>hive-hcatalog-core</artifactId>
+      <groupId>org.apache.crunch</groupId>
+      <artifactId>crunch-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-hadoop-cdh5-dependencies</artifactId>
+      <type>pom</type>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-data-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-data-crunch</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-data-hive</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.hive</groupId>
+      <artifactId>hive-exec</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
