@@ -18,14 +18,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
-import org.apache.crunch.Union;
 import org.apache.crunch.lib.SecondarySort;
 import org.apache.crunch.types.PType;
-import org.apache.crunch.types.avro.AvroType;
 import org.apache.crunch.types.avro.Avros;
 
 import java.io.Serializable;
@@ -34,12 +33,14 @@ import java.util.Map;
 
 public class MergeSchema implements Serializable {
 
+  private final String name;
   private final String keyField;
   private final String keySchemaJson;
   private final List<SourceConfig> sources;
   private final int parallelism;
 
-  MergeSchema(String keyField, Schema keySchema, List<SourceConfig> sources, int parallelism) {
+  MergeSchema(String name, String keyField, Schema keySchema, List<SourceConfig> sources, int parallelism) {
+    this.name = name;
     this.keyField = keyField;
     this.keySchemaJson = keySchema.toString();
     this.sources = sources;
@@ -53,51 +54,73 @@ public class MergeSchema implements Serializable {
     if (keyField != null) {
       Schema.Field sf = new Schema.Field(keyField, p.parse(keySchemaJson), null, null);
       ret.add(sf);
-      fieldNames.put(keyField, sf);
+      fieldNames.put(keyField.toLowerCase(), sf);
     }
     for (SourceConfig sc : sources) {
       Schema fs = sc.getSchema();
       if (sc.embedded) {
         for (Schema.Field sf : fs.getFields()) {
-          if (!fieldNames.containsKey(sf.name())) {
-            ret.add(sf);
-            fieldNames.put(sf.name(), sf);
-          } else if (!sf.schema().equals(fieldNames.get(sf.name()).schema())) {
-              throw new IllegalStateException("Mismatched schemas for field " + sf.name() + ": " +
-                  sf.schema() + " vs. " + fieldNames.get(sf.name()).schema());
+          String lookup = sf.name().toLowerCase();
+          Schema.Field nsf = new Schema.Field(sf.name(), sf.schema(), null, null);
+          if (!fieldNames.containsKey(lookup)) {
+            ret.add(nsf);
+            fieldNames.put(lookup, nsf);
+          } else {
+            if (!unwrapNull(nsf.schema()).equals(unwrapNull(fieldNames.get(lookup).schema()))) {
+              throw new IllegalStateException("Mismatched schemas for field " + lookup + ": " +
+                      nsf.schema() + " vs. " + fieldNames.get(lookup).schema());
+            }
           }
         }
       } else {
-        if (sc.nullable) {
-          fs = Schema.createUnion(Lists.newArrayList(Schema.create(Schema.Type.NULL), fs));
-        }
         if (sc.repeated) {
           fs = Schema.createArray(fs);
         }
-        if (!fieldNames.containsKey(sc.name)) {
+        if (sc.nullable) {
+          fs = Schema.createUnion(Lists.newArrayList(Schema.create(Schema.Type.NULL), fs));
+        }
+        String lookup = sc.name.toLowerCase();
+        if (!fieldNames.containsKey(lookup)) {
           Schema.Field sf = new Schema.Field(sc.name, fs, null, null);
           ret.add(sf);
-          fieldNames.put(sc.name, sf);
-        } else if (!fs.equals(fieldNames.get(sc.name).schema())) {
-          throw new IllegalStateException("Mismatched schemas for field " + sc.name + " : " +
-              fs + " vs. " + fieldNames.get(sc.name).schema());
+          fieldNames.put(lookup, sf);
+        } else {
+          if (!fs.equals(fieldNames.get(lookup).schema())) {
+            throw new IllegalStateException("Mismatched schemas for field " + lookup + " : " +
+                    fs + " vs. " + fieldNames.get(lookup).schema());
+          }
         }
       }
     }
-    return Schema.createRecord(ret);
+    Schema rec = Schema.createRecord(name, "", "", false);
+    rec.setFields(ret);
+    return rec;
   }
 
-  public PCollection<GenericData.Record> apply(PTable<Object, Pair<Integer, Union>> input) {
+  private static Schema unwrapNull(Schema s) {
+    if (s.getType() == Schema.Type.UNION) {
+      List<Schema> cmps = s.getTypes();
+      if (cmps.size() == 2) {
+        if (cmps.get(0).getType() == Schema.Type.NULL) {
+          return cmps.get(1);
+        } else if (cmps.get(1).getType() == Schema.Type.NULL) {
+          return cmps.get(0);
+        }
+      }
+    }
+    return s;
+  }
+
+  public PCollection<GenericData.Record> apply(PTable<Object, Pair<Integer, GenericData.Record>> input) {
     Schema out = createOutputSchema();
-    AvroType<GenericData.Record> ret = Avros.generics(out);
-    return SecondarySort.sortAndApply(input, new SSFn(out), ret, parallelism);
+    return SecondarySort.sortAndApply(input, new SSFn(out), Avros.generics(out), parallelism);
   }
 
-  private class SSFn extends MapFn<Pair<Object, Iterable<Pair<Integer, Union>>>, GenericData.Record> {
+  private class SSFn extends MapFn<Pair<Object, Iterable<Pair<Integer, GenericData.Record>>>, GenericData.Record> {
 
     private String schemaJson;
     private transient Schema schema;
-    private List<PType<GenericData.Record>> ptypes;
+    private List<PType> ptypes;
     public SSFn(Schema out) {
       this.schemaJson = out.toString();
     }
@@ -112,14 +135,14 @@ public class MergeSchema implements Serializable {
     }
 
     @Override
-    public GenericData.Record map(Pair<Object, Iterable<Pair<Integer, Union>>> input) {
+    public GenericData.Record map(Pair<Object, Iterable<Pair<Integer, GenericData.Record>>> input) {
       GenericData.Record ret = new GenericData.Record(schema);
       if (keyField != null) {
         ret.put(keyField, input.first());
       }
-      for (Pair<Integer, Union> p : input.second()) {
+      for (Pair<Integer, GenericData.Record> p : input.second()) {
         int index = p.first();
-        GenericData.Record copy = ptypes.get(index).getDetachedValue((GenericData.Record) p.second().getValue());
+        GenericRecord copy = (GenericRecord) ptypes.get(index).getDetachedValue(p.second().get(0));
         SourceConfig sc = sources.get(index);
         if (sc.embedded) {
           for (Schema.Field sf : copy.getSchema().getFields()) {

@@ -53,9 +53,9 @@ public class ExhibitToolConfig {
     public abstract Schema getSchema();
   }
 
-  public String database;
+  public String uri;
 
-  public String table;
+  public String name;
 
   public String keyField;
 

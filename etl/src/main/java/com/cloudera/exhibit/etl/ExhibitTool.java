@@ -16,7 +16,7 @@ package com.cloudera.exhibit.etl;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.PCollection;
@@ -24,8 +24,6 @@ import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
-import org.apache.crunch.Target;
-import org.apache.crunch.Union;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.types.PType;
 import org.apache.crunch.types.avro.AvroType;
@@ -38,13 +36,9 @@ import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.crunch.CrunchDatasets;
-import org.kitesdk.data.spi.DatasetRepository;
-import org.kitesdk.data.spi.hive.HiveManagedDatasetRepository;
 
-import javax.xml.transform.Source;
 import java.io.FileReader;
 import java.util.List;
-import java.util.Set;
 
 public class ExhibitTool extends Configured implements Tool {
   @Override
@@ -56,34 +50,43 @@ public class ExhibitTool extends Configured implements Tool {
     ExhibitToolConfig config = parseConfig(args[1]);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     List<PCollection<GenericRecord>> pcols = Lists.newArrayList();
-    List<PType<GenericRecord>> ptypes = Lists.newArrayList();
-    DatasetRepository repo = new HiveManagedDatasetRepository.Builder().configuration(getConf()).build();
-    for (int i = 0; i < config.sources.size(); i++) {
-      SourceConfig src = config.sources.get(i);
-      Dataset<GenericRecord> data = repo.load(src.database, src.table);
+    List<Schema> schemas = Lists.newArrayList();
+    for (SourceConfig src : config.sources) {
+      Dataset<GenericRecord> data = Datasets.load(src.uri);
       PCollection<GenericRecord> pcol = p.read(CrunchDatasets.asSource(data));
       pcols.add(pcol);
-      ptypes.add(pcol.getPType());
+      Schema schema = ((AvroType) pcol.getPType()).getSchema();
+      src.setSchema(schema);
+      schemas.add(schema);
     }
-    PType<Union> valueType = Avros.unionOf((PType<?>[]) ptypes.toArray());
-    PType<Pair<Integer, Union>> ssType = Avros.pairs(Avros.ints(), valueType);
+
+    // Hack to union the various schemas that will get processed together.
+    Schema wrapper = Schema.createRecord("ExhibitWrapper", "", "", false);
+    Schema unionSchema = Schema.createUnion(schemas);
+    Schema.Field sf = new Schema.Field("value", unionSchema, null, null);
+    wrapper.setFields(Lists.newArrayList(sf));
+    PType<GenericData.Record> valueType = Avros.generics(wrapper);
+
+    PType<Pair<Integer, GenericData.Record>> ssType = Avros.pairs(Avros.ints(), valueType);
     PType<Object> keyType = (PType<Object>) config.keyType.getPType();
-    PTable<Object, Pair<Integer, Union>> union = null;
+    PTable<Object, Pair<Integer, GenericData.Record>> union = null;
     for (int i = 0; i < config.sources.size(); i++) {
       SourceConfig src = config.sources.get(i);
       PCollection<GenericRecord> in = pcols.get(i);
-      KeyIndexFn<GenericRecord> keyFn = new KeyIndexFn<GenericRecord>(src.keyFields, src.invalidKeys, i);
-      PTable<Object, Pair<Integer, Union>> keyed = in.parallelDo("source " + i, keyFn, Avros.tableOf(keyType, ssType));
+      KeyIndexFn<GenericRecord> keyFn = new KeyIndexFn<GenericRecord>(wrapper, src.keyFields, src.invalidKeys, i);
+      PTable<Object, Pair<Integer, GenericData.Record>> keyed = in.parallelDo(
+          "source " + i, keyFn, Avros.tableOf(keyType, ssType));
       if (union == null) {
         union = keyed;
       } else {
         union = union.union(keyed);
       }
     }
-    MergeSchema ms = new MergeSchema(config.keyField, config.keyType.getSchema(), config.sources, config.parallelism);
+    MergeSchema ms = new MergeSchema(config.name, config.keyField, config.keyType.getSchema(), config.sources,
+        config.parallelism);
     PCollection<GenericData.Record> output = ms.apply(union);
     DatasetDescriptor dd = new DatasetDescriptor.Builder().schema(((AvroType) output.getPType()).getSchema()).build();
-    Dataset<GenericRecord> outputDataset = repo.create(config.database, config.table, dd);
+    Dataset<GenericRecord> outputDataset = Datasets.create(config.uri, dd);
     output.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;

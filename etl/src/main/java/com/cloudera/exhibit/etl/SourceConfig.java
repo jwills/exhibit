@@ -31,9 +31,7 @@ public class SourceConfig implements Serializable {
 
   transient Schema schema;
 
-  public String database = "default";
-
-  public String table;
+  public String uri;
 
   public boolean embedded = false;
 
@@ -43,7 +41,7 @@ public class SourceConfig implements Serializable {
 
   public Set<String> keyFields;
 
-  public Set<String> invalidKeys;
+  public Set<String> invalidKeys = Sets.newHashSet();
 
   public void setSchema(Schema schema) {
     this.schemaJson = schema.toString();
