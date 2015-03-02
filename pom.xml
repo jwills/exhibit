@@ -31,7 +31,7 @@
     <dropwizard.version>0.7.1</dropwizard.version>
     <crunch.version>0.11.0-hadoop2</crunch.version>
     <yamlbeans.version>1.09</yamlbeans.version>
-    <kite.version>0.18.0</kite.version>
+    <kite.version>1.0.0</kite.version>
     <hive.version>0.13.0</hive.version>
     <mongodb.version>2.12.3</mongodb.version>
     <thrift.version>0.9.1</thrift.version>
