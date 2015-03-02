@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -21,19 +22,20 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
+import org.apache.crunch.types.avro.AvroType;
 
+import java.util.List;
 import java.util.Set;
 
 public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<Object, Pair<Integer, GenericData.Record>>> {
 
-  private transient Schema wrapperSchema;
-  private final String schemaJson;
+  private final AvroType<GenericData.Record> valueType;
   private final Set<String> keyFields;
   private final Set<String> filteredKeys;
   private final int index;
 
-  public KeyIndexFn(Schema wrapperSchema, Set<String> keyFields, Set<String> filteredKeys, int index) {
-    this.schemaJson = wrapperSchema.toString();
+  public KeyIndexFn(AvroType<GenericData.Record> valueType, Set<String> keyFields, Set<String> filteredKeys, int index) {
+    this.valueType = valueType;
     this.keyFields = Sets.newHashSet(keyFields);
     this.filteredKeys = Sets.newHashSet(filteredKeys);
     this.index = index;
@@ -41,14 +43,15 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<Object, Pa
 
   @Override
   public void initialize() {
-    this.wrapperSchema = (new Schema.Parser()).parse(schemaJson);
+    valueType.initialize(getConfiguration());
   }
 
   @Override
   public void process(R r, Emitter<Pair<Object, Pair<Integer, GenericData.Record>>> emitter) {
     if (r != null) {
-      GenericData.Record out = new GenericData.Record(wrapperSchema);
-      out.put(0, r);
+      GenericData.Record value = matchSchema(r);
+      GenericData.Record out = new GenericData.Record(valueType.getSchema());
+      out.put(0, value);
       for (String field : keyFields) {
         Object key = r.get(field);
         if (key != null) {
@@ -58,5 +61,45 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<Object, Pa
         }
       }
     }
+  }
+
+  private GenericData.Record matchSchema(R r) {
+    Schema target = r.getSchema();
+    List<Schema> schemas = valueType.getSchema().getFields().get(0).schema().getTypes();
+    Schema match = null;
+    for (Schema s : schemas) {
+      if (s.getFields().size() == target.getFields().size()) {
+        boolean matched = true;
+        for (int i = 0; i < s.getFields().size(); i++) {
+          Schema.Field sf = s.getFields().get(i);
+          if (!sf.equals(target.getFields().get(i))) {
+            matched = false;
+            break;
+          }
+        }
+        if (matched) {
+          match = duplicate(s);
+          break;
+        }
+      }
+    }
+    if (match == null) {
+      throw new IllegalStateException("Could not find matching schema for: " + target);
+    }
+    GenericData.Record ret = new GenericData.Record(match);
+    for (int i = 0; i < match.getFields().size(); i++) {
+      ret.put(i, r.get(i));
+    }
+    return ret;
+  }
+
+  private Schema duplicate(Schema s) {
+    Schema s1 = Schema.createRecord(s.getName(), "", "crunch", false);
+    List<Schema.Field> fields = Lists.newArrayList();
+    for (Schema.Field sf : s.getFields()) {
+      fields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue(), sf.order()));
+    }
+    s1.setFields(fields);
+    return s1;
   }
 }

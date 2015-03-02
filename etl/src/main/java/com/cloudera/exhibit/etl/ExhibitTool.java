@@ -25,6 +25,7 @@ import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.impl.mr.MRPipeline;
+import org.apache.crunch.types.PTableType;
 import org.apache.crunch.types.PType;
 import org.apache.crunch.types.avro.AvroType;
 import org.apache.crunch.types.avro.Avros;
@@ -61,21 +62,21 @@ public class ExhibitTool extends Configured implements Tool {
     }
 
     // Hack to union the various schemas that will get processed together.
-    Schema wrapper = Schema.createRecord("ExhibitWrapper", "", "", false);
+    Schema wrapper = Schema.createRecord("ExhibitWrapper", "crunch", "", false);
     Schema unionSchema = Schema.createUnion(schemas);
     Schema.Field sf = new Schema.Field("value", unionSchema, null, null);
     wrapper.setFields(Lists.newArrayList(sf));
-    PType<GenericData.Record> valueType = Avros.generics(wrapper);
+    AvroType<GenericData.Record> valueType = Avros.generics(wrapper);
 
-    PType<Pair<Integer, GenericData.Record>> ssType = Avros.pairs(Avros.ints(), valueType);
+    AvroType<Pair<Integer, GenericData.Record>> ssType = Avros.pairs(Avros.ints(), valueType);
     PType<Object> keyType = (PType<Object>) config.keyType.getPType();
+    PTableType<Object, Pair<Integer, GenericData.Record>> tableType = Avros.tableOf(keyType, ssType);
     PTable<Object, Pair<Integer, GenericData.Record>> union = null;
     for (int i = 0; i < config.sources.size(); i++) {
       SourceConfig src = config.sources.get(i);
       PCollection<GenericRecord> in = pcols.get(i);
-      KeyIndexFn<GenericRecord> keyFn = new KeyIndexFn<GenericRecord>(wrapper, src.keyFields, src.invalidKeys, i);
-      PTable<Object, Pair<Integer, GenericData.Record>> keyed = in.parallelDo(
-          "source " + i, keyFn, Avros.tableOf(keyType, ssType));
+      KeyIndexFn<GenericRecord> keyFn = new KeyIndexFn<GenericRecord>(valueType, src.keyFields, src.invalidKeys, i);
+      PTable<Object, Pair<Integer, GenericData.Record>> keyed = in.parallelDo("src " + i, keyFn, tableType);
       if (union == null) {
         union = keyed;
       } else {

@@ -142,24 +142,50 @@ public class MergeSchema implements Serializable {
       }
       for (Pair<Integer, GenericData.Record> p : input.second()) {
         int index = p.first();
-        GenericRecord copy = (GenericRecord) ptypes.get(index).getDetachedValue(p.second().get(0));
+        GenericData.Record value = (GenericData.Record) p.second().get(0);
         SourceConfig sc = sources.get(index);
         if (sc.embedded) {
-          for (Schema.Field sf : copy.getSchema().getFields()) {
-            ret.put(sf.name(), copy.get(sf.pos()));
-          }
-        } else if (sc.repeated) {
-          List list = (List) ret.get(sc.name);
-          if (list == null) {
-            list = Lists.newArrayList();
-            ret.put(sc.name, list);
-          }
-          list.add(copy);
+          copy(value, ret);
         } else {
-          ret.put(sc.name, copy);
+          GenericData.Record copy = new GenericData.Record(element(schema.getField(sc.name).schema()));
+          copy(value, copy);
+          if (sc.repeated) {
+            List list = (List) ret.get(sc.name);
+            if (list == null) {
+              list = Lists.newArrayList();
+              ret.put(sc.name, list);
+            }
+            list.add(copy);
+          } else {
+            ret.put(sc.name, copy);
+          }
         }
       }
       return ret;
+    }
+  }
+
+  private Schema element(Schema base) {
+    if (base.getType() == Schema.Type.ARRAY) {
+      return element(base.getElementType());
+    } else if (base.getType() == Schema.Type.UNION) {
+      List<Schema> elems = base.getTypes();
+      if (elems.get(0).getType() == Schema.Type.NULL) {
+        return element(elems.get(1));
+      } else if (elems.get(1).getType() == Schema.Type.NULL) {
+        return element(elems.get(0));
+      }
+    }
+    return base;
+  }
+
+  private static void copy(GenericData.Record orig, GenericData.Record copy) {
+    for (Schema.Field sf : orig.getSchema().getFields()) {
+      Object val = orig.get(sf.pos());
+      if (val instanceof CharSequence) {
+        val = val.toString();
+      }
+      copy.put(sf.name(), val);
     }
   }
 }
