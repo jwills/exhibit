@@ -16,6 +16,7 @@ package com.cloudera.exhibit.server.resources;
 
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitStore;
+import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
@@ -41,9 +42,7 @@ public class FetchResource {
 
   @GET
   public Optional<Exhibit> fetch(@QueryParam("id") String id) {
-    LOG.info("Fetching id = " + id);
     Optional<Exhibit> res = store.find(id);
-    LOG.info("Returning exhibit = " + res);
     return res;
   }
 }

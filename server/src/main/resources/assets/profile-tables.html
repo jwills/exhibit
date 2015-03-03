@@ -1,0 +1,14 @@
+<div role="tabpanel" id="profile-tables">
+  <ul role="tablist" class="nav nav-tabs nav-justified">
+    <li role="presentation" ng-repeat="frame in frameNames" ng-class="{active: active[frame]}">
+      <a role="tab" ng-click="setActive(frame)">{{frame}}</a>
+    </li>
+  </ul>
+  <div class="tab-content">
+    <div ng-repeat="frame in frameNames" role="tabpanel"
+         ng-class="{active: active[frame]}" class="tab-pane">
+      <table datatable name="{{frame}}" class="table display compact row-border">
+      </table>
+    </div>
+  </div>
+</div>

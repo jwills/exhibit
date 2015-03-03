@@ -30,12 +30,7 @@ public class ExhibitStoreFactory {
 
   @JsonProperty
   @Valid
-  String database = "";
-
-
-  @JsonProperty
-  @Valid
-  String table = "";
+  String uri = "";
 
 
   @JsonProperty
@@ -46,7 +41,7 @@ public class ExhibitStoreFactory {
     if (test) {
       return new TestExhibitStore();
     } else {
-      return KiteExhibitStore.create(conf, database, table, idColumn);
+      return KiteExhibitStore.create(uri, idColumn);
     }
   }
 }

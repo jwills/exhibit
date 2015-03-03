@@ -18,6 +18,7 @@ import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitStore;
 import com.cloudera.exhibit.server.checks.ExhibitStoreCheck;
 import com.cloudera.exhibit.server.json.ExhibitSerializer;
+import com.cloudera.exhibit.server.json.ResultSetSerializer;
 import com.cloudera.exhibit.server.store.KiteExhibitStore;
 import com.cloudera.exhibit.server.resources.ComputeResource;
 import com.cloudera.exhibit.server.resources.FetchResource;
@@ -30,6 +31,8 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+
+import java.sql.ResultSet;
 
 public class ExhibitApplication extends Application<ExhibitConfiguration> implements Configurable {
 
@@ -44,7 +47,7 @@ public class ExhibitApplication extends Application<ExhibitConfiguration> implem
 
   @Override
   public void initialize(Bootstrap<ExhibitConfiguration> bootstrap) {
-    bootstrap.addBundle(new AssetsBundle("/assets/", "/", "profile.html"));
+    bootstrap.addBundle(new AssetsBundle("/assets/", "/", "index.html"));
   }
 
   @Override
@@ -68,6 +71,7 @@ public class ExhibitApplication extends Application<ExhibitConfiguration> implem
   void setupMapper(ObjectMapper mapper) {
     SimpleModule mod = new SimpleModule("exhibit", Version.unknownVersion());
     mod.addSerializer(Exhibit.class, new ExhibitSerializer());
+    mod.addSerializer(ResultSet.class, new ResultSetSerializer());
     mapper.registerModule(mod);
   }
 

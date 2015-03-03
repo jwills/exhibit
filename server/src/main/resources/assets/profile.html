@@ -1,46 +1,11 @@
-<html>
-  <head>
-    <title>Exhibit Prototype</title>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
-    <link rel="stylesheet" href="http://codemirror.net/lib/codemirror.css">
-    <link rel="stylesheet" href="http://codemirror.net/addon/hint/show-hint.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/angular-ui/0.4.0/angular-ui.css">
-    <link rel="stylesheet" href="/exhibit.css">
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-    <script src="http://codemirror.net/lib/codemirror.js"></script>
-    <script src="http://codemirror.net/mode/sql/sql.js"></script>
-    <script src="http://codemirror.net/addon/hint/show-hint.js"></script>
-    <script src="http://codemirror.net/addon/hint/sql-hint.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.13/angular.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui/0.4.0/angular-ui.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
-  </head>
-  <body ng-app="exprofile">
-    <navbar></navbar>
-
-    <div class="container" ng-controller="ExhibitController as exhibitCtrl">
-      <div class="row">
-        <profile-attrs></profile-attrs>
-      </div>
-      <div class="row">
-        <div class="col-md-3">
-          <profile-metrics></profile-metrics>
-        </div>
-        <div class="col-md-9">
-          <profile-feed></profile-feed>
-        </div>
-      </div>
-      <div class="row" ng-show="exhibitCtrl.showEditor">
-        <textarea ui-codemirror ng-model="exhibitCtrl.code"></textarea>
-      </div>
-    </div> 
-
-    <script src="app.js"></script>
-  </body>
-</html>
+<div>
+  <div class="row">
+    <profile-attrs></profile-attrs>
+  </div>
+  <div class="row">
+    <profile-tables></profile-tables>
+  </div>
+  <div class="row" ng-show="showEditor">
+    <textarea ui-codemirror ng-model="code"></textarea>
+  </div>
+</div> 

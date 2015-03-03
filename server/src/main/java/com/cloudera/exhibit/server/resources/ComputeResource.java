@@ -19,6 +19,8 @@ import com.cloudera.exhibit.core.ExhibitStore;
 import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.base.Preconditions;
 
+import javax.validation.Valid;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -28,7 +30,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 @Path("/compute")
-@Produces(MediaType.TEXT_PLAIN)
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 public class ComputeResource {
 
   private final ExhibitStore store;
@@ -38,12 +41,10 @@ public class ComputeResource {
   }
 
   @POST
-  public String compute(@FormParam("id") String id, @FormParam("code") String code) throws SQLException {
-    Exhibit exhibit = store.find(id).orNull();
-    String[] queries = code.split(";");
-    SQLCalculator calc = new SQLCalculator(queries);
-    ResultSet rs = calc.apply(exhibit);
-    return rs.getString(1); // TODO: fix this
+  public ResultSet compute(@Valid ComputeRequest req) throws SQLException {
+    Exhibit exhibit = req.getExhibit(store);
+    SQLCalculator calc = new SQLCalculator(req.getQueries());
+    return calc.apply(exhibit);
   }
 
 }

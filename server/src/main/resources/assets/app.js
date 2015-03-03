@@ -1,4 +1,4 @@
-var app = angular.module("exprofile", ["ui"]);
+var app = angular.module("exprofile", ["ui", "ngRoute", "ngResource"]);
 
 app.value('ui.config', {
   codemirror: {
@@ -16,12 +16,91 @@ app.value('ui.config', {
   }
 });
 
-app.controller("ExhibitController", function() {
-  this.attrs = exhibitData.attrs;
-  this.frames = exhibitData.frames;
-  this.code = "/** SQL goes here **/";
-  this.showEditor = false;
-});
+app.config(['$routeProvider', function($routeProvider) {
+  $routeProvider.
+    when('/profile/:id', {
+      templateUrl: 'profile.html',
+      controller: 'ExhibitController'
+    });
+}]);
+
+app.factory('Exhibit', ['$resource', function($resource) {
+  var exhibit = $resource('api/exhibit', {}, {});
+  exhibit.find = function(id, callback) {
+    this.get({id: id}, callback);
+    this.id = id;
+  };
+  exhibit.getId = function() {
+    return this.id;
+  };
+  return exhibit;
+}]);
+
+app.factory('Compute', ['$http', '$log', function($http, $log) {
+  var compute = {};
+  compute.single = function(id, code, callback) {
+    $http.post('api/compute', {id: id, code: code}).
+      success(function(data, status, headers, config) { callback(data); }).
+      error(function(data, status, headers, config) {
+        $log.log("ERROR!");
+        $log.log(data);
+      });
+  };
+  return compute;
+}]);
+
+app.controller("CodeController", ["$scope", "$log", "Exhibit", "Compute", function($scope, $log, Exhibit, Compute) {
+  $scope.code = "/** SQL goes here **/";
+  $scope.hasResults = false;
+  $scope.results = {data: [], columns: []};
+  $scope.single = function() {
+    Compute.single(Exhibit.getId(), this.code, function(data) {
+      $scope.results = data;
+      $scope.hasResults = true;
+      $scope.$emit('newResults');
+    });
+  };
+  $scope.cached = function() {
+    $log.log("Cached " + Exhibit.getId() + ": " + this.code);
+  };
+  $scope.all = function() {
+    $log.log("All " + Exhibit.getId() + ": " + this.code);
+  };
+}]);
+
+app.controller("ExhibitController", ["$scope", "$log", "$routeParams", "Exhibit", function($scope, $log, $routeParams, Exhibit) {
+  $scope.$emit('newExhibit', {id: $routeParams.id});
+  $scope.active = {};
+  Exhibit.find($routeParams.id, function(data) {
+    $scope.columns = data.columns;
+    $scope.frames = data.frames;
+    // TODO: should configure a preferred ordering here.
+    $scope.frameNames = Object.keys($scope.frames);
+    for (var i = 0; i < $scope.frameNames.length; i++) {
+      $scope.active[$scope.frameNames[i]] = false;
+    }
+    $scope.active[$scope.frameNames[0]] = true;
+
+    $scope.attrs = data.attrs;
+    var rawKeys = Object.keys($scope.attrs);
+    $scope.attrKeys = [];
+    for (var i = 0; i < rawKeys.length; i++) {
+      var key = rawKeys[i];
+      if (key === "fname" || key === "lname") {
+        // Ignore
+      } else {
+        $scope.attrKeys.push(key);
+      }
+    }
+  });
+
+  $scope.setActive = function(frame) {
+    for (var key in this.active) {
+      this.active[key] = false;
+    }
+    this.active[frame] = true;
+  };
+}]);
 
 app.directive("navbar", function() {
   return {
@@ -44,64 +123,52 @@ app.directive("profileMetrics", function() {
   };
 });
 
-app.directive("profileFeed", function() {
+app.directive("profileTables", function() {
   return {
     restrict: 'E',
-    templateUrl: 'profile-feed.html',
-    controller: ['$log', function($log){
-      this.sortFields = {
-        txns: 'tstamp',
-        calls: 'tstamp',
-        visits: 'tstamp'
-      };
-      this.getFeed = function(frames) {
-        var feed = [];
-        for (var key in frames) {
-          if (frames.hasOwnProperty(key)) {
-            var sk = this.sortFields[key];
-            for (var i = 0; i < frames[key].length; i++) {
-              var obs = frames[key][i];
-              obs['frame'] = key;
-              obs['sortOn'] = obs[sk];
-              feed.push(obs);
-            }
-          }
-        }
-        feed.sort(feedCmp);
-        return feed;
-      };
-    }],
-    controllerAs: 'feedCtrl'
- }; 
+    templateUrl: 'profile-tables.html',
+  }; 
 });
 
-var feedCmp = function(a, b) {
-  if (a['sortOn'] < b['sortOn'])
-    return 1;
-  if (a['sortOn'] > b['sortOn'])
-    return -1;
-  return 0; 
-};
+app.directive("datatable", ["$log", function($log) {
+  return {
+    restrict: 'A',
+    link: function($scope, $elem, attrs) {
+      var data = $scope.frames[attrs.name];
+      var cols = $scope.columns[attrs.name];
+      var ret = cols.map(function(col) { return $('<td>').append(col); })
+      var thead = $('<thead>').append($('<tr>').append(ret));
+      $elem.append(thead);
+      var options = {'data': data};
+      options.scrollX = true;
+      options.filter = false;
+      $elem.DataTable(options); 
+    }
+  };
+}]);
 
-var exhibitData = {
-  attrs: {
-    name: "Josh Wills",
-    age: 35,
-    city: "San Francisco",
-    state: "CA",
-    zip: 94117,
-  },
-  frames: {
-    txns: [
-      {tstamp: 1, label: "This is a transaction." },
-      {tstamp: 10, label: "This is a later transaction." },
-    ],
-    calls: [
-      {tstamp: 4, label: "This is a phone call." },
-    ],
-    visits: [
-      {tstamp: 5, label: "This is a web visit." },
-      {tstamp: 20, label: "This is a later web visit." },
-    ],
-  },
-};
+app.directive("resulttable", ["$log", function($log) {
+  return {
+    restrict: 'A',
+    link: function($scope, $elem, attrs) {
+      $scope.$on('newResults', function(args) {
+        if ($.fn.dataTable.isDataTable($elem)) {
+          $elem.dataTable().fnDestroy();
+          $elem.empty();
+        }
+        var data = $scope.results.data;
+        var cols = $scope.results.columns;
+        var ret = cols.map(function(col) { return $('<td>').append(col); })
+        var thead = $('<thead>').append($('<tr>').append(ret));
+        $elem.append(thead);
+        var options = {'data': data};
+        options.scrollX = true;
+        options.scrollY = "200px";
+        options.scrollCollapse = true;
+        options.paging = false;
+        options.filter = false;
+        $elem.DataTable(options);
+      });
+    }
+  };
+}]);

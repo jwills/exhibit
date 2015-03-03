@@ -20,11 +20,9 @@ import com.cloudera.exhibit.core.ExhibitStore;
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.conf.Configuration;
 import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetReader;
-import org.kitesdk.data.spi.DatasetRepository;
-import org.kitesdk.data.spi.hive.HiveManagedDatasetRepository;
+import org.kitesdk.data.Datasets;
 
 import java.util.Map;
 
@@ -32,11 +30,8 @@ public class KiteExhibitStore implements ExhibitStore {
 
   private final Map<String, Exhibit> exhibits;
 
-  public static ExhibitStore create(Configuration conf, String db, String tbl, String idCol) {
-    DatasetRepository repository = new HiveManagedDatasetRepository.Builder()
-        .configuration(conf)
-        .build();
-    Dataset<GenericRecord> data = repository.load(db, tbl);
+  public static ExhibitStore create(String uri, String idCol) {
+    Dataset<GenericRecord> data = Datasets.load(uri);
     DatasetReader<GenericRecord> reader = data.newReader();
     Map<String, Exhibit> exhibits = Maps.newHashMap();
     try {

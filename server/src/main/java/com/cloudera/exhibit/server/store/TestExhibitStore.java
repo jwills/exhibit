@@ -18,7 +18,11 @@ import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitStore;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.simple.SimpleFrame;
+import com.cloudera.exhibit.core.simple.SimpleObs;
+import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
@@ -30,7 +34,14 @@ public class TestExhibitStore implements ExhibitStore {
 
   @Override
   public Optional<Exhibit> find(String id) {
-    Exhibit e = new SimpleExhibit(Obs.EMPTY, ImmutableMap.<String, Frame>of());
+
+    ObsDescriptor ad = SimpleObsDescriptor.of("name", ObsDescriptor.FieldType.STRING, "age", ObsDescriptor.FieldType.LONG);
+    Obs attr = SimpleObs.of(ad, "Josh Wills", 35L);
+    ObsDescriptor frm = SimpleObsDescriptor.of("tstamp", ObsDescriptor.FieldType.LONG, "label", ObsDescriptor.FieldType.STRING);
+    Obs f1 = SimpleObs.of(frm, 5L, "This is a transaction");
+    Obs f2 = SimpleObs.of(frm, 10L, "This is a second transaction");
+    Frame frame = SimpleFrame.of(f1, f2);
+    Exhibit e = new SimpleExhibit(attr, ImmutableMap.of("txns", frame));
     return Optional.of(e);
   }
 }

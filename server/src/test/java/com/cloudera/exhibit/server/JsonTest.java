@@ -22,6 +22,7 @@ import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
 import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
 import com.cloudera.exhibit.server.json.ExhibitSerializer;
+import com.cloudera.exhibit.server.json.ResultSetSerializer;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -33,6 +34,8 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.sql.ResultSet;
 
 import static org.junit.Assert.assertEquals;
 
@@ -47,12 +50,14 @@ public class JsonTest {
   ObjectMapper mapper;
 
   private String expected = "{\"attrs\":{}," +
-          "\"t1\":[{\"a\":1729,\"b\":null,\"c\":\"foo\"},{\"a\":1729,\"b\":3.0,\"c\":null},{\"a\":null,\"b\":17.0,\"c\":null}],\"e\":[]}";
+          "\"columns\":{\"t1\":[\"a\",\"b\",\"c\"],\"e\":[\"a\",\"b\",\"c\"]}," +
+          "\"frames\":{\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]],\"e\":[]}}";
 
   @Before
   public void setUp() throws Exception {
     SimpleModule mod = new SimpleModule("exhibit", Version.unknownVersion());
     mod.addSerializer(Exhibit.class, new ExhibitSerializer());
+    mod.addSerializer(ResultSet.class, new ResultSetSerializer());
     mapper = new ObjectMapper();
     mapper.registerModule(mod);
   }
