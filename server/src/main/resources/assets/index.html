@@ -31,6 +31,7 @@
     <div class="container">
       <navbar></navbar>
       <div ng-view></div>
+      <editor></editor>
       <section ng-controller="CodeController">
         <div class="row">
           <div class="col-md-6">
@@ -40,11 +41,7 @@
             <table resulttable class="table display compact row-border"></table>
           </div>
         </div>
-        <div class="row btn-group btn-group-lg" role="group">
-          <button type="button" class="btn btn-default" ng-click="single()">Run On Current Exhibit</button>
-          <button type="button" class="btn btn-default" ng-click="cached()">Run On Exhibit Cache</button>
-          <button type="button" class="btn btn-default" ng-click="all()">Run On All Exhibits</button>
-        </div>
+        <button type="button" class="btn btn-default" ng-click="single()">Run On Current Exhibit</button>
       </section>
     </div>
   </body>
