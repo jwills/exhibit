@@ -12,26 +12,21 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.server.resources;
+package com.cloudera.exhibit.server.json;
 
 import com.cloudera.exhibit.core.ExhibitId;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 
-public class ComputeRequest {
+import java.io.IOException;
 
-  @JsonProperty
-  public ExhibitId id;
-
-  @JsonProperty
-  public String code;
-
-  public ComputeRequest() {
-    this.id = null;
-    this.code = null;
-  }
-
-  public ComputeRequest(ExhibitId id, String code) {
-    this.id = id;
-    this.code = code;
+public class ExhibitIdSerializer extends JsonSerializer<ExhibitId> {
+  @Override
+  public void serialize(ExhibitId exhibitId, JsonGenerator gen, SerializerProvider provider) throws IOException {
+    gen.writeStartObject();
+    gen.writeStringField("entity", exhibitId.getEntity());
+    gen.writeStringField("id", exhibitId.getId());
+    gen.writeEndObject();
   }
 }

@@ -1,1 +1,5 @@
 body { padding-top: 70px; }
+
+#profile-tables {
+  border: 20px solid transparent;
+}

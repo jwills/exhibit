@@ -1,7 +1,7 @@
 <div id="profile-attrs" class="panel panel-info">
   <div class="panel-body">
-    <h2 class="text-center">{{attrs.fname}} {{attrs.lname}}</h2>
-    <ul class="list-inline small text-center">
+    <h2 class="text-center">{{profileTitle}}</h2>
+    <ul class="list-unstyled small text-center">
       <li ng-repeat="key in attrKeys">{{key}}: {{attrs[key]}}</li>
     </ul>
   </div>

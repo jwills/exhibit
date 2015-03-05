@@ -14,21 +14,34 @@
  */
 package com.cloudera.exhibit.server.main;
 
-import com.cloudera.exhibit.server.store.ExhibitStoreFactory;
+import com.cloudera.exhibit.core.ExhibitStore;
+import com.cloudera.exhibit.core.composite.CompositeExhibitStore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import io.dropwizard.Configuration;
+import io.dropwizard.setup.Environment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import java.util.List;
 
 public class ExhibitConfiguration extends Configuration {
 
-  @JsonProperty
-  @NotNull
-  @Valid
-  ExhibitStoreFactory exhibitStore;
+  private static final Logger LOG = LoggerFactory.getLogger(ExhibitConfiguration.class);
 
-  public ExhibitStoreFactory getExhibitStoreFactory() {
-    return exhibitStore;
+  @JsonProperty
+  @Valid
+  List<ExhibitStoreConfig> exhibits;
+
+  public ExhibitStore getExhibitStores(final Environment env, final org.apache.hadoop.conf.Configuration conf) {
+    return CompositeExhibitStore.create(Lists.transform(exhibits, new Function<ExhibitStoreConfig, ExhibitStore>() {
+      @Override
+      public ExhibitStore apply(ExhibitStoreConfig exhibitStoreConfig) {
+        LOG.info("Creating exhibit store from config: " + exhibitStoreConfig);
+        return exhibitStoreConfig.create(env, conf);
+      }
+    }));
   }
 }

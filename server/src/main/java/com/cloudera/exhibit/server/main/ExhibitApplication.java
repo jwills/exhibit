@@ -15,11 +15,16 @@
 package com.cloudera.exhibit.server.main;
 
 import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitStore;
 import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.server.checks.ExhibitStoreCheck;
+import com.cloudera.exhibit.core.ExhibitId;
+import com.cloudera.exhibit.core.ExhibitStore;
+import com.cloudera.exhibit.server.calcs.CalculationStore;
+import com.cloudera.exhibit.server.checks.ExhibitStoresCheck;
+import com.cloudera.exhibit.server.json.ExhibitIdDeserializer;
+import com.cloudera.exhibit.server.json.ExhibitIdSerializer;
 import com.cloudera.exhibit.server.json.ExhibitSerializer;
 import com.cloudera.exhibit.server.json.FrameSerializer;
+import com.cloudera.exhibit.server.resources.CalculationResource;
 import com.cloudera.exhibit.server.resources.ComputeResource;
 import com.cloudera.exhibit.server.resources.FetchResource;
 import com.fasterxml.jackson.core.Version;
@@ -52,22 +57,27 @@ public class ExhibitApplication extends Application<ExhibitConfiguration> implem
   public void run(ExhibitConfiguration config, Environment env) throws Exception {
     // basic env stuff
     setupMapper(env.getObjectMapper());
-    ExhibitStore store = config.getExhibitStoreFactory().build(env, getConf());
+    ExhibitStore exhibits = config.getExhibitStores(env, getConf());
+    CalculationStore calcs = new CalculationStore();
 
     // health checks
-    env.healthChecks().register("store", new ExhibitStoreCheck(store));
+    env.healthChecks().register("stores", new ExhibitStoresCheck(exhibits));
 
     // API home
     env.jersey().setUrlPattern("/api/*");
     // resources
-    final FetchResource fetch = new FetchResource(store);
+    final FetchResource fetch = new FetchResource(exhibits, calcs);
     env.jersey().register(fetch);
-    final ComputeResource compute = new ComputeResource(store);
+    final ComputeResource compute = new ComputeResource(exhibits);
     env.jersey().register(compute);
+    final CalculationResource calculations = new CalculationResource(calcs);
+    env.jersey().register(calculations);
   }
 
   void setupMapper(ObjectMapper mapper) {
     SimpleModule mod = new SimpleModule("exhibit", Version.unknownVersion());
+    mod.addSerializer(ExhibitId.class, new ExhibitIdSerializer());
+    mod.addDeserializer(ExhibitId.class, new ExhibitIdDeserializer());
     mod.addSerializer(Exhibit.class, new ExhibitSerializer());
     mod.addSerializer(Frame.class, new FrameSerializer());
     mapper.registerModule(mod);

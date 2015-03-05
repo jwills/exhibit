@@ -1,0 +1,10 @@
+<div id="profile-network" class="panel panel-primary">
+  <div ng-repeat="(entity, entries) in network" class="panel panel-default">
+    <div class="panel-heading text-center">{{entity}}</div>
+    <ul class="list-unstyled">
+      <li ng-repeat="t in entries | limitTo: 5">
+        <a ng-href="#/ex/{{entity}}/{{t[0]}}">{{t[0]}} ({{t[1]}})</a>
+      </li>
+    </ul>
+  </div>
+</div>

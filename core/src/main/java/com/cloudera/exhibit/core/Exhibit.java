@@ -15,6 +15,7 @@
 package com.cloudera.exhibit.core;
 
 import java.util.Map;
+import java.util.Set;
 
 public interface Exhibit {
   ExhibitDescriptor descriptor();

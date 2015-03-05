@@ -12,18 +12,17 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.server;
+package com.cloudera.exhibit.server.json;
 
 import com.cloudera.exhibit.avro.AvroFrame;
 import com.cloudera.exhibit.avro.AvroObsDescriptor;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.ExhibitId;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
 import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
-import com.cloudera.exhibit.server.json.ExhibitSerializer;
-import com.cloudera.exhibit.server.json.FrameSerializer;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -57,6 +56,7 @@ public class JsonTest {
     SimpleModule mod = new SimpleModule("exhibit", Version.unknownVersion());
     mod.addSerializer(Exhibit.class, new ExhibitSerializer());
     mod.addSerializer(Frame.class, new FrameSerializer());
+    mod.addSerializer(ExhibitId.class, new ExhibitIdSerializer());
     mapper = new ObjectMapper();
     mapper.registerModule(mod);
   }

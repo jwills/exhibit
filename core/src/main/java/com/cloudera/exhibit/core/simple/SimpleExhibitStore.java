@@ -15,27 +15,27 @@
 package com.cloudera.exhibit.core.simple;
 
 import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitId;
 import com.cloudera.exhibit.core.ExhibitStore;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
+import java.util.Set;
 
 public class SimpleExhibitStore implements ExhibitStore {
 
+  private final String entity;
   private final Map<String, Exhibit> exhibits;
 
-  public static SimpleExhibitStore of(String id, Exhibit e, Object... rest) {
-    Map<String, Exhibit> exhibits = Maps.newHashMap();
-    exhibits.put(id, e);
-    for (int i = 0; i < rest.length; i += 2) {
-      exhibits.put(rest[i].toString(), (Exhibit) rest[i + 1]);
-    }
-    return new SimpleExhibitStore(exhibits);
+  public static SimpleExhibitStore of(String entity, Map<String, Exhibit> exhibits) {
+    return new SimpleExhibitStore(entity, exhibits);
   }
 
-  public SimpleExhibitStore(Map<String, Exhibit> exhibits) {
+  public SimpleExhibitStore(String entity, Map<String, Exhibit> exhibits) {
+    this.entity = Preconditions.checkNotNull(entity);
     this.exhibits = Preconditions.checkNotNull(exhibits);
   }
 
@@ -45,7 +45,15 @@ public class SimpleExhibitStore implements ExhibitStore {
   }
 
   @Override
-  public Optional<Exhibit> find(String id) {
-    return Optional.fromNullable(exhibits.get(id));
+  public Set<String> entities() {
+    return ImmutableSet.of(entity);
+  }
+
+  @Override
+  public Optional<Exhibit> find(ExhibitId id) {
+    if (!entity.equals(id.getEntity())) {
+      return Optional.absent();
+    }
+    return Optional.fromNullable(exhibits.get(id.getId()));
   }
 }

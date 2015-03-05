@@ -15,34 +15,41 @@
 package com.cloudera.exhibit.server.resources;
 
 import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitId;
 import com.cloudera.exhibit.core.ExhibitStore;
-import com.cloudera.exhibit.core.simple.SimpleExhibit;
-import com.google.common.base.Optional;
+import com.cloudera.exhibit.server.calcs.CalculationStore;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import java.util.Map;
 
-@Path("/exhibit")
+@Path("/exhibit/{entity}/{id}")
 @Produces(MediaType.APPLICATION_JSON)
 public class FetchResource {
 
   private static final Logger LOG = LoggerFactory.getLogger(FetchResource.class);
 
-  private ExhibitStore store;
+  private ExhibitStore exhibits;
+  private CalculationStore calcs;
 
-  public FetchResource(ExhibitStore store) {
-    this.store = Preconditions.checkNotNull(store);
+  public FetchResource(ExhibitStore exhibits, CalculationStore calcs) {
+    this.exhibits = Preconditions.checkNotNull(exhibits);
+    this.calcs = Preconditions.checkNotNull(calcs);
   }
 
   @GET
-  public Optional<Exhibit> fetch(@QueryParam("id") String id) {
-    Optional<Exhibit> res = store.find(id);
-    return res;
+  public FetchResponse fetch(@PathParam("entity") String entity, @PathParam("id") String id) {
+    ExhibitId eid = ExhibitId.create(entity, id);
+    LOG.info("Looking up " + eid);
+    Exhibit exhibit = exhibits.find(eid).orNull();
+    Map<String, Map<String, Object>> metrics = calcs.computeKPIs(exhibit);
+    return new FetchResponse(eid, exhibit, metrics);
   }
 }

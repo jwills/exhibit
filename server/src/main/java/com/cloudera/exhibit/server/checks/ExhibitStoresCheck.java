@@ -12,36 +12,29 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.server.store;
+package com.cloudera.exhibit.server.checks;
 
 import com.cloudera.exhibit.core.ExhibitStore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.dropwizard.setup.Environment;
-import org.apache.hadoop.conf.Configuration;
+import com.codahale.metrics.health.HealthCheck;
 
-import javax.validation.Valid;
+public class ExhibitStoresCheck extends HealthCheck {
 
-public class ExhibitStoreFactory {
+  private final ExhibitStore stores;
 
-  @JsonProperty
-  @Valid
-  boolean test = false;
+  public ExhibitStoresCheck(ExhibitStore stores) {
+    this.stores = stores;
+  }
 
-
-  @JsonProperty
-  @Valid
-  String uri = "";
-
-
-  @JsonProperty
-  @Valid
-  String idColumn = "";
-
-  public ExhibitStore build(Environment env, Configuration conf) {
-    if (test) {
-      return new TestExhibitStore();
-    } else {
-      return KiteExhibitStore.create(uri, idColumn);
+  @Override
+  protected Result check() throws Exception {
+    try {
+      if (stores.isConnected()) {
+        return Result.healthy();
+      } else {
+        return Result.unhealthy("Disconnected exhibit stores");
+      }
+    } catch (Throwable t) {
+      return Result.unhealthy(t);
     }
   }
 }

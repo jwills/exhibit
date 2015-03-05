@@ -28,21 +28,10 @@
   </head>
 
   <body ng-app="exprofile">
-    <div class="container">
+    <div class="container" ng-controller="CodeController">
       <navbar></navbar>
       <div ng-view></div>
       <editor></editor>
-      <section ng-controller="CodeController">
-        <div class="row">
-          <div class="col-md-6">
-            <textarea ui-codemirror ng-model="code"></textarea>
-          </div>
-          <div class="col-md-6" ng-show="hasResults">
-            <table resulttable class="table display compact row-border"></table>
-          </div>
-        </div>
-        <button type="button" class="btn btn-default" ng-click="single()">Run On Current Exhibit</button>
-      </section>
     </div>
   </body>
 </html>

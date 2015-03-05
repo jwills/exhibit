@@ -1,8 +1,12 @@
-<section ng-controller="CodeController">
+<section>
   <div class="row">
     <div class="col-md-6">
       <textarea ui-codemirror ng-model="code"></textarea>
-      <button type="button" class="btn btn-default" ng-click="single()">Run On Current Exhibit</button>
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-default" ng-click="locally()">Run Locally</button>
+        <button type="button" class="btn btn-default" ng-click="cluster()">Run on Cluster</button>
+        <button type="button" class="btn btn-default" ng-click="save()">Save</button>
+      </div>
     </div>
     <div class="col-md-6" ng-show="hasResults">
       <table resulttable class="table display compact row-border"></table>

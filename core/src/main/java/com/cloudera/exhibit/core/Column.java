@@ -14,12 +14,33 @@
  */
 package com.cloudera.exhibit.core;
 
-import com.google.common.base.Optional;
+import java.util.AbstractList;
 
-import java.util.Set;
+public class Column extends AbstractList<Object> {
 
-public interface ExhibitStore {
-  boolean isConnected();
-  Set<String> entities();
-  Optional<Exhibit> find(ExhibitId id);
+  private final Frame frame;
+  private final int index;
+
+  public static Column create(Frame frame, String name) {
+    return create(frame, frame.descriptor().indexOf(name));
+  }
+
+  public static Column create(Frame frame, int index) {
+    return new Column(frame, index);
+  }
+
+  public Column(Frame frame, int index) {
+    this.frame = frame;
+    this.index = index;
+  }
+
+  @Override
+  public Object get(int i) {
+    return frame.get(i).get(index);
+  }
+
+  @Override
+  public int size() {
+    return frame.size();
+  }
 }
