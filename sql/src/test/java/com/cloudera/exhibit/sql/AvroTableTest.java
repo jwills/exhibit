@@ -16,14 +16,13 @@ package com.cloudera.exhibit.sql;
 
 import com.cloudera.exhibit.avro.AvroFrame;
 import com.cloudera.exhibit.avro.AvroObsDescriptor;
+import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.google.common.collect.ImmutableList;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.junit.Test;
-
-import java.sql.ResultSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,8 +43,8 @@ public class AvroTableTest {
       "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    ResultSet rs = calc.apply(SimpleExhibit.of("t1", new AvroFrame(at)));
-    assertFalse(rs.next());
+    Frame frame = calc.apply(SimpleExhibit.of("t1", new AvroFrame(at)));
+    assertFalse(frame.size() > 0);
   }
 
   @Test
@@ -63,10 +62,10 @@ public class AvroTableTest {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    ResultSet rs = calc.apply(SimpleExhibit.of("t1", frame));
-    assertTrue(rs.next());
-    assertEquals(true, rs.getBoolean(1));
-    assertEquals(1729, rs.getInt(2));
+    Frame res = calc.apply(SimpleExhibit.of("t1", frame));
+    assertTrue(res.size() == 1);
+    assertEquals(Boolean.TRUE, res.get(0).get(0));
+    assertEquals(1729, res.get(0).get(1));
   }
 
   @Test
@@ -82,9 +81,9 @@ public class AvroTableTest {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    ResultSet rs = calc.apply(SimpleExhibit.of("t1", frame));
-    assertTrue(rs.next());
-    assertEquals(false, rs.getBoolean(1));
-    assertEquals(1729, rs.getInt(2));
+    Frame res = calc.apply(SimpleExhibit.of("t1", frame));
+    assertTrue(res.size() == 1);
+    assertEquals(null, res.get(0).get(0));
+    assertEquals(1729, res.get(0).get(1));
   }
 }

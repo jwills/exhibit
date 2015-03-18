@@ -14,11 +14,15 @@
  */
 package com.cloudera.exhibit.sql;
 
-import com.cloudera.exhibit.core.Calculator;
+import com.cloudera.exhibit.core.FrameCalculator;
+import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.simple.SimpleFrame;
+import com.cloudera.exhibit.core.simple.SimpleObs;
+import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import net.hydromatic.optiq.Table;
@@ -29,11 +33,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-public class SQLCalculator implements Serializable, Calculator<ResultSet> {
+public class SQLCalculator implements Serializable, FrameCalculator {
 
   private transient ModifiableSchema rootSchema;
   private transient OptiqConnection conn;
@@ -75,11 +81,12 @@ public class SQLCalculator implements Serializable, Calculator<ResultSet> {
   }
 
   @Override
-  public ResultSet apply(Exhibit exhibit) {
+  public Frame apply(Exhibit exhibit) {
     if (rootSchema == null) {
       try {
         initialize(exhibit.descriptor());
       } catch (SQLException e) {
+        e.printStackTrace();
         throw new RuntimeException(e);
       }
     }
@@ -94,9 +101,32 @@ public class SQLCalculator implements Serializable, Calculator<ResultSet> {
         rootSchema.getTableMap().put("TEMP" + (i + 1), tbl);
         rootSchema.getTableMap().put("LAST", tbl);
       }
-      return stmts.get(queries.length - 1).executeQuery();
+      return fromResultSet(stmts.get(queries.length - 1).executeQuery());
     } catch (SQLException e) {
+      e.printStackTrace();
       throw new RuntimeException(e);
     }
+  }
+
+  private Frame fromResultSet(ResultSet rs) throws SQLException {
+    ObsDescriptor desc = fromMetadata(rs.getMetaData());
+    List<Obs> obs = Lists.newArrayList();
+    while (rs.next()) {
+      List<Object> values = Lists.newArrayListWithExpectedSize(desc.size());
+      for (int i = 1; i <= desc.size(); i++) {
+        values.add(rs.getObject(i));
+      }
+      obs.add(new SimpleObs(desc, values));
+    }
+    return new SimpleFrame(desc, obs);
+  }
+
+  private ObsDescriptor fromMetadata(ResultSetMetaData md) throws SQLException {
+    List<ObsDescriptor.Field> fields = Lists.newArrayListWithExpectedSize(md.getColumnCount());
+    for (int i = 0; i < md.getColumnCount(); i++) {
+      String name = md.getColumnLabel(i + 1).toLowerCase(Locale.ENGLISH);
+      fields.add(new ObsDescriptor.Field(name, TypeUtils.getFieldTypeForSQLType(md.getColumnType(i + 1))));
+    }
+    return new SimpleObsDescriptor(fields);
   }
 }

@@ -28,8 +28,6 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Map;
 
 @Description(name = "within",
@@ -60,14 +58,9 @@ public class WithinUDTF extends GenericUDTF {
     this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
     this.calculator = new SQLCalculator(queries);
 
-    try {
-      ResultSet rs = calculator.apply(exhibit);
-      StructObjectInspector res = HiveUtils.fromMetaData(rs.getMetaData());
-      this.results = new Object[res.getAllStructFieldRefs().size()];
-      return res;
-    } catch (SQLException e) {
-      throw new IllegalStateException("Schema validation query failure: " + e.getMessage(), e);
-    }
+    Frame frame = calculator.apply(exhibit);
+    this.results = new Object[frame.descriptor().size()];
+    return (StructObjectInspector) HiveUtils.fromDescriptor(frame.descriptor(), true);
   }
 
   @Override
@@ -75,16 +68,12 @@ public class WithinUDTF extends GenericUDTF {
     for (int i = 1; i < args.length; i++) {
       ((HiveFrame) exhibit.frames().get("T" + i)).updateValues(args[i]);
     }
-    try {
-      ResultSet rs = calculator.apply(exhibit);
-      while (rs.next()) {
-        for (int i = 0; i < results.length; i++) {
-          results[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
-        }
-        forward(results);
+    Frame res = calculator.apply(exhibit);
+    for (Obs obs : res) {
+      for (int i = 0; i < results.length; i++) {
+        results[i] = HiveUtils.asHiveType(obs.get(i));
       }
-    } catch (SQLException e) {
-      throw new HiveException("Error processing SQL query", e);
+      forward(results);
     }
   }
 

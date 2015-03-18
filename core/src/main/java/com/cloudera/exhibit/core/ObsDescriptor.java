@@ -22,11 +22,15 @@ import java.util.Iterator;
 public interface ObsDescriptor extends Iterable<ObsDescriptor.Field> {
   enum FieldType {
     BOOLEAN,
+    SHORT,
     INTEGER,
     LONG,
     FLOAT,
     DOUBLE,
-    STRING
+    STRING,
+    DATE,
+    TIMESTAMP,
+    DECIMAL
   }
 
   static class Field {

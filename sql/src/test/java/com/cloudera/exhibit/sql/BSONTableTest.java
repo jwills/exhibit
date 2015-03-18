@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.sql;
 
+import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.ObsDescriptor.FieldType;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
@@ -25,7 +26,6 @@ import com.mongodb.BasicDBObject;
 import org.bson.BSONObject;
 import org.junit.Test;
 
-import java.sql.ResultSet;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -43,8 +43,8 @@ public class BSONTableTest {
         "select a, sum(b) as sumb from t1 where c = 'foo' group by a"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    ResultSet rs = calc.apply(SimpleExhibit.of("t1", bst));
-    assertFalse(rs.next());
+    Frame res = calc.apply(SimpleExhibit.of("t1", bst));
+    assertFalse(res.size() > 0);
   }
 
   @Test
@@ -61,11 +61,10 @@ public class BSONTableTest {
     };
 
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
-    ResultSet rs = (new SQLCalculator(queries)).apply(exhibit);
-    assertTrue(rs.next());
-    assertEquals(1729, rs.getInt("a"));
-    assertEquals(1.0, rs.getDouble("sumb"), 0.001);
-    assertFalse(rs.next());
+    Frame res = (new SQLCalculator(queries)).apply(exhibit);
+    assertTrue(res.size() == 1);
+    assertEquals(1729, res.get(0).get("a"));
+    assertEquals(1.0, res.get(0).get("sumb", Double.class), 0.001);
   }
 
   @Test
@@ -85,19 +84,18 @@ public class BSONTableTest {
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
     long start = System.currentTimeMillis();
     SQLCalculator calc = new SQLCalculator(queries);
-    ResultSet rs = calc.apply(exhibit);
+    Frame res = calc.apply(exhibit);
     System.out.println("First = " + (System.currentTimeMillis() - start));
-    assertTrue(rs.next());
-    assertEquals(2.0, rs.getDouble("added"), 0.001);
-    assertFalse(rs.next());
+    assertTrue(res.size() == 1);
+    assertEquals(2.0, res.get(0).get("added", Double.class), 0.001);
 
     start = System.currentTimeMillis();
     bst = new BSONFrame(d, ImmutableList.of(
         new BasicDBObject(ImmutableMap.<String, Object>of("a", 1728, "b", 2.0, "c", "foo"))));
-    rs = calc.apply(SimpleExhibit.of("t1", bst));
+    res = calc.apply(SimpleExhibit.of("t1", bst));
     System.out.println("Second = " + (System.currentTimeMillis() - start));
-    assertTrue(rs.next());
-    assertEquals(3.0, rs.getDouble("added"), 0.001);
+    assertTrue(res.size() == 1);
+    assertEquals(3.0, res.get(0).get("added", Double.class), 0.001);
   }
 
   @Test
@@ -116,10 +114,9 @@ public class BSONTableTest {
     };
 
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
-    ResultSet rs = (new SQLCalculator(queries)).apply(exhibit);
-    assertTrue(rs.next());
-    assertEquals(1729, rs.getInt("a"));
-    assertEquals(1.0, rs.getDouble("sumb"), 0.001);
-    assertFalse(rs.next());
+    Frame res = (new SQLCalculator(queries)).apply(exhibit);
+    assertTrue(res.size() == 1);
+    assertEquals(1729, res.get(0).get("a"));
+    assertEquals(1.0, res.get(0).get("sumb", Double.class), 0.001);
   }
 }

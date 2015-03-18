@@ -17,12 +17,13 @@ package com.cloudera.exhibit.server;
 import com.cloudera.exhibit.avro.AvroFrame;
 import com.cloudera.exhibit.avro.AvroObsDescriptor;
 import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
 import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
 import com.cloudera.exhibit.server.json.ExhibitSerializer;
-import com.cloudera.exhibit.server.json.ResultSetSerializer;
+import com.cloudera.exhibit.server.json.FrameSerializer;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -34,8 +35,6 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.sql.ResultSet;
 
 import static org.junit.Assert.assertEquals;
 
@@ -57,7 +56,7 @@ public class JsonTest {
   public void setUp() throws Exception {
     SimpleModule mod = new SimpleModule("exhibit", Version.unknownVersion());
     mod.addSerializer(Exhibit.class, new ExhibitSerializer());
-    mod.addSerializer(ResultSet.class, new ResultSetSerializer());
+    mod.addSerializer(Frame.class, new FrameSerializer());
     mapper = new ObjectMapper();
     mapper.registerModule(mod);
   }

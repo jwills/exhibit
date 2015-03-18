@@ -16,6 +16,7 @@ package com.cloudera.exhibit.server.resources;
 
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitStore;
+import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.base.Preconditions;
 
@@ -26,7 +27,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 @Path("/compute")
@@ -41,7 +41,7 @@ public class ComputeResource {
   }
 
   @POST
-  public ResultSet compute(@Valid ComputeRequest req) throws SQLException {
+  public Frame compute(@Valid ComputeRequest req) throws SQLException {
     Exhibit exhibit = req.getExhibit(store);
     SQLCalculator calc = new SQLCalculator(req.getQueries());
     return calc.apply(exhibit);

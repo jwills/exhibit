@@ -14,11 +14,15 @@
  */
 package com.cloudera.exhibit.hive;
 
+import com.cloudera.exhibit.core.Calculators;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsCalculator;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.sql.SQLCalculator;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -27,17 +31,14 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
-import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
 public class WithinUDF extends GenericUDF {
 
-  private SQLCalculator calculator;
+  private ObsCalculator calculator;
   private transient Exhibit exhibit;
 
   public WithinUDF() {
@@ -58,15 +59,8 @@ public class WithinUDF extends GenericUDF {
       frames.put("T" + i, frame);
     }
     this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
-    this.calculator = new SQLCalculator(queries);
-
-    try {
-      ResultSet rs = calculator.apply(exhibit);
-      StructObjectInspector res = HiveUtils.fromMetaData(rs.getMetaData());
-      return ObjectInspectorFactory.getStandardListObjectInspector(res);
-    } catch (SQLException e) {
-      throw new IllegalStateException("Schema validation query failure: " + e.getMessage(), e);
-    }
+    this.calculator = Calculators.frame2obs(new SQLCalculator(queries));
+    return HiveUtils.fromDescriptor(calculator.apply(exhibit).descriptor(), false);
   }
 
   @Override
@@ -74,19 +68,18 @@ public class WithinUDF extends GenericUDF {
     for (int i = 1; i < args.length; i++) {
       ((HiveFrame) exhibit.frames().get("T" + i)).updateValues(args[i].get());
     }
-    try {
-      ResultSet rs = calculator.apply(exhibit);
-      List result = Lists.newArrayList();
-      while (rs.next()) {
-        Object[] ret = new Object[rs.getMetaData().getColumnCount()];
-        for (int i = 0; i < ret.length; i++) {
-          ret[i] = HiveUtils.asHiveType(rs.getObject(i + 1));
-        }
-        result.add(ret);
+    return getResult(calculator.apply(exhibit));
+  }
+
+  private Object getResult(Obs obs) {
+    if (obs.descriptor().size() == 1) {
+      return HiveUtils.asHiveType(obs.get(0));
+    } else {
+      List<Object> values = Lists.newArrayListWithExpectedSize(obs.descriptor().size());
+      for (int i = 0; i < obs.descriptor().size(); i++) {
+        values.add(HiveUtils.asHiveType(obs.get(i)));
       }
-      return result;
-    } catch (SQLException e) {
-      throw new HiveException("Error processing SQL query", e);
+      return values;
     }
   }
 

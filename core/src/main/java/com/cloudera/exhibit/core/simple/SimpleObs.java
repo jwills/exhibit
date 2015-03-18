@@ -45,4 +45,8 @@ public class SimpleObs extends Obs {
   public Object get(int index) {
     return values.get(index);
   }
+
+  public List<Object> getValues() {
+    return values;
+  }
 }

@@ -16,5 +16,5 @@ package com.cloudera.exhibit.core;
 
 import com.google.common.base.Function;
 
-public interface Calculator<T> extends Function<Exhibit, T> {
+public interface ObsCalculator extends Function<Exhibit, Obs> {
 }

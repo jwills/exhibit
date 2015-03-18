@@ -16,10 +16,10 @@ package com.cloudera.exhibit.server.main;
 
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitStore;
+import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.server.checks.ExhibitStoreCheck;
 import com.cloudera.exhibit.server.json.ExhibitSerializer;
-import com.cloudera.exhibit.server.json.ResultSetSerializer;
-import com.cloudera.exhibit.server.store.KiteExhibitStore;
+import com.cloudera.exhibit.server.json.FrameSerializer;
 import com.cloudera.exhibit.server.resources.ComputeResource;
 import com.cloudera.exhibit.server.resources.FetchResource;
 import com.fasterxml.jackson.core.Version;
@@ -31,8 +31,6 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-
-import java.sql.ResultSet;
 
 public class ExhibitApplication extends Application<ExhibitConfiguration> implements Configurable {
 
@@ -71,7 +69,7 @@ public class ExhibitApplication extends Application<ExhibitConfiguration> implem
   void setupMapper(ObjectMapper mapper) {
     SimpleModule mod = new SimpleModule("exhibit", Version.unknownVersion());
     mod.addSerializer(Exhibit.class, new ExhibitSerializer());
-    mod.addSerializer(ResultSet.class, new ResultSetSerializer());
+    mod.addSerializer(Frame.class, new FrameSerializer());
     mapper.registerModule(mod);
   }
 

@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.sql;
 
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.ImmutableMap;
 
 import java.math.BigDecimal;
@@ -42,8 +43,28 @@ public class TypeUtils {
       .put(Types.VARCHAR, String.class)
       .build();
 
+  private static final Map<Integer, ObsDescriptor.FieldType> SQL_TYPES_TO_FIELD_TYPES =
+      ImmutableMap.<Integer, ObsDescriptor.FieldType>builder()
+              .put(Types.BIGINT, ObsDescriptor.FieldType.LONG)
+              .put(Types.BIT, ObsDescriptor.FieldType.BOOLEAN)
+              .put(Types.BOOLEAN, ObsDescriptor.FieldType.BOOLEAN)
+              .put(Types.CHAR, ObsDescriptor.FieldType.STRING)
+              .put(Types.DATE, ObsDescriptor.FieldType.DATE)
+              .put(Types.DECIMAL, ObsDescriptor.FieldType.DECIMAL)
+              .put(Types.DOUBLE, ObsDescriptor.FieldType.DOUBLE)
+              .put(Types.FLOAT, ObsDescriptor.FieldType.DOUBLE) // Note: Yes, this is right.
+              .put(Types.INTEGER, ObsDescriptor.FieldType.INTEGER)
+              .put(Types.LONGVARCHAR, ObsDescriptor.FieldType.STRING)
+              .put(Types.REAL, ObsDescriptor.FieldType.FLOAT)
+              .put(Types.SMALLINT, ObsDescriptor.FieldType.SHORT)
+              .put(Types.TIMESTAMP, ObsDescriptor.FieldType.TIMESTAMP)
+              .put(Types.TINYINT, ObsDescriptor.FieldType.SHORT)
+              .put(Types.VARCHAR, ObsDescriptor.FieldType.STRING)
+              .build();
+
   public static Class getJavaClassForSQLType(int sqlType) {
     return SQL_TYPES_TO_JAVA.get(sqlType);
   }
 
+  public static ObsDescriptor.FieldType getFieldTypeForSQLType(int sqlType) { return SQL_TYPES_TO_FIELD_TYPES.get(sqlType); }
 }

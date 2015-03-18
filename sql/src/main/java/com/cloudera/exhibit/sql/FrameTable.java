@@ -37,6 +37,9 @@ import org.eigenbase.relopt.RelOptTable;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +96,10 @@ public class FrameTable extends AbstractQueryableTable implements TranslatableTa
   }
 
   private static Map<FieldType, Class> TYPE_CLASSES = ImmutableMap.<FieldType, Class>builder()
+          .put(FieldType.DATE, Date.class)
+          .put(FieldType.TIMESTAMP, Timestamp.class)
+          .put(FieldType.DECIMAL, BigDecimal.class)
+          .put(FieldType.SHORT, Short.class)
           .put(FieldType.BOOLEAN, Boolean.class)
           .put(FieldType.DOUBLE, Double.class)
           .put(FieldType.FLOAT, Float.class)

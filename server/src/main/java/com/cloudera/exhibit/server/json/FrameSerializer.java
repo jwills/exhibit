@@ -17,37 +17,33 @@
  */
 package com.cloudera.exhibit.server.json;
 
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
 import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
-public class ResultSetSerializer extends JsonSerializer<ResultSet> {
+public class FrameSerializer extends JsonSerializer<Frame> {
   @Override
-  public void serialize(ResultSet rs, JsonGenerator gen, SerializerProvider provider) throws IOException {
+  public void serialize(Frame res, JsonGenerator gen, SerializerProvider provider) throws IOException {
     gen.writeStartObject();
-    try {
-      gen.writeArrayFieldStart("columns");
-      for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-        gen.writeString(rs.getMetaData().getColumnLabel(i));
-      }
-      gen.writeEndArray();
-
-      gen.writeArrayFieldStart("data");
-      while (rs.next()) {
-        gen.writeStartArray();
-        for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-          gen.writeObject(rs.getObject(i));
-        }
-        gen.writeEndArray();
-      }
-      gen.writeEndArray();
-    } catch (SQLException e) {
-      throw new IOException("SQL exception", e);
+    gen.writeArrayFieldStart("columns");
+    for (int i = 0; i < res.descriptor().size(); i++) {
+      gen.writeString(res.descriptor().get(i).name);
     }
+    gen.writeEndArray();
+
+    gen.writeArrayFieldStart("data");
+    for (Obs obs : res) {
+      gen.writeStartArray();
+      for (int i = 0; i < res.descriptor().size(); i++) {
+        gen.writeObject(obs.get(i));
+      }
+      gen.writeEndArray();
+    }
+    gen.writeEndArray();
     gen.writeEndObject();
   }
 }

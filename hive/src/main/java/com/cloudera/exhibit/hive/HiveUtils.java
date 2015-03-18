@@ -25,40 +25,30 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
 import java.math.BigDecimal;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
 public final class HiveUtils {
 
-  private static final Map<Integer, ObjectInspector> SQL_TYPES_TO_OI = ImmutableMap.<Integer, ObjectInspector>builder()
-      .put(Types.BIGINT, PrimitiveObjectInspectorFactory.javaLongObjectInspector)
-      .put(Types.BIT, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
-      .put(Types.BOOLEAN, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
-      .put(Types.CHAR, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
-      .put(Types.DATE, PrimitiveObjectInspectorFactory.javaDateObjectInspector)
-      .put(Types.DECIMAL, PrimitiveObjectInspectorFactory.javaHiveDecimalObjectInspector)
-      .put(Types.DOUBLE, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector)
-      .put(Types.FLOAT, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector) // Note: Yes, this is right.
-      .put(Types.INTEGER, PrimitiveObjectInspectorFactory.javaIntObjectInspector)
-      .put(Types.LONGVARCHAR, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
-      .put(Types.REAL, PrimitiveObjectInspectorFactory.javaFloatObjectInspector)
-      .put(Types.SMALLINT, PrimitiveObjectInspectorFactory.javaShortObjectInspector)
-      .put(Types.TIMESTAMP, PrimitiveObjectInspectorFactory.javaTimestampObjectInspector)
-      .put(Types.TINYINT, PrimitiveObjectInspectorFactory.javaShortObjectInspector)
-      .put(Types.VARCHAR, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
+  private static final Map<ObsDescriptor.FieldType, ObjectInspector> FIELD_TYPES_TO_OI =
+      ImmutableMap.<ObsDescriptor.FieldType, ObjectInspector>builder()
+      .put(ObsDescriptor.FieldType.LONG, PrimitiveObjectInspectorFactory.javaLongObjectInspector)
+      .put(ObsDescriptor.FieldType.BOOLEAN, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
+      .put(ObsDescriptor.FieldType.DATE, PrimitiveObjectInspectorFactory.javaDateObjectInspector)
+      .put(ObsDescriptor.FieldType.DECIMAL, PrimitiveObjectInspectorFactory.javaHiveDecimalObjectInspector)
+      .put(ObsDescriptor.FieldType.DOUBLE, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector)
+      .put(ObsDescriptor.FieldType.FLOAT, PrimitiveObjectInspectorFactory.javaFloatObjectInspector)
+      .put(ObsDescriptor.FieldType.INTEGER, PrimitiveObjectInspectorFactory.javaIntObjectInspector)
+      .put(ObsDescriptor.FieldType.SHORT, PrimitiveObjectInspectorFactory.javaShortObjectInspector)
+      .put(ObsDescriptor.FieldType.TIMESTAMP, PrimitiveObjectInspectorFactory.javaTimestampObjectInspector)
+      .put(ObsDescriptor.FieldType.STRING, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
       .build();
-
-  public static ObjectInspector getObjectInspectorForSQLType(int sqlType) {
-    return SQL_TYPES_TO_OI.get(sqlType);
-  }
 
   public static String[] getQueries(ObjectInspector first) throws UDFArgumentException {
     String[] queries = null;
@@ -93,6 +83,11 @@ public final class HiveUtils {
           .put(Float.class, ObsDescriptor.FieldType.FLOAT)
           .put(Double.class, ObsDescriptor.FieldType.DOUBLE)
           .put(String.class, ObsDescriptor.FieldType.STRING)
+          .put(HiveDecimal.class, ObsDescriptor.FieldType.DECIMAL)
+          .put(BigDecimal.class, ObsDescriptor.FieldType.DECIMAL)
+          .put(Timestamp.class, ObsDescriptor.FieldType.TIMESTAMP)
+          .put(Short.class, ObsDescriptor.FieldType.SHORT)
+          .put(Date.class, ObsDescriptor.FieldType.DATE)
           .build();
 
   public static ObsDescriptor.FieldType getFieldType(ObjectInspector oi) {
@@ -114,24 +109,6 @@ public final class HiveUtils {
     }
   }
 
-  public static StructObjectInspector fromMetaData(ResultSetMetaData metadata) throws UDFArgumentException, SQLException {
-    int colCount = metadata.getColumnCount();
-    if (colCount == 0) {
-      throw new UDFArgumentException("No columns returned from query");
-    }
-    List<String> names = Lists.newArrayList();
-    List<ObjectInspector> inspectors = Lists.newArrayList();
-    for (int i = 1; i <= colCount; i++) {
-      names.add(metadata.getColumnLabel(i));
-      ObjectInspector oi = getObjectInspectorForSQLType(metadata.getColumnType(i));
-      if (oi == null) {
-        throw new UDFArgumentException("Unknown column type in result: " + metadata.getColumnTypeName(i));
-      }
-      inspectors.add(oi);
-    }
-    return ObjectInspectorFactory.getStandardStructObjectInspector(names, inspectors);
-  }
-
   public static Object asJavaType(Object v) {
     if (v instanceof HiveDecimal) {
       return ((HiveDecimal) v).bigDecimalValue();
@@ -149,4 +126,18 @@ public final class HiveUtils {
   }
 
   private HiveUtils() {}
+
+  public static ObjectInspector fromDescriptor(ObsDescriptor descriptor, boolean asStruct) {
+    if (asStruct || descriptor.size() > 1) {
+      List<String> names = Lists.newArrayList();
+      List<ObjectInspector> inspectors = Lists.newArrayList();
+      for (ObsDescriptor.Field f : descriptor) {
+        names.add(f.name);
+        inspectors.add(FIELD_TYPES_TO_OI.get(f.type));
+      }
+      return ObjectInspectorFactory.getStandardStructObjectInspector(names, inspectors);
+    } else {
+      return FIELD_TYPES_TO_OI.get(descriptor.get(0).type);
+    }
+  }
 }
