@@ -33,6 +33,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class BSONTableTest {
+
+  private Frame eval(SQLCalculator calc, Exhibit e) {
+    calc.initialize(e.descriptor());
+    Frame frm = calc.apply(e);
+    calc.cleanup();
+    return frm;
+  }
+
   @Test
   public void testEmpty() throws Exception {
     BSONObsDescriptor d = new BSONObsDescriptor(
@@ -43,7 +51,7 @@ public class BSONTableTest {
         "select a, sum(b) as sumb from t1 where c = 'foo' group by a"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    Frame res = calc.apply(SimpleExhibit.of("t1", bst));
+    Frame res = eval(calc, SimpleExhibit.of("t1", bst));
     assertFalse(res.size() > 0);
   }
 
@@ -61,7 +69,7 @@ public class BSONTableTest {
     };
 
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
-    Frame res = (new SQLCalculator(queries)).apply(exhibit);
+    Frame res = eval(new SQLCalculator(queries), exhibit);
     assertTrue(res.size() == 1);
     assertEquals(1729, res.get(0).get("a"));
     assertEquals(1.0, res.get(0).get("sumb", Double.class), 0.001);
@@ -81,10 +89,10 @@ public class BSONTableTest {
         "select sumb + 1 as added from last"
     };
 
+    SQLCalculator calc = new SQLCalculator(queries);
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
     long start = System.currentTimeMillis();
-    SQLCalculator calc = new SQLCalculator(queries);
-    Frame res = calc.apply(exhibit);
+    Frame res = eval(calc, exhibit);
     System.out.println("First = " + (System.currentTimeMillis() - start));
     assertTrue(res.size() == 1);
     assertEquals(2.0, res.get(0).get("added", Double.class), 0.001);
@@ -92,7 +100,7 @@ public class BSONTableTest {
     start = System.currentTimeMillis();
     bst = new BSONFrame(d, ImmutableList.of(
         new BasicDBObject(ImmutableMap.<String, Object>of("a", 1728, "b", 2.0, "c", "foo"))));
-    res = calc.apply(SimpleExhibit.of("t1", bst));
+    res = eval(calc, SimpleExhibit.of("t1", bst));
     System.out.println("Second = " + (System.currentTimeMillis() - start));
     assertTrue(res.size() == 1);
     assertEquals(3.0, res.get(0).get("added", Double.class), 0.001);
@@ -114,7 +122,7 @@ public class BSONTableTest {
     };
 
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
-    Frame res = (new SQLCalculator(queries)).apply(exhibit);
+    Frame res = eval(new SQLCalculator(queries), exhibit);
     assertTrue(res.size() == 1);
     assertEquals(1729, res.get(0).get("a"));
     assertEquals(1.0, res.get(0).get("sumb", Double.class), 0.001);

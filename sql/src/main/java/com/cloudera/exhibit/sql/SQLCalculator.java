@@ -55,21 +55,41 @@ public class SQLCalculator implements Serializable, FrameCalculator {
     this.queries = Preconditions.checkNotNull(queries);
   }
 
-  private void initialize(ExhibitDescriptor descriptor) throws SQLException {
+  @Override
+  public void initialize(ExhibitDescriptor descriptor) {
     this.rootSchema = new ModifiableSchema();
     for (Map.Entry<String, ObsDescriptor> e : descriptor.frames().entrySet()) {
       rootSchema.getTableMap().put(e.getKey().toUpperCase(), new FrameTable(e.getValue()));
     }
-    this.conn = newConnection();
-    this.stmts = Lists.newArrayList();
-    for (int i = 0; i < queries.length - 1; i++) {
-      PreparedStatement ps = conn.prepareStatement(queries[i]);
-      Table tbl = ResultSetTable.create(ps.executeQuery());
-      rootSchema.getTableMap().put("TEMP" + (i + 1), tbl);
-      rootSchema.getTableMap().put("LAST", tbl);
-      stmts.add(ps);
+    try {
+      this.conn = newConnection();
+      this.stmts = Lists.newArrayList();
+      for (int i = 0; i < queries.length - 1; i++) {
+        PreparedStatement ps = conn.prepareStatement(queries[i]);
+        Table tbl = ResultSetTable.create(ps.executeQuery());
+        rootSchema.getTableMap().put("TEMP" + (i + 1), tbl);
+        rootSchema.getTableMap().put("LAST", tbl);
+        stmts.add(ps);
+      }
+      stmts.add(conn.prepareStatement(queries[queries.length - 1]));
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
     }
-    stmts.add(conn.prepareStatement(queries[queries.length - 1]));
+  }
+
+  @Override
+  public void cleanup() {
+    try {
+      rootSchema = null;
+      for (PreparedStatement stmt : stmts) {
+        stmt.close();
+      }
+      this.stmts = null;
+      conn.close();
+      conn = null;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private OptiqConnection newConnection() throws SQLException {
@@ -82,14 +102,6 @@ public class SQLCalculator implements Serializable, FrameCalculator {
 
   @Override
   public Frame apply(Exhibit exhibit) {
-    if (rootSchema == null) {
-      try {
-        initialize(exhibit.descriptor());
-      } catch (SQLException e) {
-        e.printStackTrace();
-        throw new RuntimeException(e);
-      }
-    }
     for (Map.Entry<String, Frame> e : exhibit.frames().entrySet()) {
       rootSchema.getFrame(e.getKey().toUpperCase()).updateFrame(e.getValue());
     }

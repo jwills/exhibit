@@ -57,6 +57,7 @@ public class WithinUDTF extends GenericUDTF {
     }
     this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
     this.calculator = new SQLCalculator(queries);
+    calculator.initialize(exhibit.descriptor());
 
     Frame frame = calculator.apply(exhibit);
     this.results = new Object[frame.descriptor().size()];
@@ -79,5 +80,7 @@ public class WithinUDTF extends GenericUDTF {
 
   @Override
   public void close() throws HiveException {
+    calculator.cleanup();
+    calculator = null;
   }
 }

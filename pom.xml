@@ -14,14 +14,15 @@
   </description>
 
   <modules>
-    <module>core</module>
-    <module>sql</module>
     <module>avro</module>
-    <module>hive</module>
+    <module>core</module>
     <module>etl</module>
+    <module>hive</module>
+    <module>javascript</module>
     <module>mongodb</module>
-    <module>thrift</module>
     <module>server</module>
+    <module>sql</module>
+    <module>thrift</module>
   </modules>
 
   <properties>

@@ -16,6 +16,7 @@ package com.cloudera.exhibit.sql;
 
 import com.cloudera.exhibit.avro.AvroFrame;
 import com.cloudera.exhibit.avro.AvroObsDescriptor;
+import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.google.common.collect.ImmutableList;
@@ -36,6 +37,13 @@ public class AvroTableTest {
       .requiredInt("f3")
       .endRecord();
 
+  private Frame eval(SQLCalculator calc, Exhibit e) {
+    calc.initialize(e.descriptor());
+    Frame frm = calc.apply(e);
+    calc.cleanup();
+    return frm;
+  }
+
   @Test
   public void testEmpty() throws Exception {
     AvroObsDescriptor at = new AvroObsDescriptor(schema);
@@ -43,7 +51,7 @@ public class AvroTableTest {
       "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    Frame frame = calc.apply(SimpleExhibit.of("t1", new AvroFrame(at)));
+    Frame frame = eval(calc, SimpleExhibit.of("t1", new AvroFrame(at)));
     assertFalse(frame.size() > 0);
   }
 
@@ -62,7 +70,7 @@ public class AvroTableTest {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    Frame res = calc.apply(SimpleExhibit.of("t1", frame));
+    Frame res = eval(calc, SimpleExhibit.of("t1", frame));
     assertTrue(res.size() == 1);
     assertEquals(Boolean.TRUE, res.get(0).get(0));
     assertEquals(1729, res.get(0).get(1));
@@ -81,7 +89,7 @@ public class AvroTableTest {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    Frame res = calc.apply(SimpleExhibit.of("t1", frame));
+    Frame res = eval(calc, SimpleExhibit.of("t1", frame));
     assertTrue(res.size() == 1);
     assertEquals(null, res.get(0).get(0));
     assertEquals(1729, res.get(0).get(1));

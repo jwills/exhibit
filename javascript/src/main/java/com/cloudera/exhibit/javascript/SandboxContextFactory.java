@@ -12,11 +12,24 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.core;
+package com.cloudera.exhibit.javascript;
 
-import com.google.common.base.Function;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.ContextFactory;
 
-public interface ObsCalculator extends Function<Exhibit, Obs> {
-  public void initialize(ExhibitDescriptor descriptor);
-  public void cleanup();
+class ExhibitContextFactory extends ContextFactory {
+  @Override
+  protected boolean hasFeature(Context cx, int featureIndex) {
+    if (featureIndex == Context.FEATURE_DYNAMIC_SCOPE) {
+      return true;
+    }
+    return super.hasFeature(cx, featureIndex);
+  }
+
+  @Override
+  protected Context makeContext() {
+    Context cx = super.makeContext();
+    cx.setWrapFactory(new SandboxWrapFactory());
+    return cx;
+  }
 }

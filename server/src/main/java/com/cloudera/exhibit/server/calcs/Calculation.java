@@ -28,6 +28,7 @@ public class Calculation {
   private int id;
   private String code;
   private FrameCalculator calculator;
+  private boolean initialized;
 
   public static SQLCalculator parseSql(String sqlCode) {
     if (sqlCode == null) {
@@ -56,6 +57,10 @@ public class Calculation {
   }
 
   public Frame apply(Exhibit e) {
+    if (!initialized) {
+      calculator.initialize(e.descriptor());
+      initialized = true;
+    }
     return calculator.apply(e);
   }
 }

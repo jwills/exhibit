@@ -21,6 +21,16 @@ public class Calculators {
   public static final ObsCalculator frame2obs(final FrameCalculator fc) {
     return new ObsCalculator() {
       @Override
+      public void initialize(ExhibitDescriptor descriptor) {
+        fc.initialize(descriptor);
+      }
+
+      @Override
+      public void cleanup() {
+        fc.cleanup();
+      }
+
+      @Override
       public Obs apply(Exhibit exhibit) {
         return fc.apply(exhibit).get(0);
       }

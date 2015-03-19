@@ -12,11 +12,21 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.core;
+package com.cloudera.exhibit.javascript;
 
-import com.google.common.base.Function;
+import org.mozilla.javascript.NativeJavaObject;
+import org.mozilla.javascript.Scriptable;
 
-public interface ObsCalculator extends Function<Exhibit, Obs> {
-  public void initialize(ExhibitDescriptor descriptor);
-  public void cleanup();
+class SandboxNativeJavaObject extends NativeJavaObject {
+  public SandboxNativeJavaObject(Scriptable scope, Object javaObject, Class staticType) {
+    super(scope, javaObject, staticType);
+  }
+
+  @Override
+  public Object get(String name, Scriptable start) {
+    if (name.equals("getClass")) {
+      return NOT_FOUND;
+    }
+    return super.get(name, start);
+  }
 }

@@ -60,6 +60,7 @@ public class WithinUDF extends GenericUDF {
     }
     this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
     this.calculator = Calculators.frame2obs(new SQLCalculator(queries));
+    calculator.initialize(exhibit.descriptor());
     return HiveUtils.fromDescriptor(calculator.apply(exhibit).descriptor(), false);
   }
 
