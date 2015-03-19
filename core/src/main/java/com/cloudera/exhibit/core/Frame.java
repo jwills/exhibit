@@ -14,8 +14,16 @@
  */
 package com.cloudera.exhibit.core;
 
-public interface Frame extends Iterable<Obs> {
-  ObsDescriptor descriptor();
-  int size();
-  Obs get(int index);
+public abstract class Frame implements Iterable<Obs> {
+  public abstract ObsDescriptor descriptor();
+  public abstract int size();
+  public abstract Obs get(int rowIndex);
+
+  public Column $(int columnIndex) {
+    return Column.create(this, columnIndex);
+  }
+
+  public Column $(String columnName) {
+    return Column.create(this, columnName);
+  }
 }

@@ -24,7 +24,7 @@ import org.bson.BSONObject;
 import java.util.Iterator;
 import java.util.List;
 
-public class BSONFrame implements Frame {
+public class BSONFrame extends Frame {
 
   private BSONObsDescriptor descriptor;
   private List<? extends BSONObject> records;

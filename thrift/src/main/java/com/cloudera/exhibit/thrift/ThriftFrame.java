@@ -28,7 +28,7 @@ import org.apache.thrift.TBase;
 import java.util.Iterator;
 import java.util.List;
 
-public class ThriftFrame implements Frame {
+public class ThriftFrame extends Frame {
 
   private final ThriftObsDescriptor descriptor;
   private final List<? extends TBase> records;

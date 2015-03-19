@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
 
-public class SimpleFrame implements Frame {
+public class SimpleFrame extends Frame {
 
   private final ObsDescriptor descriptor;
   private final List<Obs> observations;

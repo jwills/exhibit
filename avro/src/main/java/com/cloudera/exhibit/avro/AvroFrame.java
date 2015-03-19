@@ -27,7 +27,7 @@ import org.apache.avro.generic.GenericRecord;
 import java.util.Iterator;
 import java.util.List;
 
-public class AvroFrame implements Frame {
+public class AvroFrame extends Frame {
 
   private final ObsDescriptor descriptor;
   private final List<Obs> records;
