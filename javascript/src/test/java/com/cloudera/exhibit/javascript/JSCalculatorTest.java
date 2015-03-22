@@ -36,8 +36,8 @@ public class JSCalculatorTest {
 
   @Test
   public void testBasic() throws Exception {
-    JSCalculator jsc = new JSCalculator(res1, "var a = function() { return {a: 2, b: true}; }; return a()");
-    ObsDescriptor od = SimpleObsDescriptor.builder().intField("a").booleanField("b").build();
+    JSCalculator jsc = new JSCalculator("var a = function() { return {a: df[0].a, b: true}; }; return a()");
+    ObsDescriptor od = SimpleObsDescriptor.builder().doubleField("a").booleanField("b").build();
     Obs obs = SimpleObs.of(od, 1729, true);
     Obs one = SimpleObs.of(od, 17, true);
     Obs two = SimpleObs.of(od, 12, false);
@@ -45,7 +45,7 @@ public class JSCalculatorTest {
     Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
     jsc.initialize(e.descriptor());
     Obs res = jsc.apply(e);
-    assertEquals(SimpleObs.of(res1, 2.0, true), res);
+    assertEquals(SimpleObs.of(res1, 17.0, true), res);
     jsc.cleanup();
   }
 }

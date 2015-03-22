@@ -20,6 +20,7 @@ package com.cloudera.exhibit.core;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -65,7 +66,12 @@ public class Exhibits {
     Obs attrs = new SimpleObs(descriptor.attributes(), attrValues);
     Map<String, Frame> frames = Maps.newHashMap();
     for (Map.Entry<String, ObsDescriptor> e : descriptor.frames().entrySet()) {
-      frames.put(e.getKey(), new SimpleFrame(e.getValue()));
+      List<Object> frameValues = Lists.newArrayList();
+      for (ObsDescriptor.Field f : e.getValue()) {
+        frameValues.add(defaults.get(f.type));
+      }
+      Obs frameObs = new SimpleObs(e.getValue(), frameValues);
+      frames.put(e.getKey(), new SimpleFrame(ImmutableList.of(frameObs)));
     }
     return new SimpleExhibit(attrs, frames);
   }

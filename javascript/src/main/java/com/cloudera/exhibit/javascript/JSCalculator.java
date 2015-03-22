@@ -52,6 +52,10 @@ public class JSCalculator implements ObsCalculator {
   private Script script;
   private Function func;
 
+  public JSCalculator(String src) throws ScriptException {
+    this(null, src);
+  }
+
   public JSCalculator(ObsDescriptor descriptor, String src) throws ScriptException {
     this.src = src;
     this.hasReturn = src.contains("return");
@@ -73,16 +77,37 @@ public class JSCalculator implements ObsCalculator {
     } else {
       this.script = ctx.compileString(src, "<cmd>", 1, null);
     }
+
     if (this.descriptor == null) {
-      // need to eval the script with a default Exhibit
-      Exhibit defaults = Exhibits.defaultValues(ed);
-      this.descriptor = apply(defaults).descriptor();
+      this.descriptor = toObsDescriptor(eval(Exhibits.defaultValues(ed)));
     }
     return descriptor;
   }
 
   @Override
   public Obs apply(Exhibit exhibit) {
+    Object res = eval(exhibit);
+    List<Object> values = Lists.newArrayListWithExpectedSize(descriptor.size());
+    if (res instanceof Map) {
+      Map mres = (Map) res;
+      for (ObsDescriptor.Field f : descriptor) {
+        Object v = mres.get(f.name);
+        values.add(v == null ? null : f.type.cast(v));
+      }
+    } else if (descriptor.size() == 1) {
+      if (res == null) {
+        values.add(null);
+      } else {
+        values.add(descriptor.get(0).type.cast(res));
+      }
+    } else {
+      //TODO: log, provide default obs
+      throw new IllegalStateException("Invalid javascript result: " + res + " for exhibit: " + exhibit);
+    }
+    return new SimpleObs(descriptor, values);
+  }
+
+  Object eval(Exhibit exhibit) {
     Scriptable exhibitScope = ctx.newObject(scope);
     exhibitScope.setPrototype(scope);
     exhibitScope.setParentScope(null);
@@ -95,22 +120,19 @@ public class JSCalculator implements ObsCalculator {
       exhibitScope.put(e.getKey(), exhibitScope, new ScriptableFrame(e.getValue()));
     }
 
-    Object res;
     if (hasReturn) {
-      res = func.call(ctx, exhibitScope, null, new Object[0]);
+      return func.call(ctx, exhibitScope, null, new Object[0]);
     } else {
-      res = script.exec(ctx, exhibitScope);
+      return script.exec(ctx, exhibitScope);
     }
-    return toObs(res);
   }
 
-  Obs toObs(Object res) {
+  ObsDescriptor toObsDescriptor(Object res) {
     if (res == null) {
       throw new IllegalStateException("Null return values are not permitted");
     } else if (res instanceof Map) {
       Map<String, Object> mres = (Map<String, Object>) res;
       List<ObsDescriptor.Field> fields = Lists.newArrayList();
-      List<Object> values = Lists.newArrayList();
       for (String key : Sets.newTreeSet(mres.keySet())) {
         Object val = mres.get(key);
         ObsDescriptor.FieldType ft = null;
@@ -118,23 +140,20 @@ public class JSCalculator implements ObsCalculator {
           throw new IllegalStateException("Null value for key: " + key);
         } else if (val instanceof Number) {
           ft = ObsDescriptor.FieldType.DOUBLE;
-          val = ((Number) val).doubleValue();
         } else if (val instanceof String) {
           ft = ObsDescriptor.FieldType.STRING;
-          val = val.toString();
         } else if (val instanceof Boolean) {
           ft = ObsDescriptor.FieldType.BOOLEAN;
         }
         fields.add(new ObsDescriptor.Field(key, ft));
-        values.add(val);
       }
-      return new SimpleObs(new SimpleObsDescriptor(fields), values);
+      return new SimpleObsDescriptor(fields);
     } else if (res instanceof Number) {
-      return SimpleObs.of(SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.DOUBLE), ((Number) res).doubleValue());
+      return SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.DOUBLE);
     } else if (res instanceof String) {
-      return SimpleObs.of(SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.STRING), res.toString());
+      return SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.STRING);
     } else if (res instanceof Boolean) {
-      return SimpleObs.of(SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.BOOLEAN), res);
+      return SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.BOOLEAN);
     } else {
       throw new IllegalStateException("Unsupported result type: " + res);
     }
