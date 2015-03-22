@@ -15,6 +15,7 @@
 package com.cloudera.exhibit.etl;
 
 import com.google.common.collect.Lists;
+import org.apache.crunch.Target;
 
 import java.util.List;
 
@@ -22,4 +23,5 @@ public class ComputeConfig {
   public String inputUri = "";
   public List<MetricConfig> metrics = Lists.newArrayList();
   public String outputUri = "";
+  public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
 }

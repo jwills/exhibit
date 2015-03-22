@@ -20,7 +20,6 @@ import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsCalculator;
 import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -28,7 +27,9 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
+import org.apache.crunch.types.PType;
 import org.apache.crunch.types.avro.AvroType;
+import org.apache.crunch.types.avro.Avros;
 
 import java.util.List;
 
@@ -51,10 +52,11 @@ public class EvalMetrics {
         fields.add(new Schema.Field(of.name, AvroExhibit.getSchema(of.type), "", null));
       }
     }
-    //TODO
+    //TODO: better naming here
     Schema outputSchema = Schema.createRecord("name", "", "namespace", false);
     outputSchema.setFields(fields);
-    return null;
+    PType<GenericData.Record> outType = Avros.generics(outputSchema);
+    return input.parallelDo(new EvalFn(metrics, inputSchema, outputSchema), outType);
   }
 
   static class EvalFn extends MapFn<GenericRecord, GenericData.Record> {

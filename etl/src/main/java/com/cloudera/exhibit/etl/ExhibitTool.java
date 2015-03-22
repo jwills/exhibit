@@ -63,7 +63,11 @@ public class ExhibitTool extends Configured implements Tool {
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     Dataset<GenericRecord> data = Datasets.load(config.inputUri);
     PCollection<GenericRecord> pcol = p.read(CrunchDatasets.asSource(data));
-    // Evaluate all of the metrics and generate the output schema
+    EvalMetrics evalMetrics = new EvalMetrics(config.metrics);
+    PCollection<GenericData.Record> out = evalMetrics.apply(pcol);
+    DatasetDescriptor dd = new DatasetDescriptor.Builder().schema(((AvroType) out.getPType()).getSchema()).build();
+    Dataset<GenericRecord> outputDataset = Datasets.create(config.outputUri, dd);
+    out.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;
   }
