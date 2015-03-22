@@ -45,6 +45,11 @@ public class EvalMetrics {
     Schema inputSchema = ((AvroType) input.getPType()).getSchema();
     ExhibitDescriptor descriptor = AvroExhibit.createDescriptor(inputSchema);
     List<Schema.Field> fields = Lists.newArrayList();
+    // Copy over input attributes
+    for (ObsDescriptor.Field of : descriptor.attributes()) {
+      fields.add(new Schema.Field(of.name, AvroExhibit.getSchema(of.type), "", null));
+    }
+    // Metric column definitions
     for (MetricConfig mc : metrics) {
       ObsCalculator oc = mc.getCalculator();
       ObsDescriptor od = oc.initialize(descriptor);

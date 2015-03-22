@@ -102,6 +102,32 @@ public class AvroExhibit {
   private AvroExhibit() {}
 
   public static Schema getSchema(ObsDescriptor.FieldType type) {
-    return null;
+    Schema internal;
+    switch (type) {
+      case BOOLEAN:
+        internal = Schema.create(Schema.Type.BOOLEAN);
+        break;
+      case DOUBLE:
+        internal = Schema.create(Schema.Type.DOUBLE);
+        break;
+      case FLOAT:
+        internal = Schema.create(Schema.Type.FLOAT);
+        break;
+      case INTEGER:
+        internal = Schema.create(Schema.Type.INT);
+        break;
+      case LONG:
+        internal = Schema.create(Schema.Type.LONG);
+        break;
+      case SHORT:
+        internal = Schema.create(Schema.Type.INT);
+        break;
+      case STRING:
+        internal = Schema.create(Schema.Type.STRING);
+        break;
+      default:
+        throw new UnsupportedOperationException("Unsupported FieldType: " + type);
+    }
+    return Schema.createUnion(Lists.newArrayList(internal, Schema.create(Schema.Type.NULL)));
   }
 }
