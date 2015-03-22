@@ -72,6 +72,21 @@
     </dependency>
 
     <dependency>
+      <groupId>com.cloudera.exhibit</groupId>
+      <artifactId>exhibit-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.cloudera.exhibit</groupId>
+      <artifactId>exhibit-sql</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.cloudera.exhibit</groupId>
+      <artifactId>exhibit-avro</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>

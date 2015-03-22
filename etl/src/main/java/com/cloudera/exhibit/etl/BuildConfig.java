@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.crunch.Target;
 import org.apache.crunch.types.PType;
@@ -21,8 +22,7 @@ import org.apache.crunch.types.avro.Avros;
 
 import java.util.List;
 
-public class ExhibitToolConfig {
-
+public class BuildConfig {
   public static enum KeyType {
     STRING {
       @Override
@@ -65,5 +65,7 @@ public class ExhibitToolConfig {
 
   public int parallelism = -1;
 
-  public List<SourceConfig> sources;
+  public List<SourceConfig> sources = Lists.newArrayList();
+
+  public ComputeConfig compute = null;
 }

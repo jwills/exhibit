@@ -16,10 +16,11 @@ package com.cloudera.exhibit.core;
 
 import com.google.common.base.Preconditions;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Iterator;
 
-public interface ObsDescriptor extends Iterable<ObsDescriptor.Field> {
+public interface ObsDescriptor extends Iterable<ObsDescriptor.Field>, Serializable {
   enum FieldType {
     BOOLEAN,
     SHORT,

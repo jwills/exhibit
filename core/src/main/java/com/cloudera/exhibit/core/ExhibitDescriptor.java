@@ -16,9 +16,10 @@ package com.cloudera.exhibit.core;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class ExhibitDescriptor {
+public class ExhibitDescriptor implements Serializable {
 
   private final ObsDescriptor attributes;
   private final Map<String, ObsDescriptor> frames;

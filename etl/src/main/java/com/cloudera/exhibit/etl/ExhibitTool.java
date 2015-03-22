@@ -45,10 +45,31 @@ public class ExhibitTool extends Configured implements Tool {
   @Override
   public int run(String[] args) throws Exception {
     if (args.length != 2) {
-      System.err.println("Usage: run <config.yml>");
+      System.err.println("Usage: (build|compute) <config.yml>");
       return -1;
     }
-    ExhibitToolConfig config = parseConfig(args[1]);
+    if ("build".equalsIgnoreCase(args[0])) {
+      return build(args[1]);
+    } else if ("compute".equalsIgnoreCase(args[0])) {
+      return compute(args[1]);
+    } else {
+      System.err.println("Usage: (build|compute) <config.yml>");
+      return -1;
+    }
+  }
+
+  int compute(String arg) throws Exception {
+    ComputeConfig config = parseComputeConfig(arg);
+    Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
+    Dataset<GenericRecord> data = Datasets.load(config.inputUri);
+    PCollection<GenericRecord> pcol = p.read(CrunchDatasets.asSource(data));
+    // Evaluate all of the metrics and generate the output schema
+    PipelineResult res = p.done();
+    return res.succeeded() ? 0 : 1;
+  }
+
+  int build(String arg) throws Exception {
+    BuildConfig config = parseBuildConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     List<PCollection<GenericRecord>> pcols = Lists.newArrayList();
     List<Schema> schemas = Lists.newArrayList();
@@ -93,10 +114,17 @@ public class ExhibitTool extends Configured implements Tool {
     return res.succeeded() ? 0 : 1;
   }
 
-  private ExhibitToolConfig parseConfig(String configFile) throws Exception {
+  private ComputeConfig parseComputeConfig(String configFile) throws Exception {
     YamlReader reader = new YamlReader(new FileReader(configFile));
-    reader.getConfig().setPropertyElementType(ExhibitToolConfig.class, "sources", SourceConfig.class);
-    return reader.read(ExhibitToolConfig.class);
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "metrics", MetricConfig.class);
+    return reader.read(ComputeConfig.class);
+  }
+
+  private BuildConfig parseBuildConfig(String configFile) throws Exception {
+    YamlReader reader = new YamlReader(new FileReader(configFile));
+    reader.getConfig().setPropertyElementType(BuildConfig.class, "sources", SourceConfig.class);
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "metrics", MetricConfig.class);
+    return reader.read(BuildConfig.class);
   }
 
   public static void main(String[] args) throws Exception {
