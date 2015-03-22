@@ -1,19 +1,16 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+/*
+ * Copyright (c) 2014, Cloudera, Inc. All Rights Reserved.
+ *
+ * Cloudera, Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the
+ * License.
  */
 package com.cloudera.exhibit.javascript;
 
@@ -31,11 +28,16 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class JSCalculatorTest {
+
+  ObsDescriptor res1 = SimpleObsDescriptor.builder()
+      .doubleField("a")
+      .booleanField("b")
+      .build();
+
   @Test
   public void testBasic() throws Exception {
-    JSCalculator jsc = new JSCalculator("var a = function() { return {a: 2, b: true}; }; return a()");
-    ObsDescriptor od = SimpleObsDescriptor.of("a", ObsDescriptor.FieldType.INTEGER,
-        "b", ObsDescriptor.FieldType.BOOLEAN);
+    JSCalculator jsc = new JSCalculator(res1, "var a = function() { return {a: 2, b: true}; }; return a()");
+    ObsDescriptor od = SimpleObsDescriptor.builder().intField("a").booleanField("b").build();
     Obs obs = SimpleObs.of(od, 1729, true);
     Obs one = SimpleObs.of(od, 17, true);
     Obs two = SimpleObs.of(od, 12, false);
@@ -43,9 +45,7 @@ public class JSCalculatorTest {
     Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
     jsc.initialize(e.descriptor());
     Obs res = jsc.apply(e);
-    assertEquals(SimpleObs.of(
-        SimpleObsDescriptor.of("a", ObsDescriptor.FieldType.DOUBLE, "b", ObsDescriptor.FieldType.BOOLEAN), 2.0, true),
-                 res);
+    assertEquals(SimpleObs.of(res1, 2.0, true), res);
     jsc.cleanup();
   }
 }

@@ -36,6 +36,10 @@ public class SimpleObsDescriptor implements ObsDescriptor {
     return new SimpleObsDescriptor(fields);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   public SimpleObsDescriptor(List<Field> fields) {
     this.fields = fields;
     this.indexMap = Maps.newHashMap();
@@ -77,5 +81,54 @@ public class SimpleObsDescriptor implements ObsDescriptor {
     }
     SimpleObsDescriptor sod = (SimpleObsDescriptor) other;
     return fields.equals(sod.fields);
+  }
+
+  public static class Builder {
+    private List<Field> fields = Lists.newArrayList();
+
+    public Builder add(String name, FieldType ft) {
+      fields.add(new Field(name, ft));
+      return this;
+    }
+
+    public Builder booleanField(String name) {
+      return add(name, FieldType.BOOLEAN);
+    }
+
+    public Builder intField(String name) {
+      return add(name, FieldType.INTEGER);
+    }
+
+    public Builder longField(String name) {
+      return add(name, FieldType.LONG);
+    }
+
+    public Builder floatField(String name) {
+      return add(name, FieldType.FLOAT);
+    }
+
+    public Builder doubleField(String name) {
+      return add(name, FieldType.DOUBLE);
+    }
+
+    public Builder decimalField(String name) {
+      return add(name, FieldType.DECIMAL);
+    }
+
+    public Builder dateField(String name) {
+      return add(name, FieldType.DATE);
+    }
+
+    public Builder timestampField(String name) {
+      return add(name, FieldType.TIMESTAMP);
+    }
+
+    public Builder stringField(String name) {
+      return add(name, FieldType.STRING);
+    }
+
+    public ObsDescriptor build() {
+      return new SimpleObsDescriptor(fields);
+    }
   }
 }
