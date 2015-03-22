@@ -17,9 +17,5 @@
  */
 package com.cloudera.exhibit.core;
 
-import com.google.common.base.Function;
-
-public interface FrameCalculator extends Function<Exhibit, Frame> {
-  public void initialize(ExhibitDescriptor descriptor);
-  public void cleanup();
+public interface FrameCalculator extends Calculator<Frame> {
 }

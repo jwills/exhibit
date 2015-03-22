@@ -17,23 +17,9 @@
  */
 package com.cloudera.exhibit.core;
 
-public class Calculators {
-  public static final ObsCalculator frame2obs(final Calculator<Frame> fc) {
-    return new ObsCalculator() {
-      @Override
-      public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
-        return fc.initialize(descriptor);
-      }
+import com.google.common.base.Function;
 
-      @Override
-      public void cleanup() {
-        fc.cleanup();
-      }
-
-      @Override
-      public Obs apply(Exhibit exhibit) {
-        return fc.apply(exhibit).get(0);
-      }
-    };
-  }
+public interface Calculator<T> extends Function<Exhibit, T> {
+  public ObsDescriptor initialize(ExhibitDescriptor descriptor);
+  public void cleanup();
 }

@@ -19,6 +19,7 @@ import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsCalculator;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.sql.SQLCalculator;
@@ -60,8 +61,8 @@ public class WithinUDF extends GenericUDF {
     }
     this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
     this.calculator = Calculators.frame2obs(new SQLCalculator(queries));
-    calculator.initialize(exhibit.descriptor());
-    return HiveUtils.fromDescriptor(calculator.apply(exhibit).descriptor(), false);
+    ObsDescriptor od = calculator.initialize(exhibit.descriptor());
+    return HiveUtils.fromDescriptor(od, false);
   }
 
   @Override

@@ -56,7 +56,7 @@ public class SQLCalculator implements Serializable, FrameCalculator {
   }
 
   @Override
-  public void initialize(ExhibitDescriptor descriptor) {
+  public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
     this.rootSchema = new ModifiableSchema();
     for (Map.Entry<String, ObsDescriptor> e : descriptor.frames().entrySet()) {
       rootSchema.getTableMap().put(e.getKey().toUpperCase(), new FrameTable(e.getValue()));
@@ -71,7 +71,9 @@ public class SQLCalculator implements Serializable, FrameCalculator {
         rootSchema.getTableMap().put("LAST", tbl);
         stmts.add(ps);
       }
-      stmts.add(conn.prepareStatement(queries[queries.length - 1]));
+      PreparedStatement result = conn.prepareStatement(queries[queries.length - 1]);
+      stmts.add(result);
+      return fromResultSet(result.executeQuery()).descriptor();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

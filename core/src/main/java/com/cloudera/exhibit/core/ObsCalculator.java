@@ -14,9 +14,5 @@
  */
 package com.cloudera.exhibit.core;
 
-import com.google.common.base.Function;
-
-public interface ObsCalculator extends Function<Exhibit, Obs> {
-  public void initialize(ExhibitDescriptor descriptor);
-  public void cleanup();
+public interface ObsCalculator extends Calculator<Obs> {
 }

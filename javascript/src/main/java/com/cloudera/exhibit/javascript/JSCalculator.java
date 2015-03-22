@@ -16,6 +16,7 @@ package com.cloudera.exhibit.javascript;
 
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.Exhibits;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsCalculator;
@@ -52,13 +53,13 @@ public class JSCalculator implements ObsCalculator {
   private Function func;
 
   public JSCalculator(ObsDescriptor descriptor, String src) throws ScriptException {
-    this.descriptor = descriptor;
     this.src = src;
     this.hasReturn = src.contains("return");
+    this.descriptor = descriptor;
   }
 
   @Override
-  public void initialize(ExhibitDescriptor descriptor) {
+  public ObsDescriptor initialize(ExhibitDescriptor ed) {
     ctx = Context.enter();
     ctx.setClassShutter(new ClassShutter() {
       @Override
@@ -72,6 +73,12 @@ public class JSCalculator implements ObsCalculator {
     } else {
       this.script = ctx.compileString(src, "<cmd>", 1, null);
     }
+    if (this.descriptor == null) {
+      // need to eval the script with a default Exhibit
+      Exhibit defaults = Exhibits.defaultValues(ed);
+      this.descriptor = apply(defaults).descriptor();
+    }
+    return descriptor;
   }
 
   @Override
