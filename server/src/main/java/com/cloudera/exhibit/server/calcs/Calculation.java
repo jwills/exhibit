@@ -30,22 +30,11 @@ public class Calculation {
   private FrameCalculator calculator;
   private boolean initialized;
 
-  public static SQLCalculator parseSql(String sqlCode) {
-    if (sqlCode == null) {
-      return null;
-    }
-    List<String> ret = Lists.newArrayList();
-    //TODO: sql comment filtering
-    for (String q : Splitter.on(';').trimResults().omitEmptyStrings().split(sqlCode)) {
-      ret.add(q);
-    }
-    return new SQLCalculator(ret.toArray(new String[0]));
-  }
 
   public Calculation(int id, String code) {
     this.id = id;
     this.code = code;
-    this.calculator = parseSql(code);
+    this.calculator = SQLCalculator.create(null, code); //TODO
   }
 
   public int getId() {

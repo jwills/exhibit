@@ -62,6 +62,12 @@
 
       <dependency>
         <groupId>com.cloudera.exhibit</groupId>
+        <artifactId>exhibit-javascript</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.cloudera.exhibit</groupId>
         <artifactId>exhibit-sql</artifactId>
         <version>${project.version}</version>
       </dependency>

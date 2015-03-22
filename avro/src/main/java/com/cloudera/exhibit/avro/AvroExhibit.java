@@ -100,4 +100,8 @@ public class AvroExhibit {
   }
 
   private AvroExhibit() {}
+
+  public static Schema getSchema(ObsDescriptor.FieldType type) {
+    return null;
+  }
 }

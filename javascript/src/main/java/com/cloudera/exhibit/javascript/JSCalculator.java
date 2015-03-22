@@ -32,7 +32,6 @@ import org.mozilla.javascript.Function;
 import org.mozilla.javascript.Script;
 import org.mozilla.javascript.Scriptable;
 
-import javax.script.ScriptException;
 import java.util.List;
 import java.util.Map;
 
@@ -52,11 +51,11 @@ public class JSCalculator implements ObsCalculator {
   private Script script;
   private Function func;
 
-  public JSCalculator(String src) throws ScriptException {
+  public JSCalculator(String src) {
     this(null, src);
   }
 
-  public JSCalculator(ObsDescriptor descriptor, String src) throws ScriptException {
+  public JSCalculator(ObsDescriptor descriptor, String src) {
     this.src = src;
     this.hasReturn = src.contains("return");
     this.descriptor = descriptor;

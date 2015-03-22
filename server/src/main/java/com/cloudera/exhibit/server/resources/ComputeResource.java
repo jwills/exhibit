@@ -43,7 +43,7 @@ public class ComputeResource {
   @POST
   public Frame compute(@Valid ComputeRequest req) throws SQLException {
     Exhibit exhibit = store.find(req.id).orNull();
-    SQLCalculator calc = Calculation.parseSql(req.code);
+    SQLCalculator calc = SQLCalculator.create(null, req.code); //TODO
     return calc.apply(exhibit);
   }
 

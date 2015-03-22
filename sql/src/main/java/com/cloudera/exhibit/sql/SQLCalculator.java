@@ -24,6 +24,7 @@ import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import net.hydromatic.optiq.Table;
 import net.hydromatic.optiq.jdbc.OptiqConnection;
@@ -45,6 +46,18 @@ public class SQLCalculator implements Serializable, FrameCalculator {
   private transient OptiqConnection conn;
   private transient List<PreparedStatement> stmts;
   private final String[] queries;
+
+  public static SQLCalculator create(ObsDescriptor od, String sqlCode) {
+    if (sqlCode == null) {
+      return null;
+    }
+    List<String> ret = Lists.newArrayList();
+    //TODO: sql comment filtering
+    for (String q : Splitter.on(';').trimResults().omitEmptyStrings().split(sqlCode)) {
+      ret.add(q);
+    }
+    return new SQLCalculator(ret.toArray(new String[0]));
+  }
 
   public SQLCalculator(String[] queries) {
     try {
