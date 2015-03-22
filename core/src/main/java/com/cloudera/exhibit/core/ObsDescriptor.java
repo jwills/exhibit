@@ -43,6 +43,19 @@ public interface ObsDescriptor extends Iterable<ObsDescriptor.Field> {
     }
 
     @Override
+    public int hashCode() {
+      return name.hashCode() + 17 * type.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (other == null || !(other instanceof Field)) {
+        return false;
+      }
+      Field field = (Field) other;
+      return name.equals(field.name) && type.equals(field.type);
+    }
+    @Override
     public String toString() {
       return name + ": " + type.toString().toLowerCase();
     }

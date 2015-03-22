@@ -22,23 +22,30 @@ import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class JSCalculatorTest {
   @Test
   public void testBasic() throws Exception {
-    JSCalculator jsc = new JSCalculator("if (b) { return Math.log(a.length + 12) } else { return a }");
-    ObsDescriptor od = SimpleObsDescriptor.of("a", ObsDescriptor.FieldType.STRING,
+    JSCalculator jsc = new JSCalculator("var a = function() { return {a: 2, b: true}; }; return a()");
+    ObsDescriptor od = SimpleObsDescriptor.of("a", ObsDescriptor.FieldType.INTEGER,
         "b", ObsDescriptor.FieldType.BOOLEAN);
-    Obs obs = SimpleObs.of(od, "foo", true);
-    Exhibit e = new SimpleExhibit(obs, Maps.<String, Frame>newHashMap());
+    Obs obs = SimpleObs.of(od, 1729, true);
+    Obs one = SimpleObs.of(od, 17, true);
+    Obs two = SimpleObs.of(od, 12, false);
+    Frame frame = SimpleFrame.of(one, two);
+    Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
     jsc.initialize(e.descriptor());
-    long st = System.currentTimeMillis();
-    jsc.apply(e);
-    System.out.println(System.currentTimeMillis() - st);
+    Obs res = jsc.apply(e);
+    assertEquals(SimpleObs.of(
+        SimpleObsDescriptor.of("a", ObsDescriptor.FieldType.DOUBLE, "b", ObsDescriptor.FieldType.BOOLEAN), 2.0, true),
+                 res);
     jsc.cleanup();
   }
 }

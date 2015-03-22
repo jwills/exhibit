@@ -64,4 +64,18 @@ public class SimpleObsDescriptor implements ObsDescriptor {
   public Iterator<Field> iterator() {
     return fields.iterator();
   }
+
+  @Override
+  public int hashCode() {
+    return fields.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == null || !(other instanceof SimpleObsDescriptor)) {
+      return false;
+    }
+    SimpleObsDescriptor sod = (SimpleObsDescriptor) other;
+    return fields.equals(sod.fields);
+  }
 }
