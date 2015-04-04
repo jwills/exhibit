@@ -52,18 +52,25 @@ public class CompositeObsDescriptor implements ObsDescriptor {
     }
   }
 
-  public int getOffset(int index) {
-    return Arrays.binarySearch(offsets, index);
+  public int getOffsetIndex(int index) {
+    int offset = Arrays.binarySearch(offsets, index);
+    if (offset < 0) {
+      offset = -offset - 2;
+      while (offset < offsets.length -1 && offsets[offset] == offsets[offset + 1]) {
+        offset++;
+      }
+    }
+    return offset;
+  }
+
+  public int getOffset(int offsetIndex) {
+    return offsets[offsetIndex];
   }
 
   @Override
   public Field get(int i) {
-    int offsetIndex = getOffset(i);
-    int compIdx = 0;
-    if (offsetIndex < 0) {
-      offsetIndex = 1 - offsetIndex;
-      compIdx = i - offsetIndex;
-    }
+    int offsetIndex = getOffsetIndex(i);
+    int compIdx = i - offsets[offsetIndex];
     return components.get(offsetIndex).get(compIdx);
   }
 

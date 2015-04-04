@@ -15,36 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.core.composite;
+package com.cloudera.exhibit.core;
 
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import org.junit.Test;
 
-import java.util.List;
+import static org.junit.Assert.assertEquals;
 
-public class CompositeObs extends Obs {
+public class SimpleTest {
 
-  private CompositeObsDescriptor descriptor;
-  private List<Obs> components;
+  public static final ObsDescriptor ATTR_DESC = SimpleObsDescriptor.builder()
+      .booleanField("a")
+      .stringField("b")
+      .intField("c")
+      .build();
 
-  public CompositeObs(List<Obs> components) {
-    this.components = components;
-  }
-
-  public CompositeObs(CompositeObsDescriptor descriptor, List<Obs> components) {
-    this.descriptor = descriptor;
-    this.components = components;
-  }
-
-  @Override
-  public ObsDescriptor descriptor() {
-    return descriptor;
-  }
-
-  @Override
-  public Object get(int index) {
-    int offsetIndex = descriptor.getOffsetIndex(index);
-    int cmpIdx = index - descriptor.getOffset(offsetIndex);
-    return components.get(offsetIndex).get(cmpIdx);
+  @Test
+  public void testSimpleObsDescriptor() throws Exception{
+    assertEquals(3, ATTR_DESC.size());
+    assertEquals(1, ATTR_DESC.indexOf("b"));
+    assertEquals(-1, ATTR_DESC.indexOf("q"));
+    assertEquals(new ObsDescriptor.Field("c", ObsDescriptor.FieldType.INTEGER), ATTR_DESC.get(2));
   }
 }
