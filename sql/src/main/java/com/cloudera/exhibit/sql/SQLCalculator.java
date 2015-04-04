@@ -47,7 +47,7 @@ public class SQLCalculator implements Serializable, FrameCalculator {
   private transient List<PreparedStatement> stmts;
   private final String[] queries;
 
-  public static SQLCalculator create(ObsDescriptor od, String sqlCode) {
+  public static SQLCalculator create(ObsDescriptor res, String sqlCode) {
     if (sqlCode == null) {
       return null;
     }
@@ -56,7 +56,8 @@ public class SQLCalculator implements Serializable, FrameCalculator {
     for (String q : Splitter.on(';').trimResults().omitEmptyStrings().split(sqlCode)) {
       ret.add(q);
     }
-    return new SQLCalculator(ret.toArray(new String[0]));
+    SQLCalculator sc = new SQLCalculator(ret.toArray(new String[0]));
+    return sc;
   }
 
   public SQLCalculator(String[] queries) {

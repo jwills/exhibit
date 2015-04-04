@@ -15,7 +15,7 @@
 package com.cloudera.exhibit.server.main;
 
 import com.cloudera.exhibit.core.ExhibitStore;
-import com.cloudera.exhibit.core.composite.CompositeExhibitStore;
+import com.cloudera.exhibit.core.multi.MultiExhibitStore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -36,7 +36,7 @@ public class ExhibitConfiguration extends Configuration {
   List<ExhibitStoreConfig> exhibits;
 
   public ExhibitStore getExhibitStores(final Environment env, final org.apache.hadoop.conf.Configuration conf) {
-    return CompositeExhibitStore.create(Lists.transform(exhibits, new Function<ExhibitStoreConfig, ExhibitStore>() {
+    return MultiExhibitStore.create(Lists.transform(exhibits, new Function<ExhibitStoreConfig, ExhibitStore>() {
       @Override
       public ExhibitStore apply(ExhibitStoreConfig exhibitStoreConfig) {
         LOG.info("Creating exhibit store from config: " + exhibitStoreConfig);

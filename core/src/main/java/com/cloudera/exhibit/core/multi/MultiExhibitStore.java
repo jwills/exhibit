@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.core.composite;
+package com.cloudera.exhibit.core.multi;
 
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitId;
@@ -28,11 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class CompositeExhibitStore implements ExhibitStore {
+public class MultiExhibitStore implements ExhibitStore {
 
   private final Map<String, ExhibitStore> stores;
 
-  public static CompositeExhibitStore create(List<ExhibitStore> stores) {
+  public static MultiExhibitStore create(List<ExhibitStore> stores) {
     Map<String, ExhibitStore> storeMap = Maps.newHashMap();
     for (ExhibitStore store : stores) {
       for (String entity : store.entities()) {
@@ -40,10 +40,10 @@ public class CompositeExhibitStore implements ExhibitStore {
         storeMap.put(entity, store);
       }
     }
-    return new CompositeExhibitStore(storeMap);
+    return new MultiExhibitStore(storeMap);
   }
 
-  public CompositeExhibitStore(Map<String, ExhibitStore> stores) {
+  public MultiExhibitStore(Map<String, ExhibitStore> stores) {
     this.stores = Preconditions.checkNotNull(stores);
   }
 
