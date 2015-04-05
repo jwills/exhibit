@@ -25,6 +25,12 @@
     </dependency>
 
     <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro-mapred</artifactId>
+      <classifier>hadoop2</classifier>
+    </dependency>
+
+    <dependency>
       <groupId>com.esotericsoftware.yamlbeans</groupId>
       <artifactId>yamlbeans</artifactId>
     </dependency>

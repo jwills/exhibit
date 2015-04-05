@@ -96,6 +96,9 @@ public class EvalMetrics {
     public GenericData.Record map(GenericRecord genericRecord) {
       GenericData.Record res = new GenericData.Record(outputSchema);
       Exhibit exhibit = AvroExhibit.create(genericRecord);
+      for (ObsDescriptor.Field f : exhibit.descriptor().attributes()) {
+        res.put(f.name, exhibit.attributes().get(f.name));
+      }
       for (ObsCalculator oc : calculators) {
         Obs obs = oc.apply(exhibit);
         for (int i = 0; i < obs.descriptor().size(); i++) {
