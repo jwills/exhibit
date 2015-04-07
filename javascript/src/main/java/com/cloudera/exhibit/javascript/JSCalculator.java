@@ -14,15 +14,16 @@
  */
 package com.cloudera.exhibit.javascript;
 
+import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.Exhibits;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsCalculator;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.mozilla.javascript.ClassShutter;
@@ -35,7 +36,7 @@ import org.mozilla.javascript.Scriptable;
 import java.util.List;
 import java.util.Map;
 
-public class JSCalculator implements ObsCalculator {
+public class JSCalculator implements Calculator {
 
   static {
     ContextFactory.initGlobal(new ExhibitContextFactory());
@@ -84,7 +85,7 @@ public class JSCalculator implements ObsCalculator {
   }
 
   @Override
-  public Obs apply(Exhibit exhibit) {
+  public Iterable<Obs> apply(Exhibit exhibit) {
     Object res = eval(exhibit);
     List<Object> values = Lists.newArrayListWithExpectedSize(descriptor.size());
     if (res instanceof Map) {
@@ -103,7 +104,7 @@ public class JSCalculator implements ObsCalculator {
       //TODO: log, provide default obs
       throw new IllegalStateException("Invalid javascript result: " + res + " for exhibit: " + exhibit);
     }
-    return new SimpleObs(descriptor, values);
+    return ImmutableList.<Obs>of(new SimpleObs(descriptor, values));
   }
 
   Object eval(Exhibit exhibit) {

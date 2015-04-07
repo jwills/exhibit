@@ -14,7 +14,7 @@
  */
 package com.cloudera.exhibit.sql;
 
-import com.cloudera.exhibit.core.FrameCalculator;
+import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Exhibit;
@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class SQLCalculator implements Serializable, FrameCalculator {
+public class SQLCalculator implements Serializable, Calculator {
 
   private transient ModifiableSchema rootSchema;
   private transient CalciteConnection conn;

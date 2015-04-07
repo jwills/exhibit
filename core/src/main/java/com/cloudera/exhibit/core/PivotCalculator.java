@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class PivotCalculator implements ObsCalculator {
+public class PivotCalculator implements Calculator {
 
   public static class Key implements Serializable {
     String name;
@@ -43,15 +43,15 @@ public class PivotCalculator implements ObsCalculator {
     }
   }
 
-  private FrameCalculator fc;
+  private Calculator fc;
   private Map<String, Set<String>> keys;
   private transient ObsDescriptor descriptor;
 
-  public PivotCalculator(FrameCalculator base, String key, Set<String> levels) {
+  public PivotCalculator(Calculator base, String key, Set<String> levels) {
     this(base, ImmutableList.of(new Key(key, levels)));
   }
 
-  public PivotCalculator(FrameCalculator base, List<Key> keys) {
+  public PivotCalculator(Calculator base, List<Key> keys) {
     this.fc = base;
     this.keys = Maps.newLinkedHashMap();
     for (Key key : keys) {
@@ -83,8 +83,8 @@ public class PivotCalculator implements ObsCalculator {
   }
 
   @Override
-  public Obs apply(Exhibit exhibit) {
-    Frame frame = fc.apply(exhibit);
+  public Iterable<Obs> apply(Exhibit exhibit) {
+    Iterable<Obs> frame = fc.apply(exhibit);
     if (descriptor == null) {
       descriptor = initialize(exhibit == null ? null : exhibit.descriptor());
     }
@@ -103,6 +103,6 @@ public class PivotCalculator implements ObsCalculator {
         }
       }
     }
-    return new SimpleObs(descriptor, values);
+    return ImmutableList.<Obs>of(new SimpleObs(descriptor, values));
   }
 }

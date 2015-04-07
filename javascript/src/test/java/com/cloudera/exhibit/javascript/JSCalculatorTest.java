@@ -23,6 +23,7 @@ import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -44,7 +45,7 @@ public class JSCalculatorTest {
     Frame frame = SimpleFrame.of(one, two);
     Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
     jsc.initialize(e.descriptor());
-    Obs res = jsc.apply(e);
+    Obs res = Iterables.getOnlyElement(jsc.apply(e));
     assertEquals(SimpleObs.of(res1, 17.0, true), res);
     jsc.cleanup();
   }

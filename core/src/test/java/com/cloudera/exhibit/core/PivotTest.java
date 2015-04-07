@@ -22,6 +22,7 @@ import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.junit.Test;
 
 import java.util.List;
@@ -33,7 +34,7 @@ public class PivotTest {
           .intField("c")
           .build();
 
-  private static final FrameCalculator TEST_FC = new FrameCalculator() {
+  private static final Calculator TEST_FC = new Calculator() {
     @Override
     public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
       return DESC;
@@ -56,7 +57,7 @@ public class PivotTest {
     PivotCalculator pc = new PivotCalculator(TEST_FC, "b", ImmutableSet.of("v1", "v2"));
     ObsDescriptor od = pc.initialize(null);
     System.out.println(od);
-    Obs obs = pc.apply(null);
+    Obs obs = Iterables.getOnlyElement(pc.apply(null));
     System.out.println(obs);
   }
 
@@ -68,7 +69,7 @@ public class PivotTest {
     PivotCalculator pc = new PivotCalculator(TEST_FC, keys);
     ObsDescriptor od = pc.initialize(null);
     System.out.println(od);
-    Obs obs = pc.apply(null);
+    Obs obs =  Iterables.getOnlyElement(pc.apply(null));
     System.out.println(obs);
   }
 }

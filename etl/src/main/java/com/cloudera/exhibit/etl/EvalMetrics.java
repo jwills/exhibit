@@ -15,11 +15,12 @@
 package com.cloudera.exhibit.etl;
 
 import com.cloudera.exhibit.avro.AvroExhibit;
+import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsCalculator;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -51,7 +52,7 @@ public class EvalMetrics {
     }
     // Metric column definitions
     for (MetricConfig mc : metrics) {
-      ObsCalculator oc = mc.getCalculator();
+      Calculator oc = mc.getCalculator();
       ObsDescriptor od = oc.initialize(descriptor);
       for (ObsDescriptor.Field of : od) {
         fields.add(new Schema.Field(of.name, AvroExhibit.getSchema(of.type), "", null));
@@ -70,7 +71,7 @@ public class EvalMetrics {
     private final String inputSchemaJson;
     private final String outputSchemaJson;
     private transient Schema outputSchema;
-    private transient List<ObsCalculator> calculators;
+    private transient List<Calculator> calculators;
 
     public EvalFn(List<MetricConfig> metrics, Schema inputSchema, Schema outputSchema) {
       this.metrics = metrics;
@@ -86,7 +87,7 @@ public class EvalMetrics {
       this.outputSchema = parser.parse(outputSchemaJson);
       this.calculators = Lists.newArrayList();
       for (MetricConfig mc : metrics) {
-        ObsCalculator oc = mc.getCalculator();
+        Calculator oc = mc.getCalculator();
         oc.initialize(descriptor);
         calculators.add(oc);
       }
@@ -99,8 +100,8 @@ public class EvalMetrics {
       for (ObsDescriptor.Field f : exhibit.descriptor().attributes()) {
         res.put(f.name, exhibit.attributes().get(f.name));
       }
-      for (ObsCalculator oc : calculators) {
-        Obs obs = oc.apply(exhibit);
+      for (Calculator oc : calculators) {
+        Obs obs = Iterables.getOnlyElement(oc.apply(exhibit));
         for (int i = 0; i < obs.descriptor().size(); i++) {
           res.put(obs.descriptor().get(i).name, obs.get(i));
         }
@@ -110,7 +111,7 @@ public class EvalMetrics {
 
     @Override
     public void cleanup(Emitter<GenericData.Record> emitter) {
-      for (ObsCalculator oc : calculators) {
+      for (Calculator oc : calculators) {
         oc.cleanup();
       }
       calculators.clear();
