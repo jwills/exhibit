@@ -207,5 +207,8 @@ public interface ObsDescriptor extends Iterable<ObsDescriptor.Field>, Serializab
     public Iterator<Field> iterator() {
       return Collections.emptyIterator();
     }
+
+    @Override
+    public String toString() { return "<empty>"; }
   };
 }

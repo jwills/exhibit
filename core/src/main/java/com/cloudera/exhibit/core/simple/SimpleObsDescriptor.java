@@ -15,6 +15,7 @@
 package com.cloudera.exhibit.core.simple;
 
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -81,6 +82,11 @@ public class SimpleObsDescriptor implements ObsDescriptor {
     }
     SimpleObsDescriptor sod = (SimpleObsDescriptor) other;
     return fields.equals(sod.fields);
+  }
+
+  @Override
+  public String toString() {
+    return Joiner.on(", ").join(fields);
   }
 
   public static class Builder {
