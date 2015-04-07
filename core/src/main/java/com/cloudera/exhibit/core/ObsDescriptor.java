@@ -19,6 +19,7 @@ import com.google.common.base.Preconditions;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Iterator;
@@ -108,6 +109,19 @@ public interface ObsDescriptor extends Iterable<ObsDescriptor.Field>, Serializab
           return Date.valueOf(in.toString());
         }
         throw new IllegalArgumentException("Cannot cast " + in + " to date value");
+      }
+    },
+    TIME {
+      @Override
+      public Object cast(Object in) {
+        if (in instanceof Time) {
+          return in;
+        } else if (in instanceof Number) {
+          return new Time(((Number) in).longValue());
+        } else if (in instanceof String) {
+          return Time.valueOf(in.toString());
+        }
+        throw new IllegalArgumentException("Cannot cast " + in + " to time value");
       }
     },
     TIMESTAMP {
