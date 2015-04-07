@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.cloudera.exhibit.core.PivotCalculator;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
@@ -121,6 +122,7 @@ public class ExhibitTool extends Configured implements Tool {
   private ComputeConfig parseComputeConfig(String configFile) throws Exception {
     YamlReader reader = new YamlReader(new FileReader(configFile));
     reader.getConfig().setPropertyElementType(ComputeConfig.class, "metrics", MetricConfig.class);
+    reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
     return reader.read(ComputeConfig.class);
   }
 
@@ -128,6 +130,7 @@ public class ExhibitTool extends Configured implements Tool {
     YamlReader reader = new YamlReader(new FileReader(configFile));
     reader.getConfig().setPropertyElementType(BuildConfig.class, "sources", SourceConfig.class);
     reader.getConfig().setPropertyElementType(ComputeConfig.class, "metrics", MetricConfig.class);
+    reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
     return reader.read(BuildConfig.class);
   }
 

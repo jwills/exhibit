@@ -17,6 +17,7 @@ package com.cloudera.exhibit.etl;
 import com.cloudera.exhibit.core.Calculators;
 import com.cloudera.exhibit.core.ObsCalculator;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.PivotCalculator;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.cloudera.exhibit.javascript.JSCalculator;
 import com.cloudera.exhibit.sql.SQLCalculator;
@@ -35,6 +36,8 @@ public class MetricConfig implements Serializable {
 
   public String code = "";
 
+  public List<PivotCalculator.Key> pivot = Lists.newArrayList();
+
   public ObsCalculator getCalculator() {
     ObsDescriptor od = null;
     if (descriptor != null && !descriptor.isEmpty()) {
@@ -46,7 +49,12 @@ public class MetricConfig implements Serializable {
       od = new SimpleObsDescriptor(fields);
     }
     if ("sql".equalsIgnoreCase(engine)) {
-      return Calculators.frame2obs(SQLCalculator.create(od, code));
+      SQLCalculator sql = SQLCalculator.create(od, code);
+      if (pivot.isEmpty()) {
+        return Calculators.frame2obs(sql);
+      } else {
+        return new PivotCalculator(sql, pivot);
+      }
     } else if ("js".equalsIgnoreCase(engine) || "javascript".equalsIgnoreCase(engine)) {
       return new JSCalculator(od, code);
     } else {
