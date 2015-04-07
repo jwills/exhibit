@@ -26,8 +26,8 @@ import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.jdbc.OptiqConnection;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.schema.Table;
 
 import java.io.Serializable;
 import java.sql.Connection;
@@ -43,7 +43,7 @@ import java.util.Map;
 public class SQLCalculator implements Serializable, FrameCalculator {
 
   private transient ModifiableSchema rootSchema;
-  private transient OptiqConnection conn;
+  private transient CalciteConnection conn;
   private transient List<PreparedStatement> stmts;
   private final String[] queries;
 
@@ -62,9 +62,9 @@ public class SQLCalculator implements Serializable, FrameCalculator {
 
   public SQLCalculator(String[] queries) {
     try {
-      Class.forName("net.hydromatic.optiq.jdbc.Driver");
+      Class.forName("org.apache.calcite.jdbc.Driver");
     } catch (ClassNotFoundException e) {
-      throw new IllegalStateException("Could not find Optiq Driver", e);
+      throw new IllegalStateException("Could not find Calcite Driver", e);
     }
     this.queries = Preconditions.checkNotNull(queries);
   }
@@ -108,9 +108,9 @@ public class SQLCalculator implements Serializable, FrameCalculator {
     }
   }
 
-  private OptiqConnection newConnection() throws SQLException {
-    Connection connection = DriverManager.getConnection("jdbc:optiq:");
-    OptiqConnection oconn = connection.unwrap(OptiqConnection.class);
+  private CalciteConnection newConnection() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    CalciteConnection oconn = connection.unwrap(CalciteConnection.class);
     oconn.getRootSchema().add("X", rootSchema);
     oconn.setSchema("X");
     return oconn;

@@ -16,7 +16,7 @@ package com.cloudera.exhibit.sql;
 
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
-import net.hydromatic.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Enumerator;
 
 public class FrameEnumerator implements Enumerator<Object> {
 

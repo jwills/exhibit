@@ -17,28 +17,24 @@ package com.cloudera.exhibit.hive;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Statistic;
-import net.hydromatic.optiq.Statistics;
-import net.hydromatic.optiq.TranslatableTable;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.JavaRules;
+import org.apache.calcite.adapter.java.AbstractQueryableTable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.*;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -49,7 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class HiveTable extends AbstractQueryableTable implements TranslatableTable {
+public class HiveTable extends AbstractQueryableTable {
 
   private static final Map<Class, Class> typeMap = ImmutableMap.<Class, Class>builder()
       .put(BooleanObjectInspector.class, Boolean.class)
@@ -95,18 +91,9 @@ public class HiveTable extends AbstractQueryableTable implements TranslatableTab
   @Override
   public Statistic getStatistic() {
     if (values == null) {
-      return Statistics.of(0.0, ImmutableList.<BitSet>of());
+      return Statistics.of(0.0, ImmutableList.<ImmutableBitSet>of());
     }
-    return Statistics.of(listOI.getListLength(values), ImmutableList.<BitSet>of());
-  }
-
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    return new JavaRules.EnumerableTableAccessRel(
-        context.getCluster(),
-        context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),
-        relOptTable,
-        (Class) getElementType());
+    return Statistics.of(listOI.getListLength(values), ImmutableList.<ImmutableBitSet>of());
   }
 
   @Override

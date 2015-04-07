@@ -15,8 +15,8 @@
 package com.cloudera.exhibit.sql;
 
 import com.google.common.collect.Maps;
-import net.hydromatic.optiq.Table;
-import net.hydromatic.optiq.impl.AbstractSchema;
+import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
 
 import java.util.Map;
 

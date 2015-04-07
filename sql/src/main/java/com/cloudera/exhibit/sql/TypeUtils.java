@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Map;
@@ -38,6 +39,7 @@ public class TypeUtils {
       .put(Types.LONGVARCHAR, String.class)
       .put(Types.REAL, Float.class)
       .put(Types.SMALLINT, Short.class)
+      .put(Types.TIME, Time.class)
       .put(Types.TIMESTAMP, Timestamp.class)
       .put(Types.TINYINT, Short.class)
       .put(Types.VARCHAR, String.class)
@@ -57,14 +59,25 @@ public class TypeUtils {
               .put(Types.LONGVARCHAR, ObsDescriptor.FieldType.STRING)
               .put(Types.REAL, ObsDescriptor.FieldType.FLOAT)
               .put(Types.SMALLINT, ObsDescriptor.FieldType.SHORT)
+              .put(Types.TIME, ObsDescriptor.FieldType.TIME)
               .put(Types.TIMESTAMP, ObsDescriptor.FieldType.TIMESTAMP)
               .put(Types.TINYINT, ObsDescriptor.FieldType.SHORT)
               .put(Types.VARCHAR, ObsDescriptor.FieldType.STRING)
               .build();
 
   public static Class getJavaClassForSQLType(int sqlType) {
-    return SQL_TYPES_TO_JAVA.get(sqlType);
+    Class clazz = SQL_TYPES_TO_JAVA.get(sqlType);
+    if (clazz == null) {
+      throw new IllegalArgumentException("Unsupported sql type = " + sqlType);
+    }
+    return clazz;
   }
 
-  public static ObsDescriptor.FieldType getFieldTypeForSQLType(int sqlType) { return SQL_TYPES_TO_FIELD_TYPES.get(sqlType); }
+  public static ObsDescriptor.FieldType getFieldTypeForSQLType(int sqlType) {
+    ObsDescriptor.FieldType ft = SQL_TYPES_TO_FIELD_TYPES.get(sqlType);
+    if (ft == null) {
+      throw new IllegalArgumentException("Unsupported sql type = " + sqlType);
+    }
+    return ft;
+  }
 }

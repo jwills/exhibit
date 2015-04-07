@@ -15,15 +15,13 @@
 package com.cloudera.exhibit.hive;
 
 import com.google.common.collect.Lists;
-import net.hydromatic.linq4j.Enumerator;
-import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 class HiveEnumerator implements Enumerator<Object> {

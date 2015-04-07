@@ -37,7 +37,6 @@ public class BSONTableTest {
   private Frame eval(SQLCalculator calc, Exhibit e) {
     calc.initialize(e.descriptor());
     Frame frm = calc.apply(e);
-    calc.cleanup();
     return frm;
   }
 
@@ -100,7 +99,7 @@ public class BSONTableTest {
     start = System.currentTimeMillis();
     bst = new BSONFrame(d, ImmutableList.of(
         new BasicDBObject(ImmutableMap.<String, Object>of("a", 1728, "b", 2.0, "c", "foo"))));
-    res = eval(calc, SimpleExhibit.of("t1", bst));
+    res = calc.apply(SimpleExhibit.of("t1", bst));
     System.out.println("Second = " + (System.currentTimeMillis() - start));
     assertTrue(res.size() == 1);
     assertEquals(3.0, res.get(0).get("added", Double.class), 0.001);

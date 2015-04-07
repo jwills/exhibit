@@ -18,25 +18,33 @@ package com.cloudera.exhibit.sql;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
-import org.eigenbase.reltype.RelProtoDataType;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
+import java.lang.reflect.Type;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 
-public class ResultSetTable extends AbstractQueryableTable {
+public class ResultSetTable extends AbstractTable implements QueryableTable {
 
+  private final Class elementType;
   private final List<Object> values;
   private final RelProtoDataType protoDataType;
 
@@ -73,14 +81,19 @@ public class ResultSetTable extends AbstractQueryableTable {
   }
 
   public ResultSetTable(Class elementType, List values, RelProtoDataType protoDataType) {
-    super(elementType);
+    this.elementType = elementType;
     this.values = values;
     this.protoDataType = protoDataType;
   }
 
   @Override
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schema, String tableName) {
-    return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
+  public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
+    return protoDataType.apply(relDataTypeFactory);
+  }
+
+  @Override
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schemaPlus, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schemaPlus, this, tableName) {
       @Override
       public Enumerator<T> enumerator() {
         return (Enumerator<T>) Linq4j.enumerator(values);
@@ -89,8 +102,13 @@ public class ResultSetTable extends AbstractQueryableTable {
   }
 
   @Override
-  public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
-    return protoDataType.apply(relDataTypeFactory);
+  public Type getElementType() {
+    return elementType;
+  }
+
+  @Override
+  public Expression getExpression(SchemaPlus schemaPlus, String tableName, Class clazz) {
+    return Schemas.tableExpression(schemaPlus, getElementType(), tableName, clazz);
   }
 
   private static class SQLTypeProtoDataType implements RelProtoDataType {

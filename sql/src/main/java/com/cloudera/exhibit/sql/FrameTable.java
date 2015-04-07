@@ -20,43 +20,36 @@ import com.cloudera.exhibit.core.Frame;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import net.hydromatic.linq4j.Enumerator;
-import net.hydromatic.linq4j.Linq4j;
-import net.hydromatic.linq4j.QueryProvider;
-import net.hydromatic.linq4j.Queryable;
-import net.hydromatic.optiq.SchemaPlus;
-import net.hydromatic.optiq.Statistic;
-import net.hydromatic.optiq.Statistics;
-import net.hydromatic.optiq.TranslatableTable;
-import net.hydromatic.optiq.impl.AbstractTableQueryable;
-import net.hydromatic.optiq.impl.java.AbstractQueryableTable;
-import net.hydromatic.optiq.rules.java.EnumerableConvention;
-import net.hydromatic.optiq.rules.java.JavaRules;
-import org.eigenbase.rel.RelNode;
-import org.eigenbase.relopt.RelOptTable;
-import org.eigenbase.reltype.RelDataType;
-import org.eigenbase.reltype.RelDataTypeFactory;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.util.ImmutableBitSet;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 
-public class FrameTable extends AbstractQueryableTable implements TranslatableTable {
+public class FrameTable extends AbstractTable implements QueryableTable {
 
   private final ObsDescriptor descriptor;
   private Frame frame;
 
   public FrameTable(ObsDescriptor descriptor) {
-    super(Object[].class);
     this.descriptor = descriptor;
-  }
-
-  public FrameTable(Frame frame) {
-    this(frame.descriptor());
-    this.frame = frame;
   }
 
   public FrameTable updateFrame(Frame frame) {
@@ -66,33 +59,11 @@ public class FrameTable extends AbstractQueryableTable implements TranslatableTa
   }
 
   @Override
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schema, String tableName) {
-    return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
-      public Enumerator<T> enumerator() {
-        if (frame == null) {
-          return Linq4j.<T>emptyEnumerator();
-        } else {
-          return (Enumerator<T>) new FrameEnumerator(frame);
-        }
-      }
-    };
-  }
-
-  @Override
   public Statistic getStatistic() {
     if (frame == null) {
       return Statistics.UNKNOWN;
     }
-    return Statistics.of(frame.size(), ImmutableList.<BitSet>of());
-  }
-
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    return new JavaRules.EnumerableTableAccessRel(
-        context.getCluster(),
-        context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),
-        relOptTable,
-        (Class) getElementType());
+    return Statistics.of(frame.size(), ImmutableList.<ImmutableBitSet>of());
   }
 
   private static Map<FieldType, Class> TYPE_CLASSES = ImmutableMap.<FieldType, Class>builder()
@@ -118,5 +89,28 @@ public class FrameTable extends AbstractQueryableTable implements TranslatableTa
       relTypes.add(typeFactory.createJavaType(TYPE_CLASSES.get(f.type)));
     }
     return typeFactory.createStructType(relTypes, names);
+  }
+
+  @Override
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schemaPlus, String tableName) {
+    return new AbstractTableQueryable<T>(queryProvider, schemaPlus, this, tableName) {
+      public Enumerator<T> enumerator() {
+        if (frame == null) {
+          return Linq4j.<T>emptyEnumerator();
+        } else {
+          return (Enumerator<T>) new FrameEnumerator(frame);
+        }
+      }
+    };
+  }
+
+  @Override
+  public Type getElementType() {
+    return Object[].class;
+  }
+
+  @Override
+  public Expression getExpression(SchemaPlus schemaPlus, String tableName, Class clazz) {
+    return Schemas.tableExpression(schemaPlus, getElementType(), tableName, clazz);
   }
 }
