@@ -15,7 +15,6 @@
 package com.cloudera.exhibit.server.calcs;
 
 import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -41,7 +40,7 @@ public class CalculationStore {
     }
 
     for (Calculation calc : calculations) {
-      Frame frame = calc.apply(exhibit);
+      Iterable<Obs> frame = calc.apply(exhibit);
       for (Obs obs : frame) {
         // TODO: multi row? Real objects, probably?
         for (int i = 0; i < obs.descriptor().size(); i++) {

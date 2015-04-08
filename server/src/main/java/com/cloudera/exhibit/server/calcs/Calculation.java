@@ -14,20 +14,17 @@
  */
 package com.cloudera.exhibit.server.calcs;
 
+import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.FrameCalculator;
+import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.sql.SQLCalculator;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-
-import java.util.List;
 
 public class Calculation {
 
   private int id;
   private String code;
-  private FrameCalculator calculator;
+  private Calculator calculator;
   private boolean initialized;
 
 
@@ -45,7 +42,7 @@ public class Calculation {
     return code;
   }
 
-  public Frame apply(Exhibit e) {
+  public Iterable<Obs> apply(Exhibit e) {
     if (!initialized) {
       calculator.initialize(e.descriptor());
       initialized = true;
