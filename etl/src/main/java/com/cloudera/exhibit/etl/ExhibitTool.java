@@ -37,6 +37,8 @@ import org.apache.hadoop.util.ToolRunner;
 import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
+import org.kitesdk.data.Format;
+import org.kitesdk.data.Formats;
 import org.kitesdk.data.crunch.CrunchDatasets;
 
 import java.io.FileReader;
@@ -66,7 +68,10 @@ public class ExhibitTool extends Configured implements Tool {
     PCollection<GenericRecord> pcol = p.read(CrunchDatasets.asSource(data));
     EvalMetrics evalMetrics = new EvalMetrics(config.metrics);
     PCollection<GenericData.Record> out = evalMetrics.apply(pcol);
-    DatasetDescriptor dd = new DatasetDescriptor.Builder().schema(((AvroType) out.getPType()).getSchema()).build();
+    DatasetDescriptor dd = new DatasetDescriptor.Builder()
+        .schema(((AvroType) out.getPType()).getSchema())
+        .format(Formats.PARQUET)
+        .build();
     Dataset<GenericRecord> outputDataset = Datasets.create(config.outputUri, dd);
     out.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
     PipelineResult res = p.done();
@@ -112,7 +117,10 @@ public class ExhibitTool extends Configured implements Tool {
     MergeSchema ms = new MergeSchema(config.name, config.keyField, config.keyType.getSchema(), config.sources,
         config.parallelism);
     PCollection<GenericData.Record> output = ms.apply(union);
-    DatasetDescriptor dd = new DatasetDescriptor.Builder().schema(((AvroType) output.getPType()).getSchema()).build();
+    DatasetDescriptor dd = new DatasetDescriptor.Builder()
+        .schema(((AvroType) output.getPType()).getSchema())
+        .format(Formats.PARQUET)
+        .build();
     Dataset<GenericRecord> outputDataset = Datasets.create(config.uri, dd);
     output.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
     PipelineResult res = p.done();
