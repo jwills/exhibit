@@ -31,6 +31,8 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
+
 public class MergeSchema implements Serializable {
 
   private final String name;
@@ -95,20 +97,6 @@ public class MergeSchema implements Serializable {
     Schema rec = Schema.createRecord(name, "", "", false);
     rec.setFields(ret);
     return rec;
-  }
-
-  private static Schema unwrapNull(Schema s) {
-    if (s.getType() == Schema.Type.UNION) {
-      List<Schema> cmps = s.getTypes();
-      if (cmps.size() == 2) {
-        if (cmps.get(0).getType() == Schema.Type.NULL) {
-          return cmps.get(1);
-        } else if (cmps.get(1).getType() == Schema.Type.NULL) {
-          return cmps.get(0);
-        }
-      }
-    }
-    return s;
   }
 
   public PCollection<GenericData.Record> apply(PTable<Object, Pair<Integer, GenericData.Record>> input) {
