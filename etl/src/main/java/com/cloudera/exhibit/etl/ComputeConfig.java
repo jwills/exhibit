@@ -20,8 +20,6 @@ import org.apache.crunch.Target;
 import java.util.List;
 
 public class ComputeConfig {
-  public String inputUri = "";
-  public List<MetricConfig> metrics = Lists.newArrayList();
-  public String outputUri = "";
-  public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
+  public String uri = "";
+  public List<ComputedConfig> compute = Lists.newArrayList();
 }

@@ -37,7 +37,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
-import org.kitesdk.data.Format;
 import org.kitesdk.data.Formats;
 import org.kitesdk.data.crunch.CrunchDatasets;
 
@@ -64,16 +63,18 @@ public class ExhibitTool extends Configured implements Tool {
   int compute(String arg) throws Exception {
     ComputeConfig config = parseComputeConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
-    Dataset<GenericRecord> data = Datasets.load(config.inputUri);
-    PCollection<GenericRecord> pcol = p.read(CrunchDatasets.asSource(data));
-    EvalMetrics evalMetrics = new EvalMetrics(config.metrics);
-    PCollection<GenericData.Record> out = evalMetrics.apply(pcol);
-    DatasetDescriptor dd = new DatasetDescriptor.Builder()
-        .schema(((AvroType) out.getPType()).getSchema())
-        .format(Formats.PARQUET)
-        .build();
-    Dataset<GenericRecord> outputDataset = Datasets.create(config.outputUri, dd);
-    out.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
+    Dataset<GenericRecord> data = Datasets.load(config.uri);
+    PCollection<GenericRecord> input = p.read(CrunchDatasets.asSource(data));
+    for (ComputedConfig computed : config.compute) {
+      EvalMetrics evalMetrics = new EvalMetrics(computed.metrics);
+      PCollection<GenericData.Record> out = evalMetrics.apply(input);
+      DatasetDescriptor dd = new DatasetDescriptor.Builder()
+              .schema(((AvroType) out.getPType()).getSchema())
+              .format(Formats.PARQUET)
+              .build();
+      Dataset<GenericRecord> outputDataset = Datasets.create(computed.uri, dd);
+      out.write(CrunchDatasets.asTarget(outputDataset), computed.writeMode);
+    }
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;
   }
@@ -129,7 +130,8 @@ public class ExhibitTool extends Configured implements Tool {
 
   private ComputeConfig parseComputeConfig(String configFile) throws Exception {
     YamlReader reader = new YamlReader(new FileReader(configFile));
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "metrics", MetricConfig.class);
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "compute", ComputedConfig.class);
+    reader.getConfig().setPropertyElementType(ComputedConfig.class, "metrics", MetricConfig.class);
     reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
     return reader.read(ComputeConfig.class);
   }
@@ -137,7 +139,8 @@ public class ExhibitTool extends Configured implements Tool {
   private BuildConfig parseBuildConfig(String configFile) throws Exception {
     YamlReader reader = new YamlReader(new FileReader(configFile));
     reader.getConfig().setPropertyElementType(BuildConfig.class, "sources", SourceConfig.class);
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "metrics", MetricConfig.class);
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "compute", ComputedConfig.class);
+    reader.getConfig().setPropertyElementType(ComputedConfig.class, "metrics", MetricConfig.class);
     reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
     return reader.read(BuildConfig.class);
   }
