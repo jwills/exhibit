@@ -29,6 +29,9 @@ import java.util.Locale;
 import java.util.Map;
 
 public class MetricConfig implements Serializable {
+
+  public String name = "";
+
   public Map<String, String> descriptor = Maps.newLinkedHashMap();
 
   public String engine = "sql";

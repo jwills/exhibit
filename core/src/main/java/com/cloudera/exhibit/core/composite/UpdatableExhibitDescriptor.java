@@ -15,37 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl.tbl;
+package com.cloudera.exhibit.core.composite;
 
+import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.Maps;
-import org.apache.avro.Schema;
 
-import java.util.Map;
-
-public class SumMapTbl extends AbstractTbl {
-
-  protected SumMapTbl(int id, Schema valueSchema) {
-    super(id, Schema.createMap(valueSchema), Schema.createMap(valueSchema));
+public class UpdatableExhibitDescriptor extends ExhibitDescriptor {
+  public UpdatableExhibitDescriptor(ExhibitDescriptor base) {
+    super(base.attributes(), Maps.newHashMap(base.frames()));
   }
 
-  @Override
-  public Object merge(Object current, Object next) {
-    Map<String, Object> map = (Map<String, Object>) current;
-    if (map == null) {
-      map = Maps.newHashMap();
-    }
-    Map<String, Object> nmap = (Map<String, Object>) next;
-    Schema vschema = intermediateSchema().getValueType();
-    for (Map.Entry<String, Object> e : nmap.entrySet()) {
-      String key = e.getKey();
-      map.put(key, SumTbl.add(map.get(key), e.getValue(), vschema));
-    }
-    return map;
-  }
-
-  @Override
-  public Object finalize(Object current) {
-    // TODO: add top support
-    return current;
+  public UpdatableExhibitDescriptor add(String name, ObsDescriptor od) {
+    frames().put(name, od);
+    return this;
   }
 }

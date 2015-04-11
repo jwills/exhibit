@@ -48,14 +48,14 @@ public class EvalMetrics {
     List<Schema.Field> fields = Lists.newArrayList();
     // Copy over input attributes
     for (ObsDescriptor.Field of : descriptor.attributes()) {
-      fields.add(new Schema.Field(of.name, AvroExhibit.getSchema(of.type), "", null));
+      fields.add(AvroExhibit.getSchemaField(of));
     }
     // Metric column definitions
     for (MetricConfig mc : metrics) {
       Calculator oc = mc.getCalculator();
       ObsDescriptor od = oc.initialize(descriptor);
       for (ObsDescriptor.Field of : od) {
-        fields.add(new Schema.Field(of.name, AvroExhibit.getSchema(of.type), "", null));
+        fields.add(AvroExhibit.getSchemaField(of));
       }
     }
     //TODO: better naming here

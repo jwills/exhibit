@@ -21,5 +21,7 @@ import java.util.List;
 
 public class ComputeConfig {
   public String uri = "";
-  public List<ComputedConfig> compute = Lists.newArrayList();
+  public int parallelism = -1;
+  public List<MetricConfig> frames = Lists.newArrayList();
+  public List<OutputConfig> outputs = Lists.newArrayList();
 }

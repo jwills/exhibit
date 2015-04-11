@@ -20,32 +20,13 @@ package com.cloudera.exhibit.etl;
 import com.google.common.collect.Lists;
 import org.apache.crunch.Target;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ComputedConfig {
+public class OutputConfig implements Serializable {
   public String uri = "";
   public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
-
-  public List<MetricConfig> metrics = Lists.newArrayList();
-
-  // Aggregation-related configuration fields that are computed by
-  // the metrics associated with this compute configuration. Note
-  // that ALL of the metrics must define ALL of the keys for this
-  // to work properly.
+  public List<String> attrs = Lists.newArrayList();
   public List<String> keys = Lists.newArrayList();
-
-  // The name of the count field, if any
-  public String count;
-
-  // Perform sums on the following columns.
-  public List<String> sum = Lists.newArrayList();
-
-  // Count the distinct number of elements for the following columns
-  public List<String> distinct = Lists.newArrayList();
-
-  // Track the minimum element for the following columns
-  public List<String> min = Lists.newArrayList();
-
-  // Track the maximum element for the following columns.
-  public List<String> max = Lists.newArrayList();
+  public List<AggConfig> aggregates = Lists.newArrayList();
 }

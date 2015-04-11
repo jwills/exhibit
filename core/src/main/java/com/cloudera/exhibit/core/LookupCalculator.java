@@ -15,22 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl.tbl;
+package com.cloudera.exhibit.core;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import org.apache.avro.Schema;
+public class LookupCalculator implements Calculator {
 
-import java.io.Serializable;
+  private final String frame;
 
-public interface Tbl extends Serializable {
-  int getId();
+  public LookupCalculator(String frame) {
+    this.frame = frame;
+  }
 
-  void initialize(ExhibitDescriptor ed);
-  Schema intermediateSchema();
-  Schema outputSchema();
+  @Override
+  public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
+    return descriptor.frames().get(frame);
+  }
 
-  Object extract(Exhibit e);
-  Object merge(Object current, Object next);
-  Object finalize(Object current);
+  @Override
+  public void cleanup() {
+  }
+
+  @Override
+  public Iterable<Obs> apply(Exhibit exhibit) {
+    return exhibit.frames().get(frame);
+  }
 }

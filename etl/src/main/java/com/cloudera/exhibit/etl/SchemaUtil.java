@@ -17,11 +17,21 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import org.apache.avro.Schema;
 
 import java.util.List;
 
 public class SchemaUtil {
+
+  public static Schema getOrParse(Schema s, String json) {
+    if (s == null) {
+      s = (new Schema.Parser()).parse(json);
+    }
+    return s;
+  }
+
   public static Schema unwrapNull(Schema s) {
     if (s.getType() == Schema.Type.UNION) {
       List<Schema> cmps = s.getTypes();

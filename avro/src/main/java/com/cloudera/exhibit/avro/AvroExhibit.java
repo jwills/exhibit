@@ -101,6 +101,10 @@ public class AvroExhibit {
 
   private AvroExhibit() {}
 
+  public static Schema.Field getSchemaField(ObsDescriptor.Field f) {
+    return new Schema.Field(f.name, getSchema(f.type), "", null);
+  }
+
   public static Schema getSchema(ObsDescriptor.FieldType type) {
     Schema internal;
     switch (type) {

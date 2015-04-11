@@ -20,25 +20,10 @@ package com.cloudera.exhibit.etl.tbl;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 
+
 import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
 
-public class SumTbl extends AbstractTbl {
-
-  public SumTbl(int id, Schema schema) {
-    super(id, schema, schema);
-  }
-
-  @Override
-  public Object merge(Object current, Object next) {
-    return add(current, next, intermediateSchema());
-  }
-
-  @Override
-  public Object finalize(Object current) {
-    // Nothing to do for sums
-    return current;
-  }
-
+public class SumTbl {
   public static Object add(Object cur, Object next, Schema schema) {
     if (cur == null) {
       return next;

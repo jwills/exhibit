@@ -14,18 +14,24 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.PivotCalculator;
 import com.esotericsoftware.yamlbeans.YamlReader;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.crunch.GroupingOptions;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.impl.mr.MRPipeline;
+import org.apache.crunch.lib.join.JoinUtils;
 import org.apache.crunch.types.PTableType;
 import org.apache.crunch.types.PType;
 import org.apache.crunch.types.avro.AvroType;
@@ -42,6 +48,7 @@ import org.kitesdk.data.crunch.CrunchDatasets;
 
 import java.io.FileReader;
 import java.util.List;
+import java.util.Set;
 
 public class ExhibitTool extends Configured implements Tool {
   @Override
@@ -65,25 +72,100 @@ public class ExhibitTool extends Configured implements Tool {
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     Dataset<GenericRecord> data = Datasets.load(config.uri);
     PCollection<GenericRecord> input = p.read(CrunchDatasets.asSource(data));
-    for (ComputedConfig computed : config.compute) {
-      EvalMetrics evalMetrics = new EvalMetrics(computed.metrics);
-      PCollection<GenericData.Record> out = evalMetrics.apply(input);
+
+    // Step one: generate additional frames, if any.
+    RecordToExhibit rte = new RecordToExhibit(config.frames);
+    ExhibitDescriptor descriptor = rte.getDescriptor(input.getPType());
+    PCollection<Exhibit> exhibits = rte.apply(input);
+
+    // Step two: determine the key and value schemas from the outputs.
+    List<OutputGen> outputGens = Lists.newArrayList();
+    Set<Schema> keySchemas = Sets.newHashSet();
+    Set<Schema> valueSchemas = Sets.newHashSet();
+    List<Schema> outputSchemas = Lists.newArrayList();
+    for (int i = 0; i < config.outputs.size(); i++) {
+      OutputConfig output = config.outputs.get(i);
+      OutputGen gen = new OutputGen(output, descriptor);
+      Schema keySchema = gen.getKeySchema();
+      List<Schema> valueSchema = gen.getValueSchemas();
+      List<Schema.Field> outputFields = Lists.newArrayList();
+      for (Schema.Field sf : keySchema.getFields()) {
+        outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
+      }
+      for (Schema s : valueSchema) {
+        for (Schema.Field sf : s.getFields()) {
+          outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
+        }
+      }
+      Schema outputSchema = Schema.createRecord("output" + i, "", "exhibit", false);
+      outputSchema.setFields(outputFields);
+
+      keySchemas.add(keySchema);
+      valueSchemas.addAll(valueSchema);
+      outputGens.add(gen);
+      outputSchemas.add(outputSchema);
+    }
+
+    Schema keySchema = unionKeySchema("ExhibitKey", keySchemas);
+    Schema valueSchema = unionValueSchema("ExhibitValue", valueSchemas);
+    SchemaProvider sp = new SchemaProvider(ImmutableList.of(keySchema, valueSchema));
+    PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> ptt = Avros.tableOf(
+        Avros.pairs(Avros.generics(keySchema), Avros.ints()),
+        Avros.pairs(Avros.ints(), Avros.generics(valueSchema)));
+    PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> mapside = null;
+    for (int i = 0; i < outputGens.size(); i++) {
+      PTable<GenericData.Record, Pair<Integer, GenericData.Record>> out = outputGens.get(i).apply(exhibits);
+      PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> m = out.parallelDo(
+          new SchemaMapFn(i, sp), ptt);
+      mapside = (mapside == null) ? m : mapside.union(m);
+    }
+
+    GroupingOptions opts = GroupingOptions.builder()
+        .numReducers(config.parallelism)
+        .partitionerClass(JoinUtils.AvroIndexedRecordPartitioner.class)
+        .groupingComparatorClass(JoinUtils.AvroPairGroupingComparator.class)
+        .build();
+    PType<GenericData.Record> outputUnion = Avros.generics(Schema.createUnion(outputSchemas));
+    PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
+        .combineValues(new ExCombiner(config.outputs))
+        .parallelDo(new MergeRowsFn(outputSchemas), Avros.tableOf(Avros.ints(), outputUnion));
+
+    for (int i = 0; i < config.outputs.size(); i++) {
+      OutputConfig output = config.outputs.get(i);
+      PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), Avros.generics(outputSchemas.get(i)));
       DatasetDescriptor dd = new DatasetDescriptor.Builder()
               .schema(((AvroType) out.getPType()).getSchema())
               .format(Formats.PARQUET)
               .build();
-      Dataset<GenericRecord> outputDataset = Datasets.create(computed.uri, dd);
-      out.write(CrunchDatasets.asTarget(outputDataset), computed.writeMode);
+      Dataset<GenericRecord> outputDataset = Datasets.create(output.uri, dd);
+      out.write(CrunchDatasets.asTarget(outputDataset), output.writeMode);
     }
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;
+  }
+
+  Schema unionKeySchema(String name, Set<Schema> schemas) {
+    Schema wrapper = Schema.createRecord(name, "exhibit", "", false);
+    Schema unionSchema = Schema.createUnion(Lists.newArrayList(schemas));
+    Schema.Field idx = new Schema.Field("index", Schema.create(Schema.Type.INT), "", null);
+    Schema.Field key = new Schema.Field("key", unionSchema, "", null);
+    wrapper.setFields(Lists.newArrayList(idx, key));
+    return wrapper;
+  }
+
+  Schema unionValueSchema(String name, Set<Schema> schemas) {
+    Schema wrapper = Schema.createRecord(name, "exhibit", "", false);
+    Schema unionSchema = Schema.createUnion(Lists.newArrayList(schemas));
+    Schema.Field sf = new Schema.Field("value", unionSchema, "", null);
+    wrapper.setFields(Lists.newArrayList(sf));
+    return wrapper;
   }
 
   int build(String arg) throws Exception {
     BuildConfig config = parseBuildConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     List<PCollection<GenericRecord>> pcols = Lists.newArrayList();
-    List<Schema> schemas = Lists.newArrayList();
+    Set<Schema> schemas = Sets.newHashSet();
     for (SourceConfig src : config.sources) {
       Dataset<GenericRecord> data = Datasets.load(src.uri);
       PCollection<GenericRecord> pcol = p.read(CrunchDatasets.asSource(data));
@@ -94,10 +176,7 @@ public class ExhibitTool extends Configured implements Tool {
     }
 
     // Hack to union the various schemas that will get processed together.
-    Schema wrapper = Schema.createRecord("ExhibitWrapper", "crunch", "", false);
-    Schema unionSchema = Schema.createUnion(schemas);
-    Schema.Field sf = new Schema.Field("value", unionSchema, null, null);
-    wrapper.setFields(Lists.newArrayList(sf));
+    Schema wrapper = unionValueSchema("ExhibitWrapper", schemas);
     AvroType<GenericData.Record> valueType = Avros.generics(wrapper);
 
     AvroType<Pair<Integer, GenericData.Record>> ssType = Avros.pairs(Avros.ints(), valueType);
@@ -130,18 +209,20 @@ public class ExhibitTool extends Configured implements Tool {
 
   private ComputeConfig parseComputeConfig(String configFile) throws Exception {
     YamlReader reader = new YamlReader(new FileReader(configFile));
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "compute", ComputedConfig.class);
-    reader.getConfig().setPropertyElementType(ComputedConfig.class, "metrics", MetricConfig.class);
-    reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
+    setupComputeReader(reader);
     return reader.read(ComputeConfig.class);
+  }
+
+  private void setupComputeReader(YamlReader reader) throws Exception {
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "outputs", OutputConfig.class);
+    reader.getConfig().setPropertyElementType(OutputConfig.class, "aggregates", AggConfig.class);
+    reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
   }
 
   private BuildConfig parseBuildConfig(String configFile) throws Exception {
     YamlReader reader = new YamlReader(new FileReader(configFile));
     reader.getConfig().setPropertyElementType(BuildConfig.class, "sources", SourceConfig.class);
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "compute", ComputedConfig.class);
-    reader.getConfig().setPropertyElementType(ComputedConfig.class, "metrics", MetricConfig.class);
-    reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
+    setupComputeReader(reader);
     return reader.read(BuildConfig.class);
   }
 

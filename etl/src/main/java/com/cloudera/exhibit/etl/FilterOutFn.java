@@ -15,22 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl.tbl;
+package com.cloudera.exhibit.etl;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.crunch.DoFn;
+import org.apache.crunch.Emitter;
+import org.apache.crunch.Pair;
 
-import java.io.Serializable;
+public class FilterOutFn extends DoFn<Pair<Integer, GenericData.Record>, GenericData.Record> {
 
-public interface Tbl extends Serializable {
-  int getId();
+  private final int outputIndex;
 
-  void initialize(ExhibitDescriptor ed);
-  Schema intermediateSchema();
-  Schema outputSchema();
+  public FilterOutFn(int outputIndex) {
+    this.outputIndex = outputIndex;
+  }
 
-  Object extract(Exhibit e);
-  Object merge(Object current, Object next);
-  Object finalize(Object current);
+  @Override
+  public void process(Pair<Integer, GenericData.Record> input, Emitter<GenericData.Record> emitter) {
+    if (outputIndex == input.first()) {
+      emitter.emit(input.second());
+    }
+  }
 }
