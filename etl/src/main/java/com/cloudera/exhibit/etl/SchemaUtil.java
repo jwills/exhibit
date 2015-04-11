@@ -19,9 +19,11 @@ package com.cloudera.exhibit.etl;
 
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 
 import java.util.List;
+import java.util.Set;
 
 public class SchemaUtil {
 
@@ -44,6 +46,23 @@ public class SchemaUtil {
       }
     }
     return s;
+  }
+
+  public static Schema unionKeySchema(String name, List<Schema> schemas) {
+    Schema wrapper = Schema.createRecord(name, "exhibit", "", false);
+    Schema unionSchema = Schema.createUnion(schemas);
+    Schema.Field idx = new Schema.Field("index", Schema.create(Schema.Type.INT), "", null);
+    Schema.Field key = new Schema.Field("key", unionSchema, "", null);
+    wrapper.setFields(Lists.newArrayList(idx, key));
+    return wrapper;
+  }
+
+  public static Schema unionValueSchema(String name, List<Schema> schemas) {
+    Schema wrapper = Schema.createRecord(name, "exhibit", "", false);
+    Schema unionSchema = Schema.createUnion(schemas);
+    Schema.Field sf = new Schema.Field("value", unionSchema, "", null);
+    wrapper.setFields(Lists.newArrayList(sf));
+    return wrapper;
   }
 
   private SchemaUtil() {}

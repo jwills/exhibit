@@ -29,6 +29,7 @@ import com.cloudera.exhibit.core.composite.UpdatableExhibitDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
@@ -62,10 +63,20 @@ public class RecordToExhibit  {
     return descriptor;
   }
 
+  private static class NoOpMapFn<S, T> extends MapFn<S, T> {
+    @Override
+    public T map(S s) {
+      return (T) s;
+    }
+  }
+
   public PCollection<Exhibit> apply(PCollection<GenericRecord> records) {
     Schema s = ((AvroType) records.getPType()).getSchema();
     return records.parallelDo("recordToExhibit", new RecordToExhibitFn(s, metrics),
-        Avros.derived(Exhibit.class, null, null, records.getPType()));
+            Avros.derivedImmutable(Exhibit.class,
+                    new NoOpMapFn<GenericData.Record, Exhibit>(),
+                    new NoOpMapFn<Exhibit, GenericData.Record>(),
+                    Avros.generics(s)));
   }
 
   static class RecordToExhibitFn extends MapFn<GenericRecord, Exhibit> {
@@ -85,6 +96,12 @@ public class RecordToExhibit  {
     public void initialize() {
       this.schema = SchemaUtil.getOrParse(this.schema, schemaJson);
       this.descriptor = getDescriptor(schema, metrics);
+      this.calcs = Lists.newArrayList();
+      for (MetricConfig mc : metrics) {
+        Calculator c = mc.getCalculator();
+        c.initialize(descriptor);
+        calcs.add(c);
+      }
     }
 
     @Override

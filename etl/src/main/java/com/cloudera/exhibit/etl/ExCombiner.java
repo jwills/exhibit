@@ -26,9 +26,11 @@ import java.util.List;
 
 public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> {
 
+  private SchemaProvider provider;
   private List<OutputConfig> configs;
 
-  public ExCombiner(List<OutputConfig> configs) {
+  public ExCombiner(SchemaProvider provider, List<OutputConfig> configs) {
+    this.provider = provider;
     this.configs = configs;
   }
 
@@ -43,17 +45,22 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
     for (Pair<Integer, GenericData.Record> p : input.second()) {
       if (aggIdx < 0 || aggIdx != p.first()) {
         if (aggIdx >= 0) {
-          emitter.emit(Pair.of(Pair.of(key, aggIdx), Pair.of(aggIdx, merged)));
+          increment("Exhibit", "MergedValues");
+          GenericData.Record outValue = new GenericData.Record(provider.get(1));
+          outValue.put("value", merged);
+          emitter.emit(Pair.of(Pair.of(key, aggIdx), Pair.of(aggIdx, outValue)));
         }
         aggIdx = p.first();
         ac = configs.get(outIdx).aggregates.get(aggIdx);
         merged = null;
       }
-      merged = ac.merge(merged, p.second());
+      merged = ac.merge(merged, (GenericData.Record) p.second().get("value"));
     }
     if (aggIdx >= 0) {
-      emitter.emit(Pair.of(Pair.of(key, aggIdx), Pair.of(aggIdx, merged)));
+      increment("Exhibit", "MergedValues");
+      GenericData.Record outValue = new GenericData.Record(provider.get(1));
+      outValue.put("value", merged);
+      emitter.emit(Pair.of(Pair.of(key, aggIdx), Pair.of(aggIdx, outValue)));
     }
-
   }
 }

@@ -30,7 +30,9 @@ import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
+import org.apache.crunch.impl.mem.MemPipeline;
 import org.apache.crunch.impl.mr.MRPipeline;
+import org.apache.crunch.io.To;
 import org.apache.crunch.lib.join.JoinUtils;
 import org.apache.crunch.types.PTableType;
 import org.apache.crunch.types.PType;
@@ -49,6 +51,9 @@ import org.kitesdk.data.crunch.CrunchDatasets;
 import java.io.FileReader;
 import java.util.List;
 import java.util.Set;
+
+import static com.cloudera.exhibit.etl.SchemaUtil.unionKeySchema;
+import static com.cloudera.exhibit.etl.SchemaUtil.unionValueSchema;
 
 public class ExhibitTool extends Configured implements Tool {
   @Override
@@ -85,9 +90,10 @@ public class ExhibitTool extends Configured implements Tool {
     List<Schema> outputSchemas = Lists.newArrayList();
     for (int i = 0; i < config.outputs.size(); i++) {
       OutputConfig output = config.outputs.get(i);
-      OutputGen gen = new OutputGen(output, descriptor);
+      OutputGen gen = new OutputGen(i, output, descriptor);
       Schema keySchema = gen.getKeySchema();
       List<Schema> valueSchema = gen.getValueSchemas();
+
       List<Schema.Field> outputFields = Lists.newArrayList();
       for (Schema.Field sf : keySchema.getFields()) {
         outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
@@ -97,8 +103,9 @@ public class ExhibitTool extends Configured implements Tool {
           outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
         }
       }
-      Schema outputSchema = Schema.createRecord("output" + i, "", "exhibit", false);
+      Schema outputSchema = Schema.createRecord("ExOutput" + i, "", "exhibit", false);
       outputSchema.setFields(outputFields);
+      System.out.println("Output Schema " + i + ": " + outputSchema.toString(true));
 
       keySchemas.add(keySchema);
       valueSchemas.addAll(valueSchema);
@@ -106,8 +113,9 @@ public class ExhibitTool extends Configured implements Tool {
       outputSchemas.add(outputSchema);
     }
 
-    Schema keySchema = unionKeySchema("ExhibitKey", keySchemas);
-    Schema valueSchema = unionValueSchema("ExhibitValue", valueSchemas);
+    Schema keySchema = unionKeySchema("ExhibitKey", Lists.newArrayList(keySchemas));
+    Schema valueSchema = unionValueSchema("ExhibitValue", Lists.newArrayList(valueSchemas));
+
     SchemaProvider sp = new SchemaProvider(ImmutableList.of(keySchema, valueSchema));
     PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> ptt = Avros.tableOf(
         Avros.pairs(Avros.generics(keySchema), Avros.ints()),
@@ -125,17 +133,19 @@ public class ExhibitTool extends Configured implements Tool {
         .partitionerClass(JoinUtils.AvroIndexedRecordPartitioner.class)
         .groupingComparatorClass(JoinUtils.AvroPairGroupingComparator.class)
         .build();
-    PType<GenericData.Record> outputUnion = Avros.generics(Schema.createUnion(outputSchemas));
+    Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
+    PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
     PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
-        .combineValues(new ExCombiner(config.outputs))
-        .parallelDo(new MergeRowsFn(outputSchemas), Avros.tableOf(Avros.ints(), outputUnion));
+        .combineValues(new ExCombiner(sp, config.outputs))
+        .parallelDo("merge", new MergeRowsFn(outputUnionSchema), Avros.tableOf(Avros.ints(), outputUnion));
 
     for (int i = 0; i < config.outputs.size(); i++) {
       OutputConfig output = config.outputs.get(i);
-      PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), Avros.generics(outputSchemas.get(i)));
+      AvroType<GenericData.Record> outType = Avros.generics(outputSchemas.get(i));
+      PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), outType);
       DatasetDescriptor dd = new DatasetDescriptor.Builder()
-              .schema(((AvroType) out.getPType()).getSchema())
-              .format(Formats.PARQUET)
+              .schema(outType.getSchema())
+              .format(output.format)
               .build();
       Dataset<GenericRecord> outputDataset = Datasets.create(output.uri, dd);
       out.write(CrunchDatasets.asTarget(outputDataset), output.writeMode);
@@ -144,22 +154,7 @@ public class ExhibitTool extends Configured implements Tool {
     return res.succeeded() ? 0 : 1;
   }
 
-  Schema unionKeySchema(String name, Set<Schema> schemas) {
-    Schema wrapper = Schema.createRecord(name, "exhibit", "", false);
-    Schema unionSchema = Schema.createUnion(Lists.newArrayList(schemas));
-    Schema.Field idx = new Schema.Field("index", Schema.create(Schema.Type.INT), "", null);
-    Schema.Field key = new Schema.Field("key", unionSchema, "", null);
-    wrapper.setFields(Lists.newArrayList(idx, key));
-    return wrapper;
-  }
 
-  Schema unionValueSchema(String name, Set<Schema> schemas) {
-    Schema wrapper = Schema.createRecord(name, "exhibit", "", false);
-    Schema unionSchema = Schema.createUnion(Lists.newArrayList(schemas));
-    Schema.Field sf = new Schema.Field("value", unionSchema, "", null);
-    wrapper.setFields(Lists.newArrayList(sf));
-    return wrapper;
-  }
 
   int build(String arg) throws Exception {
     BuildConfig config = parseBuildConfig(arg);
@@ -176,7 +171,7 @@ public class ExhibitTool extends Configured implements Tool {
     }
 
     // Hack to union the various schemas that will get processed together.
-    Schema wrapper = unionValueSchema("ExhibitWrapper", schemas);
+    Schema wrapper = unionValueSchema("ExhibitWrapper", Lists.newArrayList(schemas));
     AvroType<GenericData.Record> valueType = Avros.generics(wrapper);
 
     AvroType<Pair<Integer, GenericData.Record>> ssType = Avros.pairs(Avros.ints(), valueType);
@@ -214,6 +209,7 @@ public class ExhibitTool extends Configured implements Tool {
   }
 
   private void setupComputeReader(YamlReader reader) throws Exception {
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "frames", MetricConfig.class);
     reader.getConfig().setPropertyElementType(ComputeConfig.class, "outputs", OutputConfig.class);
     reader.getConfig().setPropertyElementType(OutputConfig.class, "aggregates", AggConfig.class);
     reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);

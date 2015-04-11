@@ -25,6 +25,7 @@ import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.crunch.DoFn;
@@ -39,13 +40,17 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
+import static com.cloudera.exhibit.etl.SchemaUtil.unionValueSchema;
+
 public class OutputGen {
 
+  private final int id;
   private final OutputConfig config;
   private final Schema keySchema;
   private final List<Schema> valueSchemas;
 
-  public OutputGen(OutputConfig config, ExhibitDescriptor descriptor) {
+  public OutputGen(int id, OutputConfig config, ExhibitDescriptor descriptor) {
+    this.id = id;
     this.config = config;
     this.keySchema = keySchema(descriptor);
     this.valueSchemas = valueSchemas(descriptor);
@@ -87,11 +92,14 @@ public class OutputGen {
     for (int i = 0; i < config.keys.size(); i++) {
       keyFields.add(new Schema.Field(config.keys.get(i), frameKeySchemas.get(i), "", null));
     }
-    return Schema.createRecord(keyFields);
+    Schema wrapper = Schema.createRecord("ExK" + id, "", "exhibit", false);
+    wrapper.setFields(keyFields);
+    return wrapper;
   }
 
   private List<Schema> valueSchemas(ExhibitDescriptor descriptor) {
     List<Schema> schemas = Lists.newArrayList();
+    int idx = 0;
     for (AggConfig ac : config.aggregates) {
       ObsDescriptor fd = ac.getFrameDescriptor(descriptor);
       List<Schema.Field> fields = Lists.newArrayList();
@@ -99,7 +107,10 @@ public class OutputGen {
         ObsDescriptor.Field f = fd.get(fd.indexOf(e.getKey()));
         fields.add(new Schema.Field(e.getValue(), AvroExhibit.getSchema(f.type), "", null));
       }
-      schemas.add(Schema.createRecord(fields));
+      Schema wrapper = Schema.createRecord("ExValue_" + id + "_" + idx, "", "exhibit", false);
+      wrapper.setFields(fields);
+      schemas.add(wrapper);
+      idx++;
     }
     return schemas;
   }
@@ -107,13 +118,14 @@ public class OutputGen {
   public PTable<GenericData.Record, Pair<Integer, GenericData.Record>> apply(
       PCollection<Exhibit> exhibits) {
     AvroType<GenericData.Record> kt = Avros.generics(keySchema);
-    AvroType<GenericData.Record> vt = Avros.generics(Schema.createUnion(valueSchemas));
-    return exhibits.parallelDo(new MapOutFn(config, keySchema, valueSchemas),
+    AvroType<GenericData.Record> vt = Avros.generics(unionValueSchema("OutGen" + id, valueSchemas));
+    return exhibits.parallelDo(new MapOutFn(id, config, keySchema, valueSchemas),
         Avros.tableOf(kt, Avros.pairs(Avros.ints(), vt)));
   }
 
   static class MapOutFn extends DoFn<Exhibit, Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> {
 
+    private final int outputId;
     private final OutputConfig config;
     private final String keyJson;
     private final List<String> valueJson;
@@ -122,7 +134,8 @@ public class OutputGen {
     private transient List<Calculator> calcs;
     private boolean initialized = false;
 
-    public MapOutFn(OutputConfig config, Schema keySchema, List<Schema> valueSchemas) {
+    public MapOutFn(int outputId, OutputConfig config, Schema keySchema, List<Schema> valueSchemas) {
+      this.outputId = outputId;
       this.config = config;
       this.keyJson = keySchema.toString();
       this.valueJson = Lists.newArrayList(Lists.transform(valueSchemas, new Function<Schema, String>() {
@@ -177,8 +190,9 @@ public class OutputGen {
           for (Map.Entry<String, String> e : ac.values.entrySet()) {
             valRec.put(e.getValue(), obs.get(e.getKey()));
           }
+          increment("Exhibit", "Calc" + outputId + "_" + i);
+          emitter.emit(Pair.of(keyRec, Pair.of(i, valRec)));
         }
-        emitter.emit(Pair.of(keyRec, Pair.of(i, valRec)));
       }
     }
   }

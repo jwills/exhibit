@@ -42,7 +42,7 @@ public class AggConfig implements Serializable {
     SUM,
   }
 
-  public Type type = null;
+  public Type type = Type.SUM;
   public Map<String, Object> options = Maps.newHashMap();
   public String frame = null;
   public MetricConfig compute = null;

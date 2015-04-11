@@ -18,6 +18,7 @@
 package com.cloudera.exhibit.etl;
 
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
@@ -33,7 +34,7 @@ public class FilterOutFn extends DoFn<Pair<Integer, GenericData.Record>, Generic
   @Override
   public void process(Pair<Integer, GenericData.Record> input, Emitter<GenericData.Record> emitter) {
     if (outputIndex == input.first()) {
-      emitter.emit(input.second());
+      emitter.emit((GenericData.Record) input.second().get("value"));
     }
   }
 }

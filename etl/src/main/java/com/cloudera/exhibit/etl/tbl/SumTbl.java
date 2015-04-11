@@ -26,7 +26,23 @@ import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
 public class SumTbl {
   public static Object add(Object cur, Object next, Schema schema) {
     if (cur == null) {
-      return next;
+      if (next == null) {
+        schema = unwrapNull(schema);
+        switch (schema.getType()) {
+          case INT:
+            return 0;
+          case DOUBLE:
+            return 0.0;
+          case FLOAT:
+            return 0.0f;
+          case LONG:
+            return 0L;
+          default:
+            throw new UnsupportedOperationException("Cannot handle zero-values for null records");
+        }
+      } else {
+        return next;
+      }
     } else if (next != null) {
       schema = unwrapNull(schema);
       switch (schema.getType()) {
@@ -46,7 +62,7 @@ public class SumTbl {
           }
           return rc;
         default:
-          throw new UnsupportedOperationException("Cannot sum non-numeric type: " + schema.getType());
+          throw new UnsupportedOperationException("Cannot sum non-numeric type: " + schema.toString(true));
       }
     } else {
       return cur;

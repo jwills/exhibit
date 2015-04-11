@@ -32,41 +32,38 @@ import java.util.List;
 public class MergeRowsFn extends DoFn<
     Pair<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>>,
     Pair<Integer, GenericData.Record>> {
-  private final List<String> json;
+  private final String wrapperJson;
+  private transient Schema wrapperSchema;
   private transient List<Schema> schemas;
   private int outputIndex;
   private transient GenericData.Record lastKey = null;
   private transient GenericData.Record lastValue = null;
 
-  public MergeRowsFn(List<Schema> schemas) {
-    this.json = Lists.newArrayList(Lists.transform(schemas, new Function<Schema, String>() {
-      @Nullable
-      @Override
-      public String apply(Schema schema) {
-        return schema.toString();
-      }
-    }));
+  public MergeRowsFn(Schema unionSchema) {
+    this.wrapperJson = unionSchema.toString();
   }
 
   @Override
   public void initialize() {
     final Schema.Parser sp = new Schema.Parser();
-    this.schemas = Lists.newArrayList(Lists.transform(json, new Function<String, Schema>() {
-      @Nullable
-      @Override
-      public Schema apply(@Nullable String s) {
-        return sp.parse(s);
-      }
-    }));
+    this.wrapperSchema = sp.parse(wrapperJson);
+    this.schemas = wrapperSchema.getField("value").schema().getTypes();
+    for (Schema s : this.schemas) {
+      System.out.println(s.toString(true));
+    }
     lastKey = null;
     lastValue = null;
   }
+
   @Override
   public void process(Pair<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> input,
                       Emitter<Pair<Integer, GenericData.Record>> emitter) {
     if (lastKey == null || !lastKey.equals(input.first().first())) {
       if (lastKey != null) {
-        emitter.emit(Pair.of(outputIndex, lastValue));
+        GenericData.Record wrapper = new GenericData.Record(wrapperSchema);
+        wrapper.put("value", lastValue);
+        increment("Exhibit", "ValueWritten" + outputIndex);
+        emitter.emit(Pair.of(outputIndex, wrapper));
       }
       lastKey = input.first().first();
       outputIndex = (Integer) lastKey.get("index");
@@ -76,7 +73,7 @@ public class MergeRowsFn extends DoFn<
         lastValue.put(sf.name(), innerKey.get(sf.name()));
       }
     }
-    GenericData.Record value = input.second().second();
+    GenericData.Record value = (GenericData.Record) input.second().second().get("value");
     for (Schema.Field sf : value.getSchema().getFields()) {
       lastValue.put(sf.name(), value.get(sf.name()));
     }
@@ -84,8 +81,13 @@ public class MergeRowsFn extends DoFn<
 
   @Override
   public void cleanup(Emitter<Pair<Integer, GenericData.Record>> emitter) {
-    if (lastKey != null) {
-      emitter.emit(Pair.of(outputIndex, lastValue));
+    if (lastKey != null && lastValue != null) {
+      System.out.println("Writing out last key = " + lastKey);
+      System.out.println("With value = " + lastValue);
+      GenericData.Record wrapper = new GenericData.Record(wrapperSchema);
+      wrapper.put("value", lastValue);
+      increment("Exhibit", "ValueWritten" + outputIndex);
+      emitter.emit(Pair.of((Integer) lastKey.get("index"), wrapper));
     }
   }
 }

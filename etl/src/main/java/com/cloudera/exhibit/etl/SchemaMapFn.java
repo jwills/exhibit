@@ -36,12 +36,13 @@ public class SchemaMapFn extends
   @Override
   public Pair<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> map(
       Pair<GenericData.Record, Pair<Integer, GenericData.Record>> input) {
-    int aggKey = input.second().first();
+    int aggIdx = input.second().first();
     GenericData.Record outKey = new GenericData.Record(provider.get(0));
     outKey.put("index", index);
     outKey.put("key", input.first());
     GenericData.Record outValue = new GenericData.Record(provider.get(1));
     outValue.put("value", input.second().second());
-    return Pair.of(Pair.of(outKey, aggKey), Pair.of(aggKey, outValue));
+    increment("Exhibit", "MappedSchema" + index);
+    return Pair.of(Pair.of(outKey, aggIdx), Pair.of(aggIdx, outValue));
   }
 }
