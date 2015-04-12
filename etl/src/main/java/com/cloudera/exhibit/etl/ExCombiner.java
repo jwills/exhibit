@@ -21,6 +21,7 @@ import org.apache.avro.generic.GenericData;
 import org.apache.crunch.CombineFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
+import org.apache.crunch.types.PType;
 
 import java.util.List;
 
@@ -28,16 +29,28 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
 
   private SchemaProvider provider;
   private List<OutputConfig> configs;
+  private PType<GenericData.Record> keyType;
+  private PType<GenericData.Record> valueType;
 
-  public ExCombiner(SchemaProvider provider, List<OutputConfig> configs) {
+  public ExCombiner(SchemaProvider provider, PType<GenericData.Record> keyType,
+                    PType<GenericData.Record> valueType,
+                    List<OutputConfig> configs) {
     this.provider = provider;
     this.configs = configs;
+    this.keyType = keyType;
+    this.valueType = valueType;
+  }
+
+  @Override
+  public void initialize() {
+    this.keyType.initialize(getConfiguration());
+    this.valueType.initialize(getConfiguration());
   }
 
   @Override
   public void process(Pair<Pair<GenericData.Record, Integer>, Iterable<Pair<Integer, GenericData.Record>>> input,
                       Emitter<Pair<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>>> emitter) {
-    GenericData.Record key = input.first().first();
+    GenericData.Record key = keyType.getDetachedValue(input.first().first());
     int outIdx = (Integer) key.get("index");
     AggConfig ac = null;
     int aggIdx = -1;
@@ -54,7 +67,8 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
         ac = configs.get(outIdx).aggregates.get(aggIdx);
         merged = null;
       }
-      merged = ac.merge(merged, (GenericData.Record) p.second().get("value"));
+      GenericData.Record val = valueType.getDetachedValue(p.second());
+      merged = ac.merge(merged, (GenericData.Record) val.get("value"));
     }
     if (aggIdx >= 0) {
       increment("Exhibit", "MergedValues");

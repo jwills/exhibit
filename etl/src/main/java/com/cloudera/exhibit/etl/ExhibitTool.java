@@ -30,9 +30,8 @@ import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
-import org.apache.crunch.impl.mem.MemPipeline;
 import org.apache.crunch.impl.mr.MRPipeline;
-import org.apache.crunch.io.To;
+import org.apache.crunch.io.parquet.AvroParquetFileTarget;
 import org.apache.crunch.lib.join.JoinUtils;
 import org.apache.crunch.types.PTableType;
 import org.apache.crunch.types.PType;
@@ -117,9 +116,11 @@ public class ExhibitTool extends Configured implements Tool {
     Schema valueSchema = unionValueSchema("ExhibitValue", Lists.newArrayList(valueSchemas));
 
     SchemaProvider sp = new SchemaProvider(ImmutableList.of(keySchema, valueSchema));
+    AvroType<GenericData.Record> keyType = Avros.generics(keySchema);
+    AvroType<GenericData.Record> valueType = Avros.generics(valueSchema);
     PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> ptt = Avros.tableOf(
-        Avros.pairs(Avros.generics(keySchema), Avros.ints()),
-        Avros.pairs(Avros.ints(), Avros.generics(valueSchema)));
+        Avros.pairs(keyType, Avros.ints()),
+        Avros.pairs(Avros.ints(), valueType));
     PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> mapside = null;
     for (int i = 0; i < outputGens.size(); i++) {
       PTable<GenericData.Record, Pair<Integer, GenericData.Record>> out = outputGens.get(i).apply(exhibits);
@@ -136,7 +137,7 @@ public class ExhibitTool extends Configured implements Tool {
     Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
     PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
     PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
-        .combineValues(new ExCombiner(sp, config.outputs))
+        .combineValues(new ExCombiner(sp, keyType, valueType, config.outputs))
         .parallelDo("merge", new MergeRowsFn(outputUnionSchema), Avros.tableOf(Avros.ints(), outputUnion));
 
     for (int i = 0; i < config.outputs.size(); i++) {
@@ -145,10 +146,11 @@ public class ExhibitTool extends Configured implements Tool {
       PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), outType);
       DatasetDescriptor dd = new DatasetDescriptor.Builder()
               .schema(outType.getSchema())
-              .format(output.format)
+              .format(Formats.PARQUET)
+              .location(output.path)
               .build();
-      Dataset<GenericRecord> outputDataset = Datasets.create(output.uri, dd);
-      out.write(CrunchDatasets.asTarget(outputDataset), output.writeMode);
+      Datasets.create(output.uri, dd);
+      out.write(new AvroParquetFileTarget(output.path), output.writeMode);
     }
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;
