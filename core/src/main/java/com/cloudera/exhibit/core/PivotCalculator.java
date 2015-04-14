@@ -19,8 +19,10 @@ package com.cloudera.exhibit.core;
 
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -44,15 +46,13 @@ public class PivotCalculator implements Calculator {
   }
 
   private Calculator fc;
+  private List<String> ids;
   private Map<String, Set<String>> keys;
   private transient ObsDescriptor descriptor;
 
-  public PivotCalculator(Calculator base, String key, Set<String> levels) {
-    this(base, ImmutableList.of(new Key(key, levels)));
-  }
-
-  public PivotCalculator(Calculator base, List<Key> keys) {
+  public PivotCalculator(Calculator base, List<String> idColumns, List<Key> keys) {
     this.fc = base;
+    this.ids = idColumns;
     this.keys = Maps.newLinkedHashMap();
     for (Key key : keys) {
       this.keys.put(key.name, key.levels);
@@ -62,19 +62,23 @@ public class PivotCalculator implements Calculator {
   @Override
   public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
     ObsDescriptor fd = fc.initialize(descriptor);
-    List<ObsDescriptor.Field> fields = Lists.newArrayList();
+    List<ObsDescriptor.Field> idFields = Lists.newArrayList();
+    List<ObsDescriptor.Field> valueFields = Lists.newArrayList();
     List<Set<String>> levelSet = Lists.newArrayList(keys.values());
     for (ObsDescriptor.Field f : fd) {
-      if (!keys.containsKey(f.name)) {
+      if (ids.contains(f.name)) {
+        idFields.add(new ObsDescriptor.Field(f.name, f.type));
+      } else if (!ids.contains(f.name) && !keys.containsKey(f.name)) { // value fields
         for (List<String> suffix : Sets.cartesianProduct(levelSet)) {
           StringBuilder sb = new StringBuilder(f.name);
           sb.append('_');
           sb.append(Joiner.on('_').join(suffix));
-          fields.add(new ObsDescriptor.Field(sb.toString(), f.type));
+          valueFields.add(new ObsDescriptor.Field(sb.toString(), f.type));
         }
       }
     }
-    return new SimpleObsDescriptor(fields);
+    idFields.addAll(valueFields);
+    return new SimpleObsDescriptor(idFields);
   }
 
   @Override
@@ -88,21 +92,38 @@ public class PivotCalculator implements Calculator {
     if (descriptor == null) {
       descriptor = initialize(exhibit == null ? null : exhibit.descriptor());
     }
-    List<Object> values = Arrays.asList(new Object[descriptor.size()]);
+    Map<List<Object>, List<Object>> valuesById = Maps.newHashMap();
     for (Obs obs : frame) {
+      List<Object> idv = Lists.newArrayListWithExpectedSize(ids.size());
+      for (String id : ids) {
+        idv.add(obs.get(id));
+      }
+      List<Object> values = valuesById.get(idv);
+      if (values == null) {
+        values = Arrays.asList(new Object[descriptor.size() - ids.size()]);
+        valuesById.put(idv, values);
+      }
       List<String> keyValues = Lists.newArrayListWithExpectedSize(keys.size());
       for (String key : keys.keySet()) {
         Object v = obs.get(key);
         keyValues.add(v == null ? "null" : v.toString());
       }
+      String lookupKey = Joiner.on('_').join(keyValues);
       for (ObsDescriptor.Field f : obs.descriptor()) {
         if (!keys.containsKey(f.name)) {
-          String retField = new StringBuilder(f.name).append('_').append(Joiner.on('_').join(keyValues)).toString();
+          String retField = new StringBuilder(f.name).append('_').append(lookupKey).toString();
           int index = descriptor.indexOf(retField);
-          values.set(index, obs.get(f.name));
+          values.set(index - ids.size(), obs.get(f.name));
         }
       }
     }
-    return ImmutableList.<Obs>of(new SimpleObs(descriptor, values));
+    return Iterables.transform(valuesById.entrySet(), new Function<Map.Entry<List<Object>, List<Object>>, Obs>() {
+      @Override
+      public Obs apply(Map.Entry<List<Object>, List<Object>> e) {
+        List<Object> key = e.getKey();
+        key.addAll(e.getValue());
+        return new SimpleObs(descriptor, key);
+      }
+    });
   }
 }

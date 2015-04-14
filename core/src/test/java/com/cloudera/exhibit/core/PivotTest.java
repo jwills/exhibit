@@ -54,7 +54,8 @@ public class PivotTest {
 
   @Test
   public void testPivotOne() throws Exception {
-    PivotCalculator pc = new PivotCalculator(TEST_FC, "b", ImmutableSet.of("v1", "v2"));
+    PivotCalculator.Key b = new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2"));
+    PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), ImmutableList.of(b));
     ObsDescriptor od = pc.initialize(null);
     System.out.println(od);
     Obs obs = Iterables.getOnlyElement(pc.apply(null));
@@ -66,7 +67,7 @@ public class PivotTest {
     List<PivotCalculator.Key> keys = ImmutableList.of(
         new PivotCalculator.Key("a", ImmutableSet.of("true", "false")),
         new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2")));
-    PivotCalculator pc = new PivotCalculator(TEST_FC, keys);
+    PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), keys);
     ObsDescriptor od = pc.initialize(null);
     System.out.println(od);
     Obs obs =  Iterables.getOnlyElement(pc.apply(null));
