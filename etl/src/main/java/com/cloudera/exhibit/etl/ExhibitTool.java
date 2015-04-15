@@ -16,8 +16,16 @@ package com.cloudera.exhibit.etl;
 
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.PivotCalculator;
-import com.esotericsoftware.yamlbeans.YamlReader;
+import com.cloudera.exhibit.etl.config.BuildConfig;
+import com.cloudera.exhibit.etl.config.ComputeConfig;
+import com.cloudera.exhibit.etl.config.ConfigHelper;
+import com.cloudera.exhibit.etl.config.OutputConfig;
+import com.cloudera.exhibit.etl.config.SourceConfig;
+import com.cloudera.exhibit.etl.fn.ExCombiner;
+import com.cloudera.exhibit.etl.fn.FilterOutFn;
+import com.cloudera.exhibit.etl.fn.KeyIndexFn;
+import com.cloudera.exhibit.etl.fn.MergeRowsFn;
+import com.cloudera.exhibit.etl.fn.SchemaMapFn;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -47,7 +55,6 @@ import org.kitesdk.data.Datasets;
 import org.kitesdk.data.Formats;
 import org.kitesdk.data.crunch.CrunchDatasets;
 
-import java.io.FileReader;
 import java.util.List;
 import java.util.Set;
 
@@ -72,7 +79,7 @@ public class ExhibitTool extends Configured implements Tool {
   }
 
   int compute(String arg) throws Exception {
-    ComputeConfig config = parseComputeConfig(arg);
+    ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     Dataset<GenericRecord> data = Datasets.load(config.uri);
     PCollection<GenericRecord> input = p.read(CrunchDatasets.asSource(data));
@@ -159,7 +166,7 @@ public class ExhibitTool extends Configured implements Tool {
 
 
   int build(String arg) throws Exception {
-    BuildConfig config = parseBuildConfig(arg);
+    BuildConfig config = ConfigHelper.parseBuildConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     List<PCollection<GenericRecord>> pcols = Lists.newArrayList();
     Set<Schema> schemas = Sets.newHashSet();
@@ -202,26 +209,6 @@ public class ExhibitTool extends Configured implements Tool {
     output.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;
-  }
-
-  private ComputeConfig parseComputeConfig(String configFile) throws Exception {
-    YamlReader reader = new YamlReader(new FileReader(configFile));
-    setupComputeReader(reader);
-    return reader.read(ComputeConfig.class);
-  }
-
-  private void setupComputeReader(YamlReader reader) throws Exception {
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "frames", MetricConfig.class);
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "outputs", OutputConfig.class);
-    reader.getConfig().setPropertyElementType(OutputConfig.class, "aggregates", AggConfig.class);
-    reader.getConfig().setPropertyElementType(MetricConfig.class, "pivot", PivotCalculator.Key.class);
-  }
-
-  private BuildConfig parseBuildConfig(String configFile) throws Exception {
-    YamlReader reader = new YamlReader(new FileReader(configFile));
-    reader.getConfig().setPropertyElementType(BuildConfig.class, "sources", SourceConfig.class);
-    setupComputeReader(reader);
-    return reader.read(BuildConfig.class);
   }
 
   public static void main(String[] args) throws Exception {

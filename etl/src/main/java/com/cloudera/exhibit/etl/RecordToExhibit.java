@@ -27,6 +27,7 @@ import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.composite.UpdatableExhibit;
 import com.cloudera.exhibit.core.composite.UpdatableExhibitDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
+import com.cloudera.exhibit.etl.config.MetricConfig;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;

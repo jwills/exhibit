@@ -15,8 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl;
+package com.cloudera.exhibit.etl.fn;
 
+import com.cloudera.exhibit.etl.SchemaProvider;
+import com.cloudera.exhibit.etl.config.AggConfig;
+import com.cloudera.exhibit.etl.config.OutputConfig;
 import org.apache.avro.generic.GenericData;
 import org.apache.crunch.CombineFn;
 import org.apache.crunch.Emitter;

@@ -15,13 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl;
+package com.cloudera.exhibit.etl.config;
 
 import com.cloudera.exhibit.core.Calculator;
-import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.LookupCalculator;
-import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.tbl.SumTbl;
 import com.google.common.collect.Lists;

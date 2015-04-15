@@ -15,8 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl;
+package com.cloudera.exhibit.etl.fn;
 
+import com.cloudera.exhibit.etl.SchemaProvider;
 import org.apache.avro.generic.GenericData;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.Pair;

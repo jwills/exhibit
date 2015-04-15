@@ -12,7 +12,7 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.etl;
+package com.cloudera.exhibit.etl.config;
 
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;

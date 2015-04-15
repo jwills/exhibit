@@ -14,11 +14,11 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.cloudera.exhibit.etl.config.SourceConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;

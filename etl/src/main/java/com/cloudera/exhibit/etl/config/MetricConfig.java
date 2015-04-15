@@ -12,7 +12,7 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.etl;
+package com.cloudera.exhibit.etl.config;
 
 import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.ObsDescriptor;
@@ -38,7 +38,7 @@ public class MetricConfig implements Serializable {
 
   public String code = "";
 
-  public List<PivotCalculator.Key> pivot = Lists.newArrayList();
+  public PivotConfig pivot = null;
 
   public Calculator getCalculator() {
     ObsDescriptor od = null;
@@ -52,10 +52,10 @@ public class MetricConfig implements Serializable {
     }
     if ("sql".equalsIgnoreCase(engine)) {
       SQLCalculator sql = SQLCalculator.create(od, code);
-      if (pivot.isEmpty()) {
+      if (pivot == null) {
         return sql;
       } else {
-        return new PivotCalculator(sql, pivot);
+        return new PivotCalculator(sql, pivot.by, pivot.variables);
       }
     } else if ("js".equalsIgnoreCase(engine) || "javascript".equalsIgnoreCase(engine)) {
       return new JSCalculator(od, code);

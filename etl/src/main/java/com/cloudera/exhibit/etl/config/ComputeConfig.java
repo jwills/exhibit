@@ -12,10 +12,9 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.etl;
+package com.cloudera.exhibit.etl.config;
 
 import com.google.common.collect.Lists;
-import org.apache.crunch.Target;
 
 import java.util.List;
 

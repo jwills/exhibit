@@ -15,20 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl;
+package com.cloudera.exhibit.etl.fn;
 
-import com.google.common.collect.Lists;
-import org.apache.crunch.Target;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.crunch.DoFn;
+import org.apache.crunch.Emitter;
+import org.apache.crunch.Pair;
 
-import java.io.Serializable;
-import java.util.List;
+public class FilterOutFn extends DoFn<Pair<Integer, GenericData.Record>, GenericData.Record> {
 
-public class OutputConfig implements Serializable {
-  public String uri = "";
-  public String path = "";
-  public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
-  public List<String> attrs = Lists.newArrayList();
-  public List<String> keys = Lists.newArrayList();
-  public List<AggConfig> aggregates = Lists.newArrayList();
+  private final int outputIndex;
 
+  public FilterOutFn(int outputIndex) {
+    this.outputIndex = outputIndex;
+  }
+
+  @Override
+  public void process(Pair<Integer, GenericData.Record> input, Emitter<GenericData.Record> emitter) {
+    if (outputIndex == input.first()) {
+      emitter.emit((GenericData.Record) input.second().get("value"));
+    }
+  }
 }
