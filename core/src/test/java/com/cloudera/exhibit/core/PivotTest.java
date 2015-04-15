@@ -23,9 +23,12 @@ import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.junit.Test;
 
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 public class PivotTest {
   public static final ObsDescriptor DESC = SimpleObsDescriptor.builder()
@@ -57,9 +60,8 @@ public class PivotTest {
     PivotCalculator.Key b = new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2"));
     PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), ImmutableList.of(b));
     ObsDescriptor od = pc.initialize(null);
-    System.out.println(od);
     Obs obs = Iterables.getOnlyElement(pc.apply(null));
-    System.out.println(obs);
+    assertEquals(new SimpleObs(od, ImmutableList.<Object>of(true, false, 17, 29)), obs);
   }
 
   @Test
@@ -69,8 +71,17 @@ public class PivotTest {
         new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2")));
     PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), keys);
     ObsDescriptor od = pc.initialize(null);
-    System.out.println(od);
     Obs obs =  Iterables.getOnlyElement(pc.apply(null));
-    System.out.println(obs);
+    assertEquals(new SimpleObs(od, Lists.<Object>newArrayList(17, null, null, 29)), obs);
+  }
+
+  @Test
+  public void testPivotId() throws Exception {
+    PivotCalculator.Key b = new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2"));
+    PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of("a"), ImmutableList.of(b));
+    ObsDescriptor od = pc.initialize(null);
+    Obs e1 = new SimpleObs(od, Lists.<Object>newArrayList(false, null, 29));
+    Obs e2 = new SimpleObs(od, Lists.<Object>newArrayList(true, 17, null));
+    assertEquals(ImmutableList.of(e1, e2), Lists.newArrayList(pc.apply(null)));
   }
 }

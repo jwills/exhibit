@@ -110,7 +110,7 @@ public class PivotCalculator implements Calculator {
       }
       String lookupKey = Joiner.on('_').join(keyValues);
       for (ObsDescriptor.Field f : obs.descriptor()) {
-        if (!keys.containsKey(f.name)) {
+        if (!ids.contains(f.name) && !keys.containsKey(f.name)) {
           String retField = new StringBuilder(f.name).append('_').append(lookupKey).toString();
           int index = descriptor.indexOf(retField);
           values.set(index - ids.size(), obs.get(f.name));
