@@ -30,8 +30,8 @@ public class ConfigHelper {
   }
 
   private static void setupComputeReader(YamlReader reader) throws Exception {
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "frames", MetricConfig.class);
-    reader.getConfig().setPropertyElementType(ComputeConfig.class, "outputs", OutputConfig.class);
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "tempTables", FrameConfig.class);
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "outputTables", OutputConfig.class);
     reader.getConfig().setPropertyElementType(OutputConfig.class, "aggregates", AggConfig.class);
     reader.getConfig().setPropertyElementType(PivotConfig.class, "variables", PivotCalculator.Key.class);
   }

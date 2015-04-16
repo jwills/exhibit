@@ -17,12 +17,13 @@
  */
 package com.cloudera.exhibit.etl.config;
 
-import com.cloudera.exhibit.etl.config.AggConfig;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.Lists;
 import org.apache.crunch.Target;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 public class OutputConfig implements Serializable {
   public String uri = "";
@@ -32,4 +33,11 @@ public class OutputConfig implements Serializable {
   public List<String> keys = Lists.newArrayList();
   public List<AggConfig> aggregates = Lists.newArrayList();
 
+  public List<String> getKeys(int aggIdx) {
+    List<String> keys = aggregates.get(aggIdx).keys;
+    if (keys == null || keys.isEmpty()) {
+      return this.keys;
+    }
+    return keys;
+  }
 }

@@ -60,6 +60,7 @@ public class PivotTest {
     PivotCalculator.Key b = new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2"));
     PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), ImmutableList.of(b));
     ObsDescriptor od = pc.initialize(null);
+    System.out.println(od);
     Obs obs = Iterables.getOnlyElement(pc.apply(null));
     assertEquals(new SimpleObs(od, ImmutableList.<Object>of(true, false, 17, 29)), obs);
   }
@@ -71,6 +72,7 @@ public class PivotTest {
         new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2")));
     PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), keys);
     ObsDescriptor od = pc.initialize(null);
+    System.out.println(od);
     Obs obs =  Iterables.getOnlyElement(pc.apply(null));
     assertEquals(new SimpleObs(od, Lists.<Object>newArrayList(17, null, null, 29)), obs);
   }
@@ -80,6 +82,7 @@ public class PivotTest {
     PivotCalculator.Key b = new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2"));
     PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of("a"), ImmutableList.of(b));
     ObsDescriptor od = pc.initialize(null);
+    System.out.println(od);
     Obs e1 = new SimpleObs(od, Lists.<Object>newArrayList(false, null, 29));
     Obs e2 = new SimpleObs(od, Lists.<Object>newArrayList(true, 17, null));
     assertEquals(ImmutableList.of(e1, e2), Lists.newArrayList(pc.apply(null)));

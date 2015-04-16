@@ -19,7 +19,6 @@ package com.cloudera.exhibit.etl.config;
 
 import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.LookupCalculator;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.tbl.SumTbl;
 import com.google.common.collect.Lists;
@@ -42,26 +41,22 @@ public class AggConfig implements Serializable {
 
   public Type type = Type.SUM;
   public Map<String, Object> options = Maps.newHashMap();
-  public String frame = null;
-  public MetricConfig compute = null;
+  public FrameConfig frame = null;
   public List<String> keys = Lists.newArrayList();
   public Map<String, String> values = Maps.newHashMap();
 
   public Calculator getCalculator() {
-    if (frame != null) {
-      return new LookupCalculator(frame);
-    } else {
-      return compute.getCalculator();
+    if (frame == null) {
+      throw new IllegalStateException("Invalid AggConfig: no frame specified");
     }
+    return frame.getCalculator();
   }
 
   public ObsDescriptor getFrameDescriptor(ExhibitDescriptor ed) {
     if (frame != null) {
-      return ed.frames().get(frame);
-    } else if (compute != null) {
-      Calculator c = compute.getCalculator();
+      Calculator c = frame.getCalculator();
       return c.initialize(ed);
     }
-    throw new IllegalStateException("Invalid AggConfig: no frame or compute specified");
+    throw new IllegalStateException("Invalid AggConfig: no frame specified");
   }
 }

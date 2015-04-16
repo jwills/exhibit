@@ -84,18 +84,18 @@ public class ExhibitTool extends Configured implements Tool {
     Dataset<GenericRecord> data = Datasets.load(config.uri);
     PCollection<GenericRecord> input = p.read(CrunchDatasets.asSource(data));
 
-    // Step one: generate additional frames, if any.
-    RecordToExhibit rte = new RecordToExhibit(config.frames);
+    // Step one: generate additional tempTables, if any.
+    RecordToExhibit rte = new RecordToExhibit(config.tempTables);
     ExhibitDescriptor descriptor = rte.getDescriptor(input.getPType());
     PCollection<Exhibit> exhibits = rte.apply(input);
 
-    // Step two: determine the key and value schemas from the outputs.
+    // Step two: determine the key and value schemas from the outputTables.
     List<OutputGen> outputGens = Lists.newArrayList();
     Set<Schema> keySchemas = Sets.newHashSet();
     Set<Schema> valueSchemas = Sets.newHashSet();
     List<Schema> outputSchemas = Lists.newArrayList();
-    for (int i = 0; i < config.outputs.size(); i++) {
-      OutputConfig output = config.outputs.get(i);
+    for (int i = 0; i < config.outputTables.size(); i++) {
+      OutputConfig output = config.outputTables.get(i);
       OutputGen gen = new OutputGen(i, output, descriptor);
       Schema keySchema = gen.getKeySchema();
       List<Schema> valueSchema = gen.getValueSchemas();
@@ -144,11 +144,11 @@ public class ExhibitTool extends Configured implements Tool {
     Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
     PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
     PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
-        .combineValues(new ExCombiner(sp, keyType, valueType, config.outputs))
+        .combineValues(new ExCombiner(sp, keyType, valueType, config.outputTables))
         .parallelDo("merge", new MergeRowsFn(outputUnionSchema), Avros.tableOf(Avros.ints(), outputUnion));
 
-    for (int i = 0; i < config.outputs.size(); i++) {
-      OutputConfig output = config.outputs.get(i);
+    for (int i = 0; i < config.outputTables.size(); i++) {
+      OutputConfig output = config.outputTables.get(i);
       AvroType<GenericData.Record> outType = Avros.generics(outputSchemas.get(i));
       PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), outType);
       DatasetDescriptor dd = new DatasetDescriptor.Builder()

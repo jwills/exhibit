@@ -27,6 +27,8 @@ import com.cloudera.exhibit.etl.config.AggConfig;
 import com.cloudera.exhibit.etl.config.OutputConfig;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.crunch.DoFn;
@@ -40,6 +42,7 @@ import org.apache.crunch.types.avro.Avros;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.cloudera.exhibit.etl.SchemaUtil.unionValueSchema;
 
@@ -65,6 +68,13 @@ public class OutputGen {
     return valueSchemas;
   }
 
+  private static List<String> getKeys(AggConfig ac, OutputConfig config) {
+    if (ac.keys == null || ac.keys.isEmpty()) {
+      return config.keys;
+    }
+    return ac.keys;
+  }
+
   private Schema keySchema(ExhibitDescriptor descriptor) {
     List<Schema.Field> keyFields = Lists.newArrayList();
     ObsDescriptor od = descriptor.attributes();
@@ -80,13 +90,16 @@ public class OutputGen {
     }
     for (AggConfig ac : config.aggregates) {
       ObsDescriptor fd = ac.getFrameDescriptor(descriptor);
-      for (int i = 0; i < ac.keys.size(); i++) {
-        ObsDescriptor.Field f = fd.get(fd.indexOf(ac.keys.get(i)));
+      List<String> keys = getKeys(ac, config);
+      for (int i = 0; i < keys.size(); i++) {
+        ObsDescriptor.Field f = fd.get(fd.indexOf(keys.get(i)));
         Schema s = AvroExhibit.getSchema(f.type);
         if (frameKeySchemas.get(i) == null) {
           frameKeySchemas.set(i, s);
         } else if (!frameKeySchemas.get(i).equals(s)) {
-          throw new IllegalStateException("Mismatched key schemas in AggConfig: find way to auto-resolve");
+          String msg = "Mismatched key schemas in AggConfig:\n";
+          msg += frameKeySchemas.get(i).toString() + "\nvs.\n" + s.toString();
+          throw new IllegalStateException(msg);
         }
       }
     }
@@ -104,6 +117,18 @@ public class OutputGen {
     for (AggConfig ac : config.aggregates) {
       ObsDescriptor fd = ac.getFrameDescriptor(descriptor);
       List<Schema.Field> fields = Lists.newArrayList();
+
+      if (ac.values == null || ac.values.isEmpty()) {
+        // All of the non-key fields are treated as values
+        ac.values = Maps.newHashMap();
+        Set<String> keys = Sets.newHashSet(getKeys(ac, config));
+        for (ObsDescriptor.Field f : fd) {
+          if (!keys.contains(f.name)) {
+            ac.values.put(f.name, f.name);
+          }
+        }
+      }
+
       for (Map.Entry<String, String> e : ac.values.entrySet()) {
         ObsDescriptor.Field f = fd.get(fd.indexOf(e.getKey()));
         fields.add(new Schema.Field(e.getValue(), AvroExhibit.getSchema(f.type), "", null));
@@ -183,8 +208,9 @@ public class OutputGen {
         AggConfig ac = config.aggregates.get(i);
         GenericData.Record valRec = new GenericData.Record(valueSchemas.get(i));
         for (Obs obs : calcs.get(i).apply(exhibit)) {
-          for (int j = 0; j < ac.keys.size(); j++) {
-            keyRec.put(config.keys.get(j), obs.get(ac.keys.get(j)));
+          List<String> keys = getKeys(ac, config);
+          for (int j = 0; j < keys.size(); j++) {
+            keyRec.put(config.keys.get(j), obs.get(keys.get(j)));
           }
 
           //TODO: more complex, based on the type of the AggConfig

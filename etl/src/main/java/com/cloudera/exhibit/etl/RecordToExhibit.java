@@ -27,7 +27,7 @@ import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.composite.UpdatableExhibit;
 import com.cloudera.exhibit.core.composite.UpdatableExhibitDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
-import com.cloudera.exhibit.etl.config.MetricConfig;
+import com.cloudera.exhibit.etl.config.FrameConfig;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -42,9 +42,9 @@ import java.util.List;
 
 public class RecordToExhibit  {
 
-  private List<MetricConfig> metrics;
+  private List<FrameConfig> metrics;
 
-  public RecordToExhibit(List<MetricConfig> metrics) {
+  public RecordToExhibit(List<FrameConfig> metrics) {
     this.metrics = metrics;
   }
 
@@ -53,7 +53,7 @@ public class RecordToExhibit  {
     return getDescriptor(schema, metrics);
   }
 
-  private static UpdatableExhibitDescriptor getDescriptor(Schema schema, List<MetricConfig> metrics) {
+  private static UpdatableExhibitDescriptor getDescriptor(Schema schema, List<FrameConfig> metrics) {
     UpdatableExhibitDescriptor descriptor = new UpdatableExhibitDescriptor(
             AvroExhibit.createDescriptor(schema));
     for (int i = 0; i < metrics.size(); i++) {
@@ -83,12 +83,12 @@ public class RecordToExhibit  {
   static class RecordToExhibitFn extends MapFn<GenericRecord, Exhibit> {
 
     private final String schemaJson;
-    private final List<MetricConfig> metrics;
+    private final List<FrameConfig> metrics;
     private transient Schema schema;
     private transient List<Calculator> calcs;
     private transient UpdatableExhibitDescriptor descriptor;
 
-    public RecordToExhibitFn(Schema schema, List<MetricConfig> metrics) {
+    public RecordToExhibitFn(Schema schema, List<FrameConfig> metrics) {
       this.schemaJson = schema.toString();
       this.metrics = metrics;
     }
@@ -98,7 +98,7 @@ public class RecordToExhibit  {
       this.schema = SchemaUtil.getOrParse(this.schema, schemaJson);
       this.descriptor = getDescriptor(schema, metrics);
       this.calcs = Lists.newArrayList();
-      for (MetricConfig mc : metrics) {
+      for (FrameConfig mc : metrics) {
         Calculator c = mc.getCalculator();
         c.initialize(descriptor);
         calcs.add(c);
