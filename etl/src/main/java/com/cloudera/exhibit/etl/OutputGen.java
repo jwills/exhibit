@@ -51,13 +51,14 @@ public class OutputGen {
   private final int id;
   private final OutputConfig config;
   private final Schema keySchema;
-  private final List<Schema> valueSchemas;
+  private List<Schema> interSchemas;
+  private List<Schema> outputSchemas;
 
   public OutputGen(int id, OutputConfig config, ExhibitDescriptor descriptor) {
     this.id = id;
     this.config = config;
     this.keySchema = keySchema(descriptor);
-    this.valueSchemas = valueSchemas(descriptor);
+    buildValueSchemas(descriptor);
   }
 
   public Schema getKeySchema() {
@@ -65,11 +66,11 @@ public class OutputGen {
   }
 
   public List<Schema> getIntermediateValueSchemas() {
-    return valueSchemas; // TODO
+    return interSchemas;
   }
 
   public List<Schema> getOutputValueSchemas() {
-    return valueSchemas;
+    return outputSchemas;
   }
 
   private static List<String> getKeys(AggConfig ac, OutputConfig config) {
@@ -115,10 +116,11 @@ public class OutputGen {
     return wrapper;
   }
 
-  private List<Schema> valueSchemas(ExhibitDescriptor descriptor) {
-    List<Schema> schemas = Lists.newArrayList();
-    int idx = 0;
-    for (AggConfig ac : config.aggregates) {
+  private void buildValueSchemas(ExhibitDescriptor descriptor) {
+    this.interSchemas = Lists.newArrayList();
+    this.outputSchemas = Lists.newArrayList();
+    for (int i = 0; i < config.aggregates.size(); i++) {
+      AggConfig ac = config.aggregates.get(i);
       ObsDescriptor fd = ac.getFrameDescriptor(descriptor);
       List<Schema.Field> fields = Lists.newArrayList();
 
@@ -133,23 +135,22 @@ public class OutputGen {
         }
       }
 
+      // TODO: make this more sophisticated based on the AC itself
       for (Map.Entry<String, String> e : ac.values.entrySet()) {
         ObsDescriptor.Field f = fd.get(fd.indexOf(e.getKey()));
         fields.add(new Schema.Field(e.getValue(), AvroExhibit.getSchema(f.type), "", null));
       }
-      Schema wrapper = Schema.createRecord("ExValue_" + id + "_" + idx, "", "exhibit", false);
+      Schema wrapper = Schema.createRecord("ExValue_" + id + "_" + i, "", "exhibit", false);
       wrapper.setFields(fields);
-      schemas.add(wrapper);
-      idx++;
+      outputSchemas.add(wrapper);
     }
-    return schemas;
   }
 
   public PTable<GenericData.Record, Pair<Integer, GenericData.Record>> apply(
       PCollection<Exhibit> exhibits) {
     AvroType<GenericData.Record> kt = Avros.generics(keySchema);
-    AvroType<GenericData.Record> vt = Avros.generics(unionValueSchema("OutGen" + id, valueSchemas));
-    return exhibits.parallelDo(new MapOutFn(id, config, keySchema, valueSchemas),
+    AvroType<GenericData.Record> vt = Avros.generics(unionValueSchema("OutGen" + id, interSchemas));
+    return exhibits.parallelDo(new MapOutFn(id, config, keySchema, interSchemas),
         Avros.tableOf(kt, Avros.pairs(Avros.ints(), vt)));
   }
 
