@@ -42,7 +42,6 @@ public class MergeRowsFn extends DoFn<
 
   private transient Schema wrapperSchema;
   private transient List<Schema> schemas;
-  private transient List<Tbl> tbls;
   private transient Integer outputIndex;
   private transient GenericData.Record lastKey = null;
   private transient GenericData.Record lastValue = null;

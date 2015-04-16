@@ -114,6 +114,10 @@ public class NumericHistogram {
     nusedbins = 0;
   }
 
+  public void merge(GenericData.Record r) {
+    merge((Integer) r.get("nbins"), (List<Double>) r.get("binData"));
+  }
+
   /**
    * Takes a serialized histogram created by the serialize() method and merges
    * it with the current histogram object.

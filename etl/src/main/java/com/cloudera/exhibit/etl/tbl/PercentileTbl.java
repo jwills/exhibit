@@ -20,6 +20,7 @@ package com.cloudera.exhibit.etl.tbl;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.SchemaProvider;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
@@ -30,9 +31,11 @@ import java.util.Map;
 
 public class PercentileTbl implements Tbl {
 
+  private static final Schema DOUBLE = Schema.create(Schema.Type.DOUBLE);
+
   private final String obsKey;
   private final String outKey;
-  private final List<Double> quantiles;
+  private final List<Integer> percentiles;
   private int binCount;
 
   private Schema intermediate;
@@ -49,7 +52,7 @@ public class PercentileTbl implements Tbl {
     Map.Entry<String, String> e = Iterables.getOnlyElement(values.entrySet());
     this.obsKey = e.getKey();
     this.outKey = e.getValue();
-    this.quantiles = (List<Double>) options.get("percentiles");
+    this.percentiles = (List<Integer>) options.get("percentiles");
     this.binCount = options.containsKey("bins") ? (Integer) options.get("bins") : 10000;
   }
 
@@ -57,7 +60,14 @@ public class PercentileTbl implements Tbl {
   public SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx) {
     List<Schema.Field> interFields = Lists.newArrayList();
 
-    return null;
+    List<Schema.Field> outerFields = Lists.newArrayList();
+    for (int p : percentiles) {
+      String name = outKey + "_" + p;
+      outerFields.add(new Schema.Field(name, DOUBLE, "", null));
+    }
+    this.output = Schema.createRecord("ExQuantile_" + outputId + "_" + aggIdx, "", "exhibit", false);
+    this.output.setFields(outerFields);
+    return new SchemaProvider(ImmutableList.of(intermediate, output));
   }
 
   @Override
@@ -88,18 +98,24 @@ public class PercentileTbl implements Tbl {
     if (current == null) {
       return next;
     }
-
-    return null;
+    NumericHistogram nh = new NumericHistogram();
+    nh.allocate(binCount);
+    nh.merge(current);
+    nh.merge(next);
+    nh.serialize(current);
+    return current;
   }
 
   @Override
   public GenericData.Record finalize(GenericData.Record value) {
     NumericHistogram h = new NumericHistogram();
-    h.merge((Integer) value.get("nbins"), (List<Double>) value.get("binData"));
+    h.allocate(binCount);
+    h.merge(value);
 
     GenericData.Record res = new GenericData.Record(output);
-    for (double q : quantiles) {
-
+    for (int p : percentiles) {
+      double pv = h.quantile(p / 100.0);
+      res.put(outKey + "_" + p, pv);
     }
     return res;
   }
