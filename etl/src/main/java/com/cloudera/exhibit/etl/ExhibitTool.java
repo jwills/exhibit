@@ -65,17 +65,25 @@ public class ExhibitTool extends Configured implements Tool {
   @Override
   public int run(String[] args) throws Exception {
     if (args.length != 2) {
-      System.err.println("Usage: (build|compute) <config.yml>");
+      System.err.println("Usage: (build|compute|parse) <config.yml>");
       return -1;
     }
     if ("build".equalsIgnoreCase(args[0])) {
       return build(args[1]);
     } else if ("compute".equalsIgnoreCase(args[0])) {
       return compute(args[1]);
+    } else if ("parse".equalsIgnoreCase(args[0])) {
+      return parse(args[1]);
     } else {
       System.err.println("Usage: (build|compute) <config.yml>");
       return -1;
     }
+  }
+
+  int parse(String arg) throws Exception {
+    ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
+    System.out.println("Config parsed successfully");
+    return 0;
   }
 
   int compute(String arg) throws Exception {

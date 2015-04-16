@@ -15,16 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.exhibit.etl.config;
+package com.cloudera.exhibit.etl;
 
-import com.cloudera.exhibit.core.PivotCalculator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.cloudera.exhibit.etl.config.ComputeConfig;
+import com.cloudera.exhibit.etl.config.ConfigHelper;
+import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
+public class ConfigHelperTest {
 
-public class PivotConfig {
-  public List<String> by = Lists.newArrayList();
-  public Map<String, List<String>> variables = Maps.newHashMap();
+  private String testCfg = null;
+
+  @Test
+  public void testHelper() throws Exception {
+    //TODO: replace w/resource file
+    if (testCfg != null) {
+      ComputeConfig cc = ConfigHelper.parseComputeConfig(testCfg);
+      System.out.println("Success");
+    }
+  }
 }

@@ -22,6 +22,7 @@ import com.cloudera.exhibit.javascript.JSCalculator;
 import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.io.Serializable;
 import java.util.List;
@@ -55,12 +56,20 @@ public class FrameConfig implements Serializable {
       if (pivot == null) {
         return sql;
       } else {
-        return new PivotCalculator(sql, pivot.by, pivot.variables);
+        return new PivotCalculator(sql, pivot.by, toKeys(pivot.variables));
       }
     } else if ("js".equalsIgnoreCase(engine) || "javascript".equalsIgnoreCase(engine)) {
       return new JSCalculator(od, code);
     } else {
       throw new IllegalStateException("Unknown engine type: " + engine);
     }
+  }
+
+  static List<PivotCalculator.Key> toKeys(Map<String, List<String>> vars) {
+    List<PivotCalculator.Key> keys = Lists.newArrayList();
+    for (Map.Entry<String, List<String>> e : vars.entrySet()) {
+      keys.add(new PivotCalculator.Key(e.getKey(), Sets.newHashSet(e.getValue())));
+    }
+    return keys;
   }
 }

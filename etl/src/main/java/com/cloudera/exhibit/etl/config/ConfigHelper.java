@@ -33,7 +33,6 @@ public class ConfigHelper {
     reader.getConfig().setPropertyElementType(ComputeConfig.class, "tempTables", FrameConfig.class);
     reader.getConfig().setPropertyElementType(ComputeConfig.class, "outputTables", OutputConfig.class);
     reader.getConfig().setPropertyElementType(OutputConfig.class, "aggregates", AggConfig.class);
-    reader.getConfig().setPropertyElementType(PivotConfig.class, "variables", PivotCalculator.Key.class);
   }
 
   public static BuildConfig parseBuildConfig(String configFile) throws Exception {
