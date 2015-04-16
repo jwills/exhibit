@@ -17,20 +17,17 @@
  */
 package com.cloudera.exhibit.etl.tbl;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import org.apache.avro.Schema;
+import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.etl.SchemaProvider;
+import org.apache.avro.generic.GenericData;
 
-import java.io.Serializable;
+public interface Tbl {
+  SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx);
 
-public interface Tbl extends Serializable {
-  int getId();
-
-  void initialize(ExhibitDescriptor ed);
-  Schema intermediateSchema();
-  Schema outputSchema();
-
-  Object extract(Exhibit e);
-  Object merge(Object current, Object next);
-  Object finalize(Object current);
+  void initialize(SchemaProvider provider);
+  void add(Obs obs);
+  GenericData.Record getValue();
+  GenericData.Record merge(GenericData.Record current, GenericData.Record next);
+  GenericData.Record finalize(GenericData.Record value);
 }

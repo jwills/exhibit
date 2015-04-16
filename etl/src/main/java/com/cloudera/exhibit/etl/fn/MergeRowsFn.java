@@ -17,7 +17,9 @@
  */
 package com.cloudera.exhibit.etl.fn;
 
+import com.cloudera.exhibit.etl.SchemaProvider;
 import com.cloudera.exhibit.etl.config.OutputConfig;
+import com.cloudera.exhibit.etl.tbl.Tbl;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
@@ -35,16 +37,19 @@ public class MergeRowsFn extends DoFn<
     Pair<Integer, GenericData.Record>> {
 
   private final List<OutputConfig> configs;
+  private final List<List<SchemaProvider>> providers;
   private final String wrapperJson;
 
   private transient Schema wrapperSchema;
   private transient List<Schema> schemas;
+  private transient List<Tbl> tbls;
   private transient Integer outputIndex;
   private transient GenericData.Record lastKey = null;
   private transient GenericData.Record lastValue = null;
 
-  public MergeRowsFn(List<OutputConfig> configs, Schema unionSchema) {
+  public MergeRowsFn(List<OutputConfig> configs, List<List<SchemaProvider>> providers, Schema unionSchema) {
     this.configs = configs;
+    this.providers = providers;
     this.wrapperJson = unionSchema.toString();
   }
 
@@ -53,9 +58,6 @@ public class MergeRowsFn extends DoFn<
     final Schema.Parser sp = new Schema.Parser();
     this.wrapperSchema = sp.parse(wrapperJson);
     this.schemas = wrapperSchema.getField("value").schema().getTypes();
-    for (Schema s : this.schemas) {
-      System.out.println(s.toString(true));
-    }
     lastKey = null;
     lastValue = null;
   }
@@ -77,9 +79,10 @@ public class MergeRowsFn extends DoFn<
     }
     Pair<Integer, GenericData.Record> aggValue = input.second();
     int aggIdx = aggValue.first();
-    GenericData.Record value = (GenericData.Record) aggValue.second().get("value");
-    GenericData.Record finalized = configs.get(outputIndex).aggregates.get(aggIdx).finalize(value);
-    for (Schema.Field sf : finalized.getSchema().getFields()) {
+    Tbl tbl = configs.get(outputIndex).aggregates.get(aggIdx).createTbl();
+    tbl.initialize(providers.get(outputIndex).get(aggIdx));
+    GenericData.Record value = tbl.finalize((GenericData.Record) aggValue.second().get("value"));
+    for (Schema.Field sf : value.getSchema().getFields()) {
       lastValue.put(sf.name(), value.get(sf.name()));
     }
   }

@@ -21,9 +21,9 @@ import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.tbl.SumTbl;
+import com.cloudera.exhibit.etl.tbl.Tbl;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.avro.generic.GenericData;
 
 import java.io.Serializable;
 import java.util.List;
@@ -31,16 +31,8 @@ import java.util.Map;
 
 public class AggConfig implements Serializable {
 
-  public GenericData.Record init(GenericData.Record value) {
-    return value;
-  }
-
-  public GenericData.Record merge(GenericData.Record merged, GenericData.Record second) {
-    return (GenericData.Record) SumTbl.add(merged, second, second.getSchema());
-  }
-
-  public GenericData.Record finalize(GenericData.Record value) {
-    return value;
+  public Tbl createTbl() {
+    return new SumTbl(values);
   }
 
   public enum Type {
@@ -52,6 +44,7 @@ public class AggConfig implements Serializable {
   public FrameConfig frame = null;
   public List<String> keys = Lists.newArrayList();
   public Map<String, String> values = Maps.newHashMap();
+  public String cache = "initialCapacity=100,maximumSize=5000"; // As in Guava's CacheBuilderSpec
 
   public Calculator getCalculator() {
     if (frame == null) {

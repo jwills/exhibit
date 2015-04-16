@@ -17,14 +17,24 @@
  */
 package com.cloudera.exhibit.etl.tbl;
 
+import com.cloudera.exhibit.avro.AvroExhibit;
+import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.etl.SchemaProvider;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 
+import java.util.List;
+import java.util.Map;
 
 import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
 
-public class SumTbl {
-  public static Object add(Object cur, Object next, Schema schema) {
+public class SumTbl implements Tbl {
+
+  static Object add(Object cur, Object next, Schema schema) {
     if (cur == null) {
       if (next == null) {
         schema = unwrapNull(schema);
@@ -69,4 +79,53 @@ public class SumTbl {
     }
   }
 
+  private Map<String, String> values;
+  private Schema schema;
+  private GenericData.Record value;
+
+  public SumTbl(Map<String, String> values) {
+    this.values = values;
+  }
+
+  @Override
+  public SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx) {
+    List<Schema.Field> fields = Lists.newArrayList();
+    for (Map.Entry<String, String> e : values.entrySet()) {
+      ObsDescriptor.Field f = od.get(od.indexOf(e.getKey()));
+      fields.add(new Schema.Field(e.getValue(), AvroExhibit.getSchema(f.type), "", null));
+    }
+    this.schema = Schema.createRecord("ExValue_" + outputId + "_" + aggIdx, "", "exhibit", false);
+    schema.setFields(fields);
+    return new SchemaProvider(ImmutableList.of(schema, schema));
+  }
+
+
+  @Override
+  public void initialize(SchemaProvider provider) {
+    this.schema = provider.get(0);
+  }
+
+  @Override
+  public void add(Obs obs) {
+    GenericData.Record cur = new GenericData.Record(schema);
+    for (Map.Entry<String, String> e : values.entrySet()) {
+      cur.put(e.getValue(), obs.get(e.getKey()));
+    }
+    value = (GenericData.Record) add(cur, value, schema);
+  }
+
+  @Override
+  public GenericData.Record getValue() {
+    return value;
+  }
+
+  @Override
+  public GenericData.Record merge(GenericData.Record current, GenericData.Record next) {
+    return (GenericData.Record) add(current, next, next.getSchema());
+  }
+
+  @Override
+  public GenericData.Record finalize(GenericData.Record value) {
+    return value;
+  }
 }

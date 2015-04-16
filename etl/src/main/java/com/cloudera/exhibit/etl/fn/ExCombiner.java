@@ -20,6 +20,7 @@ package com.cloudera.exhibit.etl.fn;
 import com.cloudera.exhibit.etl.SchemaProvider;
 import com.cloudera.exhibit.etl.config.AggConfig;
 import com.cloudera.exhibit.etl.config.OutputConfig;
+import com.cloudera.exhibit.etl.tbl.Tbl;
 import org.apache.avro.generic.GenericData;
 import org.apache.crunch.CombineFn;
 import org.apache.crunch.Emitter;
@@ -32,14 +33,18 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
 
   private SchemaProvider provider;
   private List<OutputConfig> configs;
+  private List<List<SchemaProvider>> providersList;
   private PType<GenericData.Record> keyType;
   private PType<GenericData.Record> valueType;
 
-  public ExCombiner(SchemaProvider provider, PType<GenericData.Record> keyType,
+  public ExCombiner(SchemaProvider provider,
+                    PType<GenericData.Record> keyType,
                     PType<GenericData.Record> valueType,
-                    List<OutputConfig> configs) {
+                    List<OutputConfig> configs,
+                    List<List<SchemaProvider>> providersList) {
     this.provider = provider;
     this.configs = configs;
+    this.providersList = providersList;
     this.keyType = keyType;
     this.valueType = valueType;
   }
@@ -55,7 +60,7 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
                       Emitter<Pair<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>>> emitter) {
     GenericData.Record key = keyType.getDetachedValue(input.first().first());
     int outIdx = (Integer) key.get("index");
-    AggConfig ac = null;
+    Tbl tbl = null;
     int aggIdx = -1;
     GenericData.Record merged = null;
     for (Pair<Integer, GenericData.Record> p : input.second()) {
@@ -67,11 +72,12 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
           emitter.emit(Pair.of(Pair.of(key, aggIdx), Pair.of(aggIdx, outValue)));
         }
         aggIdx = p.first();
-        ac = configs.get(outIdx).aggregates.get(aggIdx);
+        tbl = configs.get(outIdx).aggregates.get(aggIdx).createTbl();
+        tbl.initialize(providersList.get(outIdx).get(aggIdx));
         merged = null;
       }
       GenericData.Record val = valueType.getDetachedValue(p.second());
-      merged = ac.merge(merged, (GenericData.Record) val.get("value"));
+      merged = tbl.merge(merged, (GenericData.Record) val.get("value"));
     }
     if (aggIdx >= 0) {
       increment("Exhibit", "MergedValues");

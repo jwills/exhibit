@@ -26,6 +26,7 @@ import com.cloudera.exhibit.etl.fn.FilterOutFn;
 import com.cloudera.exhibit.etl.fn.KeyIndexFn;
 import com.cloudera.exhibit.etl.fn.MergeRowsFn;
 import com.cloudera.exhibit.etl.fn.SchemaMapFn;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -55,6 +56,7 @@ import org.kitesdk.data.Datasets;
 import org.kitesdk.data.Formats;
 import org.kitesdk.data.crunch.CrunchDatasets;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
 
@@ -100,19 +102,21 @@ public class ExhibitTool extends Configured implements Tool {
     // Step two: determine the key and value schemas from the outputTables.
     List<OutputGen> outputGens = Lists.newArrayList();
     Set<Schema> keySchemas = Sets.newHashSet();
+    List<List<SchemaProvider>> providerLists = Lists.newArrayList();
     Set<Schema> interValueSchemas = Sets.newHashSet();
     List<Schema> outputSchemas = Lists.newArrayList();
     for (int i = 0; i < config.outputTables.size(); i++) {
       OutputConfig output = config.outputTables.get(i);
       OutputGen gen = new OutputGen(i, output, descriptor);
       Schema keySchema = gen.getKeySchema();
-      List<Schema> interValueSchema = gen.getIntermediateValueSchemas();
+      List<SchemaProvider> providers = gen.getSchemaProviders();
 
       List<Schema.Field> outputFields = Lists.newArrayList();
       for (Schema.Field sf : keySchema.getFields()) {
         outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
       }
-      for (Schema s : gen.getOutputValueSchemas()) {
+      for (SchemaProvider sp : providers) {
+        Schema s = sp.get(1); // output
         for (Schema.Field sf : s.getFields()) {
           outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
         }
@@ -122,9 +126,16 @@ public class ExhibitTool extends Configured implements Tool {
       System.out.println("Output Schema " + i + ": " + outputSchema.toString(true));
 
       keySchemas.add(keySchema);
-      interValueSchemas.addAll(interValueSchema);
+      interValueSchemas.addAll(Lists.transform(providers, new Function<SchemaProvider, Schema>() {
+                @Nullable
+                @Override
+                public Schema apply(SchemaProvider schemaProvider) {
+                  return schemaProvider.get(0); // intermediate
+                }
+              }));
       outputGens.add(gen);
       outputSchemas.add(outputSchema);
+      providerLists.add(providers);
     }
 
     Schema keySchema = unionKeySchema("ExhibitKey", Lists.newArrayList(keySchemas));
@@ -151,8 +162,8 @@ public class ExhibitTool extends Configured implements Tool {
     Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
     PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
     PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
-        .combineValues(new ExCombiner(provider, keyType, interValueType, config.outputTables))
-        .parallelDo("merge", new MergeRowsFn(config.outputTables, outputUnionSchema),
+        .combineValues(new ExCombiner(provider, keyType, interValueType, config.outputTables, providerLists))
+        .parallelDo("merge", new MergeRowsFn(config.outputTables, providerLists, outputUnionSchema),
             Avros.tableOf(Avros.ints(), outputUnion));
 
     for (int i = 0; i < config.outputTables.size(); i++) {

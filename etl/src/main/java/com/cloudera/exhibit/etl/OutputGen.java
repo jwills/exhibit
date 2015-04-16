@@ -25,6 +25,8 @@ import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.config.AggConfig;
 import com.cloudera.exhibit.etl.config.OutputConfig;
+import com.cloudera.exhibit.etl.tbl.Tbl;
+import com.cloudera.exhibit.etl.tbl.TblCache;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -51,26 +53,22 @@ public class OutputGen {
   private final int id;
   private final OutputConfig config;
   private final Schema keySchema;
-  private List<Schema> interSchemas;
-  private List<Schema> outputSchemas;
+  private List<SchemaProvider> schemaProviders;
 
   public OutputGen(int id, OutputConfig config, ExhibitDescriptor descriptor) {
     this.id = id;
     this.config = config;
     this.keySchema = keySchema(descriptor);
-    buildValueSchemas(descriptor);
+    this.schemaProviders = Lists.newArrayList();
+    buildSchemas(descriptor);
   }
 
   public Schema getKeySchema() {
     return keySchema;
   }
 
-  public List<Schema> getIntermediateValueSchemas() {
-    return interSchemas;
-  }
-
-  public List<Schema> getOutputValueSchemas() {
-    return outputSchemas;
+  public List<SchemaProvider> getSchemaProviders() {
+    return schemaProviders;
   }
 
   private static List<String> getKeys(AggConfig ac, OutputConfig config) {
@@ -116,9 +114,7 @@ public class OutputGen {
     return wrapper;
   }
 
-  private void buildValueSchemas(ExhibitDescriptor descriptor) {
-    this.interSchemas = Lists.newArrayList();
-    this.outputSchemas = Lists.newArrayList();
+  private void buildSchemas(ExhibitDescriptor descriptor) {
     for (int i = 0; i < config.aggregates.size(); i++) {
       AggConfig ac = config.aggregates.get(i);
       ObsDescriptor fd = ac.getFrameDescriptor(descriptor);
@@ -135,22 +131,20 @@ public class OutputGen {
         }
       }
 
-      // TODO: make this more sophisticated based on the AC itself
-      for (Map.Entry<String, String> e : ac.values.entrySet()) {
-        ObsDescriptor.Field f = fd.get(fd.indexOf(e.getKey()));
-        fields.add(new Schema.Field(e.getValue(), AvroExhibit.getSchema(f.type), "", null));
-      }
-      Schema wrapper = Schema.createRecord("ExValue_" + id + "_" + i, "", "exhibit", false);
-      wrapper.setFields(fields);
-      outputSchemas.add(wrapper);
+      Tbl tbl = ac.createTbl();
+      this.schemaProviders.add(tbl.getSchemas(fd, id, i));
     }
   }
 
   public PTable<GenericData.Record, Pair<Integer, GenericData.Record>> apply(
       PCollection<Exhibit> exhibits) {
+    List<Schema> interSchemas = Lists.newArrayList();
+    for (SchemaProvider sp : schemaProviders) {
+      interSchemas.add(sp.get(0));
+    }
     AvroType<GenericData.Record> kt = Avros.generics(keySchema);
     AvroType<GenericData.Record> vt = Avros.generics(unionValueSchema("OutGen" + id, interSchemas));
-    return exhibits.parallelDo(new MapOutFn(id, config, keySchema, interSchemas),
+    return exhibits.parallelDo(new MapOutFn(id, config, keySchema, schemaProviders),
         Avros.tableOf(kt, Avros.pairs(Avros.ints(), vt)));
   }
 
@@ -159,37 +153,24 @@ public class OutputGen {
     private final int outputId;
     private final OutputConfig config;
     private final String keyJson;
-    private final List<String> valueJson;
+    private final List<SchemaProvider> providers;
     private transient Schema key;
-    private transient List<Schema> valueSchemas;
+    private transient List<TblCache> tblCaches;
     private transient List<Calculator> calcs;
     private boolean initialized = false;
 
-    public MapOutFn(int outputId, OutputConfig config, Schema keySchema, List<Schema> valueSchemas) {
+    public MapOutFn(int outputId, OutputConfig config, Schema keySchema, List<SchemaProvider> providers) {
       this.outputId = outputId;
       this.config = config;
       this.keyJson = keySchema.toString();
-      this.valueJson = Lists.newArrayList(Lists.transform(valueSchemas, new Function<Schema, String>() {
-        @Override
-        public String apply(Schema schema) {
-          return schema.toString();
-        }
-      }));
+      this.providers = providers;
     }
 
     @Override
     public void initialize() {
       this.key = SchemaUtil.getOrParse(key, keyJson);
-      this.valueSchemas = Lists.newArrayList(Lists.transform(valueJson, new Function<String, Schema>() {
-        @Override
-        public Schema apply(@Nullable String s) {
-          return SchemaUtil.getOrParse(null, s);
-        }
-      }));
       this.calcs = Lists.newArrayList();
-      for (AggConfig ac : config.aggregates) {
-        calcs.add(ac.getCalculator());
-      }
+      this.tblCaches = Lists.newArrayList();
       this.initialized = false;
     }
 
@@ -203,28 +184,34 @@ public class OutputGen {
       }
 
       if (!initialized) {
-        for (Calculator c : calcs) {
+        for (int i = 0; i < config.aggregates.size(); i++) {
+          AggConfig ac = config.aggregates.get(i);
+          Calculator c = ac.getCalculator();
           c.initialize(exhibit.descriptor());
+          calcs.add(c);
+          TblCache tc = new TblCache(ac, i, emitter, providers.get(i));
+          tblCaches.add(tc);
         }
         initialized = true;
       }
 
       for (int i = 0; i < calcs.size(); i++) {
         AggConfig ac = config.aggregates.get(i);
-        GenericData.Record valRec = new GenericData.Record(valueSchemas.get(i));
         for (Obs obs : calcs.get(i).apply(exhibit)) {
           List<String> keys = getKeys(ac, config);
           for (int j = 0; j < keys.size(); j++) {
             keyRec.put(config.keys.get(j), obs.get(keys.get(j)));
           }
-
-          //TODO: more complex, based on the type of the AggConfig
-          for (Map.Entry<String, String> e : ac.values.entrySet()) {
-            valRec.put(e.getValue(), obs.get(e.getKey()));
-          }
+          tblCaches.get(i).update(keyRec, obs);
           increment("Exhibit", "Calc" + outputId + "_" + i);
-          emitter.emit(Pair.of(keyRec, Pair.of(i, valRec)));
         }
+      }
+    }
+
+    @Override
+    public void cleanup(Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter) {
+      for (TblCache tc : tblCaches) {
+        tc.flush();
       }
     }
   }
