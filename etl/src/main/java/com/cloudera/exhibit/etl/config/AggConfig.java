@@ -22,6 +22,7 @@ import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.tbl.SumTbl;
 import com.cloudera.exhibit.etl.tbl.Tbl;
+import com.cloudera.exhibit.etl.tbl.TblType;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -35,11 +36,7 @@ public class AggConfig implements Serializable {
     return new SumTbl(values);
   }
 
-  public enum Type {
-    SUM,
-  }
-
-  public Type type = Type.SUM;
+  public TblType type = TblType.SUM;
   public Map<String, Object> options = Maps.newHashMap();
   public FrameConfig frame = null;
   public List<String> keys = Lists.newArrayList();

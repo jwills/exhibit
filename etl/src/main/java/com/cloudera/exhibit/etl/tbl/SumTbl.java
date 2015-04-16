@@ -34,7 +34,7 @@ import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
 
 public class SumTbl implements Tbl {
 
-  static Object add(Object cur, Object next, Schema schema) {
+  public static Object add(Object cur, Object next, Schema schema) {
     if (cur == null) {
       if (next == null) {
         schema = unwrapNull(schema);
