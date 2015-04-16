@@ -100,19 +100,19 @@ public class ExhibitTool extends Configured implements Tool {
     // Step two: determine the key and value schemas from the outputTables.
     List<OutputGen> outputGens = Lists.newArrayList();
     Set<Schema> keySchemas = Sets.newHashSet();
-    Set<Schema> valueSchemas = Sets.newHashSet();
+    Set<Schema> interValueSchemas = Sets.newHashSet();
     List<Schema> outputSchemas = Lists.newArrayList();
     for (int i = 0; i < config.outputTables.size(); i++) {
       OutputConfig output = config.outputTables.get(i);
       OutputGen gen = new OutputGen(i, output, descriptor);
       Schema keySchema = gen.getKeySchema();
-      List<Schema> valueSchema = gen.getValueSchemas();
+      List<Schema> interValueSchema = gen.getIntermediateValueSchemas();
 
       List<Schema.Field> outputFields = Lists.newArrayList();
       for (Schema.Field sf : keySchema.getFields()) {
         outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
       }
-      for (Schema s : valueSchema) {
+      for (Schema s : gen.getOutputValueSchemas()) {
         for (Schema.Field sf : s.getFields()) {
           outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
         }
@@ -122,25 +122,24 @@ public class ExhibitTool extends Configured implements Tool {
       System.out.println("Output Schema " + i + ": " + outputSchema.toString(true));
 
       keySchemas.add(keySchema);
-      valueSchemas.addAll(valueSchema);
+      interValueSchemas.addAll(interValueSchema);
       outputGens.add(gen);
       outputSchemas.add(outputSchema);
     }
 
     Schema keySchema = unionKeySchema("ExhibitKey", Lists.newArrayList(keySchemas));
-    Schema valueSchema = unionValueSchema("ExhibitValue", Lists.newArrayList(valueSchemas));
-
-    SchemaProvider sp = new SchemaProvider(ImmutableList.of(keySchema, valueSchema));
+    Schema interValueSchema = unionValueSchema("ExhibitInterValue", Lists.newArrayList(interValueSchemas));
+    SchemaProvider provider = new SchemaProvider(ImmutableList.of(keySchema, interValueSchema));
     AvroType<GenericData.Record> keyType = Avros.generics(keySchema);
-    AvroType<GenericData.Record> valueType = Avros.generics(valueSchema);
+    AvroType<GenericData.Record> interValueType = Avros.generics(interValueSchema);
     PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> ptt = Avros.tableOf(
         Avros.pairs(keyType, Avros.ints()),
-        Avros.pairs(Avros.ints(), valueType));
+        Avros.pairs(Avros.ints(), interValueType));
     PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> mapside = null;
     for (int i = 0; i < outputGens.size(); i++) {
       PTable<GenericData.Record, Pair<Integer, GenericData.Record>> out = outputGens.get(i).apply(exhibits);
       PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> m = out.parallelDo(
-          new SchemaMapFn(i, sp), ptt);
+          new SchemaMapFn(i, provider), ptt);
       mapside = (mapside == null) ? m : mapside.union(m);
     }
 
@@ -152,8 +151,9 @@ public class ExhibitTool extends Configured implements Tool {
     Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
     PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
     PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
-        .combineValues(new ExCombiner(sp, keyType, valueType, config.outputTables))
-        .parallelDo("merge", new MergeRowsFn(outputUnionSchema), Avros.tableOf(Avros.ints(), outputUnion));
+        .combineValues(new ExCombiner(provider, keyType, interValueType, config.outputTables))
+        .parallelDo("merge", new MergeRowsFn(config.outputTables, outputUnionSchema),
+            Avros.tableOf(Avros.ints(), outputUnion));
 
     for (int i = 0; i < config.outputTables.size(); i++) {
       OutputConfig output = config.outputTables.get(i);

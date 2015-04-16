@@ -64,7 +64,11 @@ public class OutputGen {
     return keySchema;
   }
 
-  public List<Schema> getValueSchemas() {
+  public List<Schema> getIntermediateValueSchemas() {
+    return valueSchemas; // TODO
+  }
+
+  public List<Schema> getOutputValueSchemas() {
     return valueSchemas;
   }
 

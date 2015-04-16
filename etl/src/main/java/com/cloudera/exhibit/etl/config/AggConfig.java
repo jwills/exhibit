@@ -31,8 +31,16 @@ import java.util.Map;
 
 public class AggConfig implements Serializable {
 
+  public GenericData.Record init(GenericData.Record value) {
+    return value;
+  }
+
   public GenericData.Record merge(GenericData.Record merged, GenericData.Record second) {
     return (GenericData.Record) SumTbl.add(merged, second, second.getSchema());
+  }
+
+  public GenericData.Record finalize(GenericData.Record value) {
+    return value;
   }
 
   public enum Type {
