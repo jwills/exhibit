@@ -133,7 +133,7 @@ public class NumericHistogram {
       nbins = otherBins;
       nusedbins = (other.size()-1)/2;
       bins = new ArrayList<Coord>(nusedbins);
-      for (int i = 1; i < other.size(); i+=2) {
+      for (int i = 0; i < other.size(); i+=2) {
         Coord bin = new Coord();
         bin.x = other.get(i);
         bin.y = other.get(i+1);
@@ -151,7 +151,7 @@ public class NumericHistogram {
         bin.y = bins.get(i).y;
         tmp_bins.add(bin);
       }
-      for (int j = 1; j < other.size(); j += 2) {
+      for (int j = 0; j < other.size(); j += 2) {
         Coord bin = new Coord();
         bin.x = other.get(j);
         bin.y = other.get(j+1);

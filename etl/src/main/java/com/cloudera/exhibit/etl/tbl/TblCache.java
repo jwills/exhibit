@@ -20,43 +20,51 @@ package com.cloudera.exhibit.etl.tbl;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.etl.SchemaProvider;
 import com.cloudera.exhibit.etl.config.AggConfig;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.Maps;
 import org.apache.avro.generic.GenericData;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
 
+import java.util.Map;
+
 public class TblCache {
 
-  private Cache<GenericData.Record, Tbl> cache;
+  private final Map<GenericData.Record, Tbl> cache;
+  private final AggConfig config;
+  private final int aggIdx;
+  private final Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter;
+  private final SchemaProvider provider;
 
   public TblCache(final AggConfig config, final int aggIdx,
                   final Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter,
                   final SchemaProvider provider) {
-    this.cache = CacheBuilder.<GenericData.Record, Tbl>from(config.cache)
-        .removalListener(new RemovalListener<GenericData.Record, Tbl>() {
-           @Override
-           public void onRemoval(RemovalNotification<GenericData.Record, Tbl> note) {
-             emitter.emit(Pair.of(note.getKey(), Pair.of(aggIdx, note.getValue().getValue())));
-           }
-        }).build(new CacheLoader<GenericData.Record, Tbl>() {
-           @Override
-           public Tbl load(GenericData.Record record) throws Exception {
-             Tbl tbl = config.createTbl();
-             tbl.initialize(provider);
-             return tbl;
-           }
-        });
+    this.cache = Maps.newHashMap();
+    this.config = config;
+    this.aggIdx = aggIdx;
+    this.emitter = emitter;
+    this.provider = provider;
   }
 
   public void update(GenericData.Record key, Obs obs) {
-    cache.asMap().get(key).add(obs);
+    Tbl tbl = cache.get(key);
+    if (tbl == null) {
+      if (cache.size() > config.cacheSize) {
+        flush();
+      }
+      tbl = config.createTbl();
+      tbl.initialize(provider);
+      cache.put(key, tbl);
+    } else {
+      int x = 1;
+    }
+    tbl.add(obs);
   }
 
   public void flush() {
-    cache.cleanUp();
+    for (Map.Entry<GenericData.Record, Tbl> e : cache.entrySet()) {
+      Tbl tbl = e.getValue();
+      emitter.emit(Pair.of(e.getKey(), Pair.of(aggIdx, tbl.getValue())));
+    }
+    cache.clear();
   }
 }

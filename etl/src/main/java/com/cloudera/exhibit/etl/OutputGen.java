@@ -74,6 +74,8 @@ public class OutputGen {
   private static List<String> getKeys(AggConfig ac, OutputConfig config) {
     if (ac.keys == null || ac.keys.isEmpty()) {
       return config.keys;
+    } else if (config.keys.size() != ac.keys.size()) {
+      throw new IllegalArgumentException("Mismatch in aggregate and frame level key settings for frame: " + ac.frame);
     }
     return ac.keys;
   }
@@ -176,13 +178,6 @@ public class OutputGen {
 
     @Override
     public void process(Exhibit exhibit, Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter) {
-      //TODO: compose more complex keys
-      GenericData.Record keyRec = new GenericData.Record(key);
-      // Copy attributes
-      for (String attr : config.attrs) {
-        keyRec.put(attr, exhibit.attributes().get(attr));
-      }
-
       if (!initialized) {
         for (int i = 0; i < config.aggregates.size(); i++) {
           AggConfig ac = config.aggregates.get(i);
@@ -199,6 +194,11 @@ public class OutputGen {
         AggConfig ac = config.aggregates.get(i);
         for (Obs obs : calcs.get(i).apply(exhibit)) {
           List<String> keys = getKeys(ac, config);
+          GenericData.Record keyRec = new GenericData.Record(key);
+          // Copy attributes
+          for (String attr : config.attrs) {
+            keyRec.put(attr, exhibit.attributes().get(attr));
+          }
           for (int j = 0; j < keys.size(); j++) {
             keyRec.put(config.keys.get(j), obs.get(keys.get(j)));
           }
@@ -213,6 +213,7 @@ public class OutputGen {
       for (TblCache tc : tblCaches) {
         tc.flush();
       }
+      tblCaches.clear();
     }
   }
 }

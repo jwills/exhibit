@@ -32,16 +32,12 @@ import java.util.Map;
 
 public class AggConfig implements Serializable {
 
-  public Tbl createTbl() {
-    return new SumTbl(values);
-  }
-
   public TblType type = TblType.SUM;
   public Map<String, Object> options = Maps.newHashMap();
   public FrameConfig frame = null;
   public List<String> keys = Lists.newArrayList();
   public Map<String, String> values = Maps.newHashMap();
-  public String cache = "initialCapacity=100,maximumSize=5000"; // As in Guava's CacheBuilderSpec
+  public long cacheSize = 5000;
 
   public Calculator getCalculator() {
     if (frame == null) {
@@ -56,5 +52,10 @@ public class AggConfig implements Serializable {
       return c.initialize(ed);
     }
     throw new IllegalStateException("Invalid AggConfig: no frame specified");
+  }
+
+  public Tbl createTbl() {
+    //TODO: force validate values before this point
+    return type.create(values, options);
   }
 }

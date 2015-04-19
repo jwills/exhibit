@@ -19,11 +19,13 @@ package com.cloudera.exhibit.etl;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 public class SchemaProvider implements Serializable {
   private final List<String> json;
@@ -47,13 +49,17 @@ public class SchemaProvider implements Serializable {
   private List<Schema> getSchemas() {
     if (schemas == null) {
       final Schema.Parser sp = new Schema.Parser();
-      this.schemas = Lists.newArrayList(Lists.transform(json, new Function<String, Schema>() {
-        @Nullable
-        @Override
-        public Schema apply(@Nullable String s) {
-          return sp.parse(s);
+      Map<String, Schema> defined = Maps.newHashMap();
+      this.schemas = Lists.newArrayList();
+      for (String s : json) {
+        if (defined.containsKey(s)) {
+          schemas.add(defined.get(s));
+        } else {
+          Schema schema = sp.parse(s);
+          defined.put(s, schema);
+          schemas.add(schema);
         }
-      }));
+      }
     }
     return schemas;
   }

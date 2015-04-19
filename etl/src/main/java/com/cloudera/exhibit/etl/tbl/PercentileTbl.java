@@ -20,6 +20,7 @@ package com.cloudera.exhibit.etl.tbl;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.SchemaProvider;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -31,6 +32,7 @@ import java.util.Map;
 
 public class PercentileTbl implements Tbl {
 
+  private static final String PERCENTILES_OPTION = "percentiles";
   private static final Schema DOUBLE = Schema.create(Schema.Type.DOUBLE);
 
   private final String obsKey;
@@ -46,26 +48,35 @@ public class PercentileTbl implements Tbl {
     if (values.size() != 1) {
       throw new IllegalArgumentException("PERCENTILE must have exactly one input value");
     }
-    if (options.get("percentiles") == null || !(options.get("percentile") instanceof List)) {
+    if (options.get(PERCENTILES_OPTION) == null) {
       throw new IllegalArgumentException("PERCENTILE must have a numeric list called percentiles in its options");
     }
     Map.Entry<String, String> e = Iterables.getOnlyElement(values.entrySet());
     this.obsKey = e.getKey();
     this.outKey = e.getValue();
-    this.percentiles = (List<Integer>) options.get("percentiles");
-    this.binCount = options.containsKey("bins") ? (Integer) options.get("bins") : 10000;
+    this.percentiles = Lists.transform((List) options.get(PERCENTILES_OPTION), new Function<Object, Integer>() {
+      @Override
+      public Integer apply(Object o) {
+        return Integer.valueOf(o.toString());
+      }
+    });
+    this.binCount = options.containsKey("bins") ? Integer.valueOf(options.get("bins").toString()) : 10000;
   }
 
   @Override
   public SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx) {
     List<Schema.Field> interFields = Lists.newArrayList();
+    interFields.add(new Schema.Field("nbins", Schema.create(Schema.Type.INT), "", null));
+    interFields.add(new Schema.Field("binData", Schema.createArray(DOUBLE), "", null));
+    this.intermediate = Schema.createRecord("ExPercentileInter" + outputId + "_" + aggIdx, "", "exhibit", false);
+    this.intermediate.setFields(interFields);
 
     List<Schema.Field> outerFields = Lists.newArrayList();
     for (int p : percentiles) {
-      String name = outKey + "_" + p;
+      String name = outKey + "_p" + p;
       outerFields.add(new Schema.Field(name, DOUBLE, "", null));
     }
-    this.output = Schema.createRecord("ExQuantile_" + outputId + "_" + aggIdx, "", "exhibit", false);
+    this.output = Schema.createRecord("ExPercentile" + outputId + "_" + aggIdx, "", "exhibit", false);
     this.output.setFields(outerFields);
     return new SchemaProvider(ImmutableList.of(intermediate, output));
   }
@@ -80,9 +91,9 @@ public class PercentileTbl implements Tbl {
 
   @Override
   public void add(Obs obs) {
-    Double d = obs.get(obsKey, Double.class);
-    if (d != null) {
-      hist.add(d);
+    Object o = obs.get(obsKey);
+    if (o != null) {
+      hist.add(((Number) o).doubleValue());
     }
   }
 
@@ -115,7 +126,7 @@ public class PercentileTbl implements Tbl {
     GenericData.Record res = new GenericData.Record(output);
     for (int p : percentiles) {
       double pv = h.quantile(p / 100.0);
-      res.put(outKey + "_" + p, pv);
+      res.put(outKey + "_p" + p, pv);
     }
     return res;
   }

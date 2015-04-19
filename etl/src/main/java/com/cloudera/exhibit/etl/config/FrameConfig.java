@@ -72,4 +72,8 @@ public class FrameConfig implements Serializable {
     }
     return keys;
   }
+
+  public String toString() {
+    return "Frame(" + code.substring(0, Math.min(code.length(), 25)) + ")";
+  }
 }

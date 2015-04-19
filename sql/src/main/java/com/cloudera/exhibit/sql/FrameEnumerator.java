@@ -40,6 +40,7 @@ public class FrameEnumerator implements Enumerator<Object> {
     boolean hasNext = currentIndex < frame.size();
     if (hasNext) {
       Obs obs = frame.get(currentIndex);
+      this.current = new Object[current.length];
       for (int i = 0; i < current.length; i++) {
         current[i] = obs.get(i);
       }

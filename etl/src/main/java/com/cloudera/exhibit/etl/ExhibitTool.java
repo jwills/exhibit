@@ -39,7 +39,9 @@ import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
+import org.apache.crunch.Target;
 import org.apache.crunch.impl.mr.MRPipeline;
+import org.apache.crunch.io.To;
 import org.apache.crunch.io.parquet.AvroParquetFileTarget;
 import org.apache.crunch.lib.join.JoinUtils;
 import org.apache.crunch.types.PTableType;
@@ -170,13 +172,20 @@ public class ExhibitTool extends Configured implements Tool {
       OutputConfig output = config.outputTables.get(i);
       AvroType<GenericData.Record> outType = Avros.generics(outputSchemas.get(i));
       PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), outType);
-      DatasetDescriptor dd = new DatasetDescriptor.Builder()
-              .schema(outType.getSchema())
-              .format(Formats.PARQUET)
-              .location(output.path)
-              .build();
-      Datasets.create(output.uri, dd);
-      out.write(new AvroParquetFileTarget(output.path), output.writeMode);
+      if (config.local) {
+        out.write(To.textFile(output.path), output.writeMode);
+      } else {
+        DatasetDescriptor dd = new DatasetDescriptor.Builder()
+                .schema(outType.getSchema())
+                .format(Formats.PARQUET)
+                .location(output.path)
+                .build();
+        if (Datasets.exists(output.uri) && output.writeMode == Target.WriteMode.OVERWRITE) {
+          Datasets.delete(output.uri);
+        }
+        Datasets.create(output.uri, dd);
+        out.write(new AvroParquetFileTarget(output.path), output.writeMode);
+      }
     }
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;

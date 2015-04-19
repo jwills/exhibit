@@ -103,15 +103,16 @@ public class SumTbl implements Tbl {
   @Override
   public void initialize(SchemaProvider provider) {
     this.schema = provider.get(0);
+    this.value = new GenericData.Record(schema);
   }
 
   @Override
   public void add(Obs obs) {
-    GenericData.Record cur = new GenericData.Record(schema);
+    GenericData.Record next = new GenericData.Record(schema);
     for (Map.Entry<String, String> e : values.entrySet()) {
-      cur.put(e.getValue(), obs.get(e.getKey()));
+      next.put(e.getValue(), obs.get(e.getKey()));
     }
-    value = (GenericData.Record) add(cur, value, schema);
+    value = (GenericData.Record) add(value, next, schema);
   }
 
   @Override
@@ -127,5 +128,10 @@ public class SumTbl implements Tbl {
   @Override
   public GenericData.Record finalize(GenericData.Record value) {
     return value;
+  }
+
+  @Override
+  public String toString() {
+    return "SumTbl(" + value + ")";
   }
 }
