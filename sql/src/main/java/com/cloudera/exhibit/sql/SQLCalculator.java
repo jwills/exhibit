@@ -25,6 +25,7 @@ import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Table;
@@ -72,6 +73,7 @@ public class SQLCalculator implements Serializable, Calculator {
   @Override
   public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
     this.rootSchema = new ModifiableSchema();
+    rootSchema.getTableMap().put("ATTRS", new FrameTable(descriptor.attributes()));
     for (Map.Entry<String, ObsDescriptor> e : descriptor.frames().entrySet()) {
       rootSchema.getTableMap().put(e.getKey().toUpperCase(), new FrameTable(e.getValue()));
     }
@@ -118,6 +120,7 @@ public class SQLCalculator implements Serializable, Calculator {
 
   @Override
   public Frame apply(Exhibit exhibit) {
+    rootSchema.getFrame("ATTRS").updateFrame(new SimpleFrame(ImmutableList.of(exhibit.attributes())));
     for (Map.Entry<String, Frame> e : exhibit.frames().entrySet()) {
       rootSchema.getFrame(e.getKey().toUpperCase()).updateFrame(e.getValue());
     }
