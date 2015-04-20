@@ -18,7 +18,6 @@
 package com.cloudera.exhibit.etl.fn;
 
 import com.cloudera.exhibit.etl.SchemaProvider;
-import com.cloudera.exhibit.etl.config.AggConfig;
 import com.cloudera.exhibit.etl.config.OutputConfig;
 import com.cloudera.exhibit.etl.tbl.Tbl;
 import org.apache.avro.generic.GenericData;

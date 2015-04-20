@@ -28,6 +28,6 @@ public interface Tbl {
   void initialize(SchemaProvider provider);
   void add(Obs obs);
   GenericData.Record getValue();
-  GenericData.Record merge(GenericData.Record current, GenericData.Record next);
+  GenericData.Record  merge(GenericData.Record current, GenericData.Record next);
   GenericData.Record finalize(GenericData.Record value);
 }

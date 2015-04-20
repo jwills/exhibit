@@ -54,12 +54,13 @@ public class PercentileTbl implements Tbl {
     Map.Entry<String, String> e = Iterables.getOnlyElement(values.entrySet());
     this.obsKey = e.getKey();
     this.outKey = e.getValue();
-    this.percentiles = Lists.transform((List) options.get(PERCENTILES_OPTION), new Function<Object, Integer>() {
-      @Override
-      public Integer apply(Object o) {
-        return Integer.valueOf(o.toString());
+    this.percentiles = Lists.newArrayList();
+    for (Object o : (List) options.get(PERCENTILES_OPTION)) {
+      int p = Integer.valueOf(o.toString());
+      if (p < 0 || p > 100) {
+        throw new IllegalArgumentException("percentiles must be integer values between 0 and 100, found: " + p);
       }
-    });
+    }
     this.binCount = options.containsKey("bins") ? Integer.valueOf(options.get("bins").toString()) : 10000;
   }
 
