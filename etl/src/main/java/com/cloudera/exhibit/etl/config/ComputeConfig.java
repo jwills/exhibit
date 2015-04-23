@@ -20,6 +20,7 @@ import java.util.List;
 
 public class ComputeConfig {
   public String uri = "";
+  public String path = "";
   public int parallelism = -1;
   public boolean local = false;
   public List<FrameConfig> tempTables = Lists.newArrayList();

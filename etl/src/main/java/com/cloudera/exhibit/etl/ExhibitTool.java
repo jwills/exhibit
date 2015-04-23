@@ -40,7 +40,9 @@ import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.Target;
+import org.apache.crunch.fn.IdentityFn;
 import org.apache.crunch.impl.mr.MRPipeline;
+import org.apache.crunch.io.From;
 import org.apache.crunch.io.To;
 import org.apache.crunch.io.parquet.AvroParquetFileTarget;
 import org.apache.crunch.lib.join.JoinUtils;
@@ -94,8 +96,12 @@ public class ExhibitTool extends Configured implements Tool {
     ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
     Dataset<GenericRecord> data = Datasets.load(config.uri);
-    PCollection<GenericRecord> input = p.read(CrunchDatasets.asSource(data));
-
+    PCollection<GenericRecord> input = null;
+    if (!config.path.isEmpty()) {
+      input = (PCollection) p.read(From.avroFile(config.path));
+    } else {
+      input = p.read(CrunchDatasets.asSource(data));
+    }
     // Step one: generate additional tempTables, if any.
     RecordToExhibit rte = new RecordToExhibit(config.tempTables);
     ExhibitDescriptor descriptor = rte.getDescriptor(input.getPType());
