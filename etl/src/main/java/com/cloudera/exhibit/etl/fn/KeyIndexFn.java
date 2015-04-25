@@ -27,7 +27,7 @@ import org.apache.crunch.types.avro.AvroType;
 import java.util.List;
 import java.util.Set;
 
-public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<Object, Pair<Integer, GenericData.Record>>> {
+public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pair<Integer, GenericData.Record>>> {
 
   private final AvroType<GenericData.Record> valueType;
   private final Set<String> keyFields;
@@ -47,7 +47,7 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<Object, Pa
   }
 
   @Override
-  public void process(R r, Emitter<Pair<Object, Pair<Integer, GenericData.Record>>> emitter) {
+  public void process(R r, Emitter<Pair<String, Pair<Integer, GenericData.Record>>> emitter) {
     long start = System.currentTimeMillis();
     int emitted = 0;
     if (r != null) {
@@ -57,8 +57,9 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<Object, Pa
       for (String field : keyFields) {
         Object key = r.get(field);
         if (key != null) {
-          if (!filteredKeys.contains(key.toString())) {
-            emitter.emit(Pair.of(key, Pair.of(index, out)));
+          String skey = key.toString();
+          if (!filteredKeys.contains(skey)) {
+            emitter.emit(Pair.of(skey, Pair.of(index, out)));
             emitted++;
           }
         }

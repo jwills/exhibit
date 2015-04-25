@@ -218,21 +218,21 @@ public class ExhibitTool extends Configured implements Tool {
     AvroType<GenericData.Record> valueType = Avros.generics(wrapper);
 
     AvroType<Pair<Integer, GenericData.Record>> ssType = Avros.pairs(Avros.ints(), valueType);
-    PType<Object> keyType = (PType<Object>) config.keyType.getPType();
-    PTableType<Object, Pair<Integer, GenericData.Record>> tableType = Avros.tableOf(keyType, ssType);
-    PTable<Object, Pair<Integer, GenericData.Record>> union = null;
+    PType<String> keyType = Avros.strings();
+    PTableType<String, Pair<Integer, GenericData.Record>> tableType = Avros.tableOf(keyType, ssType);
+    PTable<String, Pair<Integer, GenericData.Record>> union = null;
     for (int i = 0; i < config.sources.size(); i++) {
       SourceConfig src = config.sources.get(i);
       PCollection<GenericRecord> in = pcols.get(i);
       KeyIndexFn<GenericRecord> keyFn = new KeyIndexFn<GenericRecord>(valueType, src.keyFields, src.invalidKeys, i);
-      PTable<Object, Pair<Integer, GenericData.Record>> keyed = in.parallelDo("src " + i, keyFn, tableType);
+      PTable<String, Pair<Integer, GenericData.Record>> keyed = in.parallelDo("src " + i, keyFn, tableType);
       if (union == null) {
         union = keyed;
       } else {
         union = union.union(keyed);
       }
     }
-    MergeSchema ms = new MergeSchema(config.name, config.keyField, config.keyType.getSchema(), config.sources,
+    MergeSchema ms = new MergeSchema(config.name, config.keyField, config.keyType, config.sources,
         config.parallelism);
     PCollection<GenericData.Record> output = ms.apply(union);
     DatasetDescriptor dd = new DatasetDescriptor.Builder()

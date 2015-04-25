@@ -34,6 +34,11 @@ public class BuildConfig {
       public Schema getSchema() {
         return Schema.create(Schema.Type.STRING);
       }
+
+      @Override
+      public Object parse(String stringKey) {
+        return stringKey;
+      }
     },
 
     INT {
@@ -45,6 +50,11 @@ public class BuildConfig {
       @Override
       public Schema getSchema() {
         return Schema.create(Schema.Type.INT);
+      }
+
+      @Override
+      public Object parse(String stringKey) {
+        return Integer.valueOf(stringKey);
       }
     },
 
@@ -58,11 +68,18 @@ public class BuildConfig {
       public Schema getSchema() {
         return Schema.create(Schema.Type.LONG);
       }
+
+      @Override
+      public Object parse(String stringKey) {
+        return Long.valueOf(stringKey);
+      }
     };
 
     public abstract PType<?> getPType();
 
     public abstract Schema getSchema();
+
+    public abstract Object parse(String stringKey);
   }
 
   public String uri;

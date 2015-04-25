@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.cloudera.exhibit.etl.config.BuildConfig;
 import com.cloudera.exhibit.etl.config.SourceConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,14 +38,14 @@ public class MergeSchema implements Serializable {
 
   private final String name;
   private final String keyField;
-  private final String keySchemaJson;
+  private final BuildConfig.KeyType keyType;
   private final List<SourceConfig> sources;
   private final int parallelism;
 
-  MergeSchema(String name, String keyField, Schema keySchema, List<SourceConfig> sources, int parallelism) {
+  MergeSchema(String name, String keyField, BuildConfig.KeyType keyType, List<SourceConfig> sources, int parallelism) {
     this.name = name;
     this.keyField = keyField;
-    this.keySchemaJson = keySchema.toString();
+    this.keyType = keyType;
     this.sources = sources;
     this.parallelism = parallelism;
   }
@@ -54,7 +55,7 @@ public class MergeSchema implements Serializable {
     List<Schema.Field> ret = Lists.newArrayList();
     Map<String, Schema.Field> fieldNames = Maps.newHashMap();
     if (keyField != null) {
-      Schema.Field sf = new Schema.Field(keyField, p.parse(keySchemaJson), null, null);
+      Schema.Field sf = new Schema.Field(keyField, keyType.getSchema(), null, null);
       ret.add(sf);
       fieldNames.put(keyField.toLowerCase(), sf);
     }
@@ -99,12 +100,12 @@ public class MergeSchema implements Serializable {
     return rec;
   }
 
-  public PCollection<GenericData.Record> apply(PTable<Object, Pair<Integer, GenericData.Record>> input) {
+  public PCollection<GenericData.Record> apply(PTable<String, Pair<Integer, GenericData.Record>> input) {
     Schema out = createOutputSchema();
     return SecondarySort.sortAndApply(input, new SSFn(out), Avros.generics(out), parallelism);
   }
 
-  private class SSFn extends MapFn<Pair<Object, Iterable<Pair<Integer, GenericData.Record>>>, GenericData.Record> {
+  private class SSFn extends MapFn<Pair<String, Iterable<Pair<Integer, GenericData.Record>>>, GenericData.Record> {
 
     private String schemaJson;
     private transient Schema schema;
@@ -123,11 +124,11 @@ public class MergeSchema implements Serializable {
     }
 
     @Override
-    public GenericData.Record map(Pair<Object, Iterable<Pair<Integer, GenericData.Record>>> input) {
+    public GenericData.Record map(Pair<String, Iterable<Pair<Integer, GenericData.Record>>> input) {
       long start = System.currentTimeMillis();
       GenericData.Record ret = new GenericData.Record(schema);
       if (keyField != null) {
-        ret.put(keyField, input.first());
+        ret.put(keyField, keyType.parse(input.first()));
       }
       int records = 0;
       for (Pair<Integer, GenericData.Record> p : input.second()) {
