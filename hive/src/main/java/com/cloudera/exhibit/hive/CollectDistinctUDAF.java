@@ -18,6 +18,7 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 public class CollectDistinctUDAF extends AbstractGenericUDAFResolver {
@@ -25,6 +26,9 @@ public class CollectDistinctUDAF extends AbstractGenericUDAFResolver {
   public GenericUDAFEvaluator getEvaluator(TypeInfo[] typeInfo) throws SemanticException {
     if (typeInfo.length != 1) {
       throw new UDFArgumentException("Only one argument expected to collect_distinct method");
+    }
+    if (typeInfo[0].getCategory() == ObjectInspector.Category.LIST) {
+      return new AbstractCollectArrayEvaluator.Sets();
     }
     return new AbstractCollectEvaluator.Sets();
   }
