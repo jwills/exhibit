@@ -15,6 +15,7 @@
 package com.cloudera.exhibit.etl.fn;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -25,6 +26,7 @@ import org.apache.crunch.Pair;
 import org.apache.crunch.types.avro.AvroType;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pair<Integer, GenericData.Record>>> {
@@ -33,6 +35,7 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
   private final Set<String> keyFields;
   private final Set<String> filteredKeys;
   private final int index;
+  private transient Map<Schema, Schema> matches;
 
   public KeyIndexFn(AvroType<GenericData.Record> valueType, Set<String> keyFields, Set<String> filteredKeys, int index) {
     this.valueType = valueType;
@@ -71,26 +74,29 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
 
   private GenericData.Record matchSchema(R r) {
     Schema target = r.getSchema();
-    List<Schema> schemas = valueType.getSchema().getFields().get(0).schema().getTypes();
-    Schema match = null;
-    for (Schema s : schemas) {
-      if (s.getFields().size() == target.getFields().size()) {
-        boolean matched = true;
-        for (int i = 0; i < s.getFields().size(); i++) {
-          Schema.Field sf = s.getFields().get(i);
-          if (!sf.equals(target.getFields().get(i))) {
-            matched = false;
+    Schema match = matches.get(target);
+    if (match == null) {
+      List<Schema> schemas = valueType.getSchema().getFields().get(0).schema().getTypes();
+      for (Schema s : schemas) {
+        if (s.getFields().size() == target.getFields().size()) {
+          boolean matched = true;
+          for (int i = 0; i < s.getFields().size(); i++) {
+            Schema.Field sf = s.getFields().get(i);
+            if (!sf.equals(target.getFields().get(i))) {
+              matched = false;
+              break;
+            }
+          }
+          if (matched) {
+            match = duplicate(s);
             break;
           }
         }
-        if (matched) {
-          match = duplicate(s);
-          break;
-        }
       }
-    }
-    if (match == null) {
-      throw new IllegalStateException("Could not find matching schema for: " + target);
+      if (match == null) {
+        throw new IllegalStateException("Could not find matching schema for: " + target);
+      }
+      matches.put(target, match);
     }
     GenericData.Record ret = new GenericData.Record(match);
     for (int i = 0; i < match.getFields().size(); i++) {
