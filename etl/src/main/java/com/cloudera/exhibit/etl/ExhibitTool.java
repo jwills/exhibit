@@ -40,7 +40,6 @@ import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.Target;
-import org.apache.crunch.fn.IdentityFn;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.io.From;
 import org.apache.crunch.io.To;
@@ -92,16 +91,19 @@ public class ExhibitTool extends Configured implements Tool {
     return 0;
   }
 
+  PCollection<GenericRecord> getInput(Pipeline p, String uri, String path) {
+    if (path != null && !path.isEmpty()) {
+      return (PCollection) p.read(From.avroFile(path));
+    } else {
+      Dataset<GenericRecord> data = Datasets.load(uri);
+      return p.read(CrunchDatasets.asSource(data));
+    }
+  }
   int compute(String arg) throws Exception {
     ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
-    PCollection<GenericRecord> input = null;
-    if (!config.path.isEmpty()) {
-      input = (PCollection) p.read(From.avroFile(config.path));
-    } else {
-      Dataset<GenericRecord> data = Datasets.load(config.uri);
-      input = p.read(CrunchDatasets.asSource(data));
-    }
+
+    PCollection<GenericRecord> input = getInput(p, config.uri, config.path);
     // Step one: generate additional tempTables, if any.
     RecordToExhibit rte = new RecordToExhibit(config.tempTables);
     ExhibitDescriptor descriptor = rte.getDescriptor(input.getPType());
@@ -205,8 +207,7 @@ public class ExhibitTool extends Configured implements Tool {
     List<PCollection<GenericRecord>> pcols = Lists.newArrayList();
     Set<Schema> schemas = Sets.newHashSet();
     for (SourceConfig src : config.sources) {
-      Dataset<GenericRecord> data = Datasets.load(src.uri);
-      PCollection<GenericRecord> pcol = p.read(CrunchDatasets.asSource(data));
+      PCollection<GenericRecord> pcol = getInput(p, src.uri, src.path);
       pcols.add(pcol);
       Schema schema = ((AvroType) pcol.getPType()).getSchema();
       src.setSchema(schema);
@@ -238,6 +239,7 @@ public class ExhibitTool extends Configured implements Tool {
     DatasetDescriptor dd = new DatasetDescriptor.Builder()
         .schema(((AvroType) output.getPType()).getSchema())
         .format(config.format)
+        .compressionType(config.compress)
         .build();
     Dataset<GenericRecord> outputDataset = Datasets.create(config.uri, dd);
     output.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);

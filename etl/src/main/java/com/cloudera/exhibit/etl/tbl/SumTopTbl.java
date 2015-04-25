@@ -36,7 +36,7 @@ public class SumTopTbl implements Tbl {
   private final Map<String, String> values;
   private final String subKey;
   private final String orderKey;
-  private final int top;
+  private final int limit;
 
   private Schema intermediate;
   private Schema output;
@@ -52,11 +52,11 @@ public class SumTopTbl implements Tbl {
       throw new IllegalArgumentException("SUM_TOP aggregation must have an 'order' key in its options");
     }
     this.orderKey = options.get("order").toString();
-    if (options.get("top") == null) {
-      throw new IllegalArgumentException("SUM_TOP aggregation must have an 'top' integer value in its options");
+    if (options.get("limit") == null) {
+      throw new IllegalArgumentException("SUM_TOP aggregation must have a 'limit' integer value in its options");
     }
-    this.top = Integer.valueOf(options.get("top").toString());
-    Preconditions.checkArgument(top > 0, "top option must be greater than zero, found: " + top);
+    this.limit = Integer.valueOf(options.get("limit").toString());
+    Preconditions.checkArgument(limit > 0, "limit option must be greater than zero, found: " + limit);
   }
 
   @Override
@@ -84,7 +84,7 @@ public class SumTopTbl implements Tbl {
     this.intermediate.setFields(Lists.newArrayList(new Schema.Field("value", Schema.createMap(interValue), "", null)));
 
     List<Schema.Field> outputFields = Lists.newArrayList();
-    for (int i = 1; i <= top; i++) {
+    for (int i = 1; i <= limit; i++) {
       for (Map.Entry<String, String> e : values.entrySet()) {
         ObsDescriptor.Field f = od.get(od.indexOf(e.getKey()));
         String fieldName = outputFieldName(e.getValue(), i);
@@ -154,7 +154,7 @@ public class SumTopTbl implements Tbl {
     List<Map.Entry<String, GenericData.Record>> elements = Lists.newArrayList(curValue.entrySet());
     Collections.sort(elements, new SumTopComparator(orderKey));
     GenericData.Record res = new GenericData.Record(output);
-    for (int i = 1; i <= top; i++) {
+    for (int i = 1; i <= limit; i++) {
       Map.Entry<String, GenericData.Record> cur = elements.get(i - 1);
       res.put(outputFieldName(subKey, i), cur.getKey());
       for (Map.Entry<String, String> e : values.entrySet()) {

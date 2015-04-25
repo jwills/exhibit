@@ -86,6 +86,8 @@ public class BuildConfig {
 
   public String format = "avro";
 
+  public String compress = "uncompressed";
+
   public String name;
 
   public String keyField;

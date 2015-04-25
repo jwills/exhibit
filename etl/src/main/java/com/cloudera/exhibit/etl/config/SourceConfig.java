@@ -29,6 +29,8 @@ public class SourceConfig implements Serializable {
 
   public String uri;
 
+  public String path;
+
   public boolean embedded = false;
 
   public boolean repeated = true;
