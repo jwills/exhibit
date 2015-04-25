@@ -35,6 +35,8 @@ public class SourceConfig implements Serializable {
 
   public boolean nullable = true;
 
+  public Set<String> nested = Sets.newHashSet();
+
   public Set<String> keyFields;
 
   public Set<String> invalidKeys = Sets.newHashSet();

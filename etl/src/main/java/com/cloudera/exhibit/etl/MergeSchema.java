@@ -31,6 +31,7 @@ import org.apache.crunch.types.avro.Avros;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
 
@@ -51,7 +52,6 @@ public class MergeSchema implements Serializable {
   }
 
   Schema createOutputSchema() {
-    Schema.Parser p = new Schema.Parser();
     List<Schema.Field> ret = Lists.newArrayList();
     Map<String, Schema.Field> fieldNames = Maps.newHashMap();
     if (keyField != null) {
@@ -76,6 +76,20 @@ public class MergeSchema implements Serializable {
           }
         }
       } else {
+        if (!sc.nested.isEmpty()) {
+          List<Schema.Field> pruned = Lists.newArrayList();
+          for (Schema.Field f : fs.getFields()) {
+            Schema.Field copy = new Schema.Field(f.name(), f.schema(), f.doc(), f.defaultValue());
+            if (sc.nested.contains(f.name())) {
+              ret.add(copy);
+              fieldNames.put(copy.name().toLowerCase(), copy);
+            } else {
+              pruned.add(copy);
+            }
+          }
+          fs = Schema.createRecord(fs.getName() + "_", fs.getDoc(), fs.getNamespace(), fs.isError());
+          fs.setFields(pruned);
+        }
         if (sc.repeated) {
           fs = Schema.createArray(fs);
         }
@@ -95,7 +109,7 @@ public class MergeSchema implements Serializable {
         }
       }
     }
-    Schema rec = Schema.createRecord(name, "", "", false);
+    Schema rec = Schema.createRecord(name, "", "exhibit", false);
     rec.setFields(ret);
     return rec;
   }
@@ -119,7 +133,9 @@ public class MergeSchema implements Serializable {
       this.schema = (new Schema.Parser()).parse(schemaJson);
       this.ptypes = Lists.newArrayList();
       for (SourceConfig sc : sources) {
-        ptypes.add(Avros.generics(sc.getSchema()));
+        PType<GenericData.Record> pt = Avros.generics(sc.getSchema());
+        pt.initialize(getConfiguration());
+        ptypes.add(pt);
       }
     }
 
@@ -134,10 +150,24 @@ public class MergeSchema implements Serializable {
       for (Pair<Integer, GenericData.Record> p : input.second()) {
         int index = p.first();
         GenericData.Record value = (GenericData.Record) p.second().get(0);
+        value = (GenericData.Record) ptypes.get(index).getDetachedValue(value);
         SourceConfig sc = sources.get(index);
         if (sc.embedded) {
           copy(value, ret);
         } else {
+          if (!sc.nested.isEmpty()) {
+            for (String nestedField : sc.nested) {
+              List list = (List) ret.get(nestedField);
+              if (list == null) {
+                list = Lists.newArrayList();
+                ret.put(nestedField, list);
+              }
+              List nestedList = (List) value.get(nestedField);
+              if (nestedList != null) {
+                list.addAll(nestedList);
+              }
+            }
+          }
           GenericData.Record copy = new GenericData.Record(element(schema.getField(sc.name).schema()));
           copy(value, copy);
           if (sc.repeated) {
@@ -179,7 +209,9 @@ public class MergeSchema implements Serializable {
       if (val instanceof CharSequence) {
         val = val.toString();
       }
-      copy.put(sf.name(), val);
+      if (copy.getSchema().getField(sf.name()) != null) {
+        copy.put(sf.name(), val);
+      }
     }
   }
 }
