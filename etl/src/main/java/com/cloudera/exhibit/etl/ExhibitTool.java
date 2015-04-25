@@ -237,7 +237,7 @@ public class ExhibitTool extends Configured implements Tool {
     PCollection<GenericData.Record> output = ms.apply(union);
     DatasetDescriptor dd = new DatasetDescriptor.Builder()
         .schema(((AvroType) output.getPType()).getSchema())
-        .format(Formats.PARQUET)
+        .format(config.format)
         .build();
     Dataset<GenericRecord> outputDataset = Datasets.create(config.uri, dd);
     output.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);

@@ -124,10 +124,12 @@ public class MergeSchema implements Serializable {
 
     @Override
     public GenericData.Record map(Pair<Object, Iterable<Pair<Integer, GenericData.Record>>> input) {
+      long start = System.currentTimeMillis();
       GenericData.Record ret = new GenericData.Record(schema);
       if (keyField != null) {
         ret.put(keyField, input.first());
       }
+      int records = 0;
       for (Pair<Integer, GenericData.Record> p : input.second()) {
         int index = p.first();
         GenericData.Record value = (GenericData.Record) p.second().get(0);
@@ -148,7 +150,10 @@ public class MergeSchema implements Serializable {
             ret.put(sc.name, copy);
           }
         }
+        records++;
       }
+      increment("ExhibitRuntime", "MergeSchemaMsec", System.currentTimeMillis() - start);
+      increment("ExhibitRuntime", "MergeSchemaRecords", records);
       return ret;
     }
   }

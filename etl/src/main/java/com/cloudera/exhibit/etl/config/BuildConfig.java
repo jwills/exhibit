@@ -36,6 +36,18 @@ public class BuildConfig {
       }
     },
 
+    INT {
+      @Override
+      public PType<?> getPType() {
+        return Avros.ints();
+      }
+
+      @Override
+      public Schema getSchema() {
+        return Schema.create(Schema.Type.INT);
+      }
+    },
+
     LONG {
       @Override
       public PType<?> getPType() {
@@ -54,6 +66,8 @@ public class BuildConfig {
   }
 
   public String uri;
+
+  public String format = "avro";
 
   public String name;
 
