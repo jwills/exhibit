@@ -94,7 +94,12 @@ public class OutputGen {
       ObsDescriptor fd = ac.getFrameDescriptor(descriptor);
       List<String> keys = getKeys(ac, config);
       for (int i = 0; i < keys.size(); i++) {
-        ObsDescriptor.Field f = fd.get(fd.indexOf(keys.get(i)));
+        String key = keys.get(i).toLowerCase();
+        int index = fd.indexOf(key);
+        if (index < 0) {
+          throw new IllegalArgumentException("Could not find key: " + key + " in obs: " + fd);
+        }
+        ObsDescriptor.Field f = fd.get(index);
         Schema s = AvroExhibit.getSchema(f.type);
         if (frameKeySchemas.get(i) == null) {
           frameKeySchemas.set(i, s);
