@@ -101,9 +101,9 @@ public class ExhibitTool extends Configured implements Tool {
   }
   int compute(String arg) throws Exception {
     ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
-    Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
-
+    Pipeline p = new MRPipeline(ExhibitTool.class, "ComputeSupernova", getConf());
     PCollection<GenericRecord> input = getInput(p, config.uri, config.path);
+
     // Step one: generate additional tempTables, if any.
     RecordToExhibit rte = new RecordToExhibit(config.tempTables);
     ExhibitDescriptor descriptor = rte.getDescriptor(input.getPType());
@@ -203,7 +203,7 @@ public class ExhibitTool extends Configured implements Tool {
 
   int build(String arg) throws Exception {
     BuildConfig config = ConfigHelper.parseBuildConfig(arg);
-    Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
+    Pipeline p = new MRPipeline(ExhibitTool.class, "BuildSupernova", getConf());
     List<PCollection<GenericRecord>> pcols = Lists.newArrayList();
     Set<Schema> schemas = Sets.newHashSet();
     for (SourceConfig src : config.sources) {

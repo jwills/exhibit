@@ -146,7 +146,6 @@ public class MergeSchema implements Serializable {
       if (keyField != null) {
         ret.put(keyField, keyType.parse(input.first()));
       }
-      int records = 0;
       for (Pair<Integer, GenericData.Record> p : input.second()) {
         int index = p.first();
         GenericData.Record value = (GenericData.Record) p.second().get(0);
@@ -181,10 +180,9 @@ public class MergeSchema implements Serializable {
             ret.put(sc.name, copy);
           }
         }
-        records++;
       }
       increment("ExhibitRuntime", "MergeSchemaMsec", System.currentTimeMillis() - start);
-      increment("ExhibitRuntime", "MergeSchemaRecords", records);
+      increment("ExhibitRuntime", "MergeSchemaMapped");
       return ret;
     }
   }

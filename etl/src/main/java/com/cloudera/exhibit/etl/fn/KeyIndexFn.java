@@ -31,14 +31,14 @@ import java.util.Set;
 
 public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pair<Integer, GenericData.Record>>> {
 
-  private final AvroType<GenericData.Record> valueType;
+  private final AvroType<GenericData.Record> outType;
   private final Set<String> keyFields;
   private final Set<String> filteredKeys;
   private final int index;
   private transient Map<Schema, Schema> matches;
 
-  public KeyIndexFn(AvroType<GenericData.Record> valueType, Set<String> keyFields, Set<String> filteredKeys, int index) {
-    this.valueType = valueType;
+  public KeyIndexFn(AvroType<GenericData.Record> outType, Set<String> keyFields, Set<String> filteredKeys, int index) {
+    this.outType = outType;
     this.keyFields = Sets.newHashSet(keyFields);
     this.filteredKeys = Sets.newHashSet(filteredKeys);
     this.index = index;
@@ -46,7 +46,8 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
 
   @Override
   public void initialize() {
-    valueType.initialize(getConfiguration());
+    outType.initialize(getConfiguration());
+    matches = Maps.newHashMap();
   }
 
   @Override
@@ -54,9 +55,8 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
     long start = System.currentTimeMillis();
     int emitted = 0;
     if (r != null) {
-      GenericData.Record value = matchSchema(r);
-      GenericData.Record out = new GenericData.Record(valueType.getSchema());
-      out.put(0, value);
+      GenericData.Record out = new GenericData.Record(outType.getSchema());
+      out.put(0, matchSchema(r));
       for (String field : keyFields) {
         Object key = r.get(field);
         if (key != null) {
@@ -76,7 +76,7 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
     Schema target = r.getSchema();
     Schema match = matches.get(target);
     if (match == null) {
-      List<Schema> schemas = valueType.getSchema().getFields().get(0).schema().getTypes();
+      List<Schema> schemas = outType.getSchema().getFields().get(0).schema().getTypes();
       for (Schema s : schemas) {
         if (s.getFields().size() == target.getFields().size()) {
           boolean matched = true;
@@ -99,14 +99,15 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
       matches.put(target, match);
     }
     GenericData.Record ret = new GenericData.Record(match);
-    for (int i = 0; i < match.getFields().size(); i++) {
-      ret.put(i, r.get(i));
+    for (Schema.Field sf : match.getFields()) {
+      ret.put(sf.pos(), r.get(sf.pos()));
     }
     return ret;
   }
 
   private Schema duplicate(Schema s) {
-    Schema s1 = Schema.createRecord(s.getName(), "", "crunch", false);
+    String ns = (s.getNamespace() == null || s.getNamespace().isEmpty()) ? "crunch" : s.getNamespace();
+    Schema s1 = Schema.createRecord(s.getName(), "", ns, false);
     List<Schema.Field> fields = Lists.newArrayList();
     for (Schema.Field sf : s.getFields()) {
       fields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue(), sf.order()));

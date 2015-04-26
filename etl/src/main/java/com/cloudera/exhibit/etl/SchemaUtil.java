@@ -14,13 +14,10 @@
  */
 package com.cloudera.exhibit.etl;
 
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 
 import java.util.List;
-import java.util.Set;
 
 public class SchemaUtil {
 
