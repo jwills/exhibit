@@ -16,6 +16,20 @@ package com.cloudera.exhibit.etl.config;
 
 import com.cloudera.exhibit.core.PivotCalculator;
 import com.esotericsoftware.yamlbeans.YamlReader;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.crunch.PCollection;
+import org.apache.crunch.Pipeline;
+import org.apache.crunch.Source;
+import org.apache.crunch.io.From;
+import org.apache.crunch.io.parquet.AvroParquetFileSource;
+import org.apache.crunch.types.avro.AvroType;
+import org.apache.crunch.types.avro.Avros;
+import org.apache.hadoop.fs.Path;
+import org.kitesdk.data.Dataset;
+import org.kitesdk.data.Datasets;
+import org.kitesdk.data.Format;
+import org.kitesdk.data.Formats;
 
 import java.io.FileReader;
 
@@ -29,7 +43,28 @@ public class ConfigHelper {
   private static void setupComputeReader(YamlReader reader) throws Exception {
     reader.getConfig().setPropertyElementType(ComputeConfig.class, "tempTables", FrameConfig.class);
     reader.getConfig().setPropertyElementType(ComputeConfig.class, "outputTables", OutputConfig.class);
+    reader.getConfig().setPropertyElementType(ComputeConfig.class, "memoryTables", ReadableConfig.class);
     reader.getConfig().setPropertyElementType(OutputConfig.class, "aggregates", AggConfig.class);
+  }
+
+  public static PCollection<GenericData.Record> getPCollection(Pipeline p, String uri, String pathStr) {
+    if (pathStr != null && !pathStr.isEmpty()) {
+      return p.read(From.avroFile(pathStr));
+    }
+    Dataset ds = Datasets.load(uri);
+    Path path = new Path(ds.getDescriptor().getLocation());
+    Format fmt = ds.getDescriptor().getFormat();
+    Schema schema = ds.getDescriptor().getSchema();
+    AvroType<GenericData.Record> ptype = Avros.generics(schema);
+    Source<GenericData.Record> src;
+    if (Formats.AVRO.equals(fmt)) {
+      src = From.avroFile(path, ptype);
+    } else if (Formats.PARQUET.equals(fmt)) {
+      src = new AvroParquetFileSource<GenericData.Record>(path, ptype);
+    } else {
+      throw new IllegalArgumentException("Cannot handle format: " + fmt);
+    }
+    return p.read(src);
   }
 
   public static BuildConfig parseBuildConfig(String configFile) throws Exception {

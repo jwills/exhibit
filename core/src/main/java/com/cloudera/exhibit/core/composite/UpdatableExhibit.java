@@ -40,6 +40,13 @@ public class UpdatableExhibit implements Exhibit {
     return this;
   }
 
+  public UpdatableExhibit addAll(Map<String, Frame> frames) {
+    for (Map.Entry<String, Frame> e : frames.entrySet()) {
+      add(e.getKey(), e.getValue());
+    }
+    return this;
+  }
+
   @Override
   public ExhibitDescriptor descriptor() {
     return descriptor;

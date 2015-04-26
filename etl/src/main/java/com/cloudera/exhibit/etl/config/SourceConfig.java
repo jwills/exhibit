@@ -43,6 +43,8 @@ public class SourceConfig implements Serializable {
 
   public Set<String> invalidKeys = Sets.newHashSet();
 
+  public Set<String> drop = Sets.newHashSet();
+
   public void setSchema(Schema schema) {
     this.schemaJson = schema.toString();
   }

@@ -41,7 +41,6 @@ import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.Target;
 import org.apache.crunch.impl.mr.MRPipeline;
-import org.apache.crunch.io.From;
 import org.apache.crunch.io.To;
 import org.apache.crunch.io.parquet.AvroParquetFileTarget;
 import org.apache.crunch.lib.join.JoinUtils;
@@ -91,21 +90,13 @@ public class ExhibitTool extends Configured implements Tool {
     return 0;
   }
 
-  PCollection<GenericRecord> getInput(Pipeline p, String uri, String path) {
-    if (path != null && !path.isEmpty()) {
-      return (PCollection) p.read(From.avroFile(path));
-    } else {
-      Dataset<GenericRecord> data = Datasets.load(uri);
-      return p.read(CrunchDatasets.asSource(data));
-    }
-  }
   int compute(String arg) throws Exception {
     ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, "ComputeSupernova", getConf());
-    PCollection<GenericRecord> input = getInput(p, config.uri, config.path);
+    PCollection<GenericData.Record> input = ConfigHelper.getPCollection(p, config.uri, config.path);
 
     // Step one: generate additional tempTables, if any.
-    RecordToExhibit rte = new RecordToExhibit(config.tempTables);
+    RecordToExhibit rte = new RecordToExhibit(config.getReadables(p), config.tempTables);
     ExhibitDescriptor descriptor = rte.getDescriptor(input.getPType());
     PCollection<Exhibit> exhibits = rte.apply(input);
 
@@ -204,12 +195,22 @@ public class ExhibitTool extends Configured implements Tool {
   int build(String arg) throws Exception {
     BuildConfig config = ConfigHelper.parseBuildConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, "BuildSupernova", getConf());
-    List<PCollection<GenericRecord>> pcols = Lists.newArrayList();
+    List<PCollection<GenericData.Record>> pcols = Lists.newArrayList();
     Set<Schema> schemas = Sets.newHashSet();
     for (SourceConfig src : config.sources) {
-      PCollection<GenericRecord> pcol = getInput(p, src.uri, src.path);
+      PCollection<GenericData.Record> pcol = ConfigHelper.getPCollection(p, src.uri, src.path);
       pcols.add(pcol);
       Schema schema = ((AvroType) pcol.getPType()).getSchema();
+      if (!src.drop.isEmpty()) {
+        List<Schema.Field> keep = Lists.newArrayList();
+        for (Schema.Field sf : schema.getFields()) {
+          if (!src.drop.contains(sf.name())) {
+            keep.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
+          }
+        }
+        schema = Schema.createRecord(schema.getName() + "_kept", schema.getDoc(), schema.getNamespace(), schema.isError());
+        schema.setFields(keep);
+      }
       src.setSchema(schema);
       schemas.add(schema);
     }
@@ -224,8 +225,8 @@ public class ExhibitTool extends Configured implements Tool {
     PTable<String, Pair<Integer, GenericData.Record>> union = null;
     for (int i = 0; i < config.sources.size(); i++) {
       SourceConfig src = config.sources.get(i);
-      PCollection<GenericRecord> in = pcols.get(i);
-      KeyIndexFn<GenericRecord> keyFn = new KeyIndexFn<GenericRecord>(valueType, src.keyFields, src.invalidKeys, i);
+      PCollection<GenericData.Record> in = pcols.get(i);
+      KeyIndexFn<GenericData.Record> keyFn = new KeyIndexFn<GenericData.Record>(valueType, src, i);
       PTable<String, Pair<Integer, GenericData.Record>> keyed = in.parallelDo("src " + i, keyFn, tableType);
       if (union == null) {
         union = keyed;
