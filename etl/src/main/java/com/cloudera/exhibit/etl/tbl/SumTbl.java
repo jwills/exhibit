@@ -24,6 +24,8 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 
+import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -76,44 +78,85 @@ public class SumTbl implements Tbl {
     }
   }
 
-  private Map<String, String> values;
+  private String[] inputFields;
+  private String[] outputFields;
+  private Sum[] sums;
   private Schema schema;
-  private GenericData.Record value;
 
   public SumTbl(Map<String, String> values) {
-    this.values = values;
+    this.inputFields = new String[values.size()];
+    this.outputFields = new String[values.size()];
+    this.sums = new Sum[values.size()];
+    int index = 0;
+    for (Map.Entry<String, String> e : values.entrySet()) {
+      inputFields[index] = e.getKey();
+      outputFields[index] = e.getValue();
+      index++;
+    }
   }
 
   @Override
   public SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx) {
     List<Schema.Field> fields = Lists.newArrayList();
-    for (Map.Entry<String, String> e : values.entrySet()) {
-      ObsDescriptor.Field f = od.get(od.indexOf(e.getKey()));
-      fields.add(new Schema.Field(e.getValue(), AvroExhibit.getSchema(f.type), "", null));
+    for (int i = 0; i < inputFields.length; i++) {
+      ObsDescriptor.Field f = od.get(od.indexOf(inputFields[i]));
+      fields.add(new Schema.Field(outputFields[i], AvroExhibit.getSchema(f.type), "", null));
+      switch (f.type) {
+        case INTEGER:
+          sums[i] = new IntSum();
+          break;
+        case LONG:
+          sums[i] = new LongSum();
+          break;
+        case FLOAT:
+          sums[i] = new FloatSum();
+          break;
+        case DOUBLE:
+          sums[i] = new DoubleSum();
+          break;
+        default:
+          throw new UnsupportedOperationException("Cannot sum field: " + f);
+      }
     }
     this.schema = Schema.createRecord("ExValue_" + outputId + "_" + aggIdx, "", "exhibit", false);
     schema.setFields(fields);
     return new SchemaProvider(ImmutableList.of(schema, schema));
   }
 
-
   @Override
   public void initialize(SchemaProvider provider) {
     this.schema = provider.get(0);
-    this.value = new GenericData.Record(schema);
+    for (int i = 0; i < outputFields.length; i++) {
+      switch (unwrapNull(schema.getField(outputFields[i]).schema()).getType()) {
+        case INT:
+          sums[i] = new IntSum();
+          break;
+        case LONG:
+          sums[i] = new LongSum();
+          break;
+        case FLOAT:
+          sums[i] = new FloatSum();
+          break;
+        case DOUBLE:
+          sums[i] = new DoubleSum();
+          break;
+      }
+    }
   }
 
   @Override
   public void add(Obs obs) {
-    GenericData.Record next = new GenericData.Record(schema);
-    for (Map.Entry<String, String> e : values.entrySet()) {
-      next.put(e.getValue(), obs.get(e.getKey()));
+    for (int i = 0; i < inputFields.length; i++) {
+      sums[i].add((Number) obs.get(inputFields[i]));
     }
-    value = (GenericData.Record) add(value, next, schema);
   }
 
   @Override
   public GenericData.Record getValue() {
+    GenericData.Record value = new GenericData.Record(schema);
+    for (int i = 0; i < outputFields.length; i++) {
+      value.put(outputFields[i], sums[i].getValue());
+    }
     return value;
   }
 
@@ -129,6 +172,67 @@ public class SumTbl implements Tbl {
 
   @Override
   public String toString() {
-    return "SumTbl(" + value + ")";
+    return "SumTbl(" + Arrays.asList(inputFields) + ")";
+  }
+
+  public static interface Sum extends Serializable {
+    void add(Number value);
+    Number getValue();
+  }
+
+  public static class IntSum implements Sum {
+    private int value = 0;
+
+    @Override
+    public void add(Number v) {
+      value += v == null ? 0 : v.intValue();
+    }
+
+    @Override
+    public Number getValue() {
+      return value;
+    }
+  }
+
+  public static class LongSum implements Sum {
+    private long value = 0;
+
+    @Override
+    public void add(Number v) {
+      value += v == null ? 0 : v.longValue();
+    }
+
+    @Override
+    public Number getValue() {
+      return value;
+    }
+  }
+
+  public static class FloatSum implements Sum {
+    private float value = 0;
+
+    @Override
+    public void add(Number v) {
+      value += v == null ? 0 : v.floatValue();
+    }
+
+    @Override
+    public Number getValue() {
+      return value;
+    }
+  }
+
+  public static class DoubleSum implements Sum {
+    private double value = 0;
+
+    @Override
+    public void add(Number v) {
+      value += v == null ? 0 : v.doubleValue();
+    }
+
+    @Override
+    public Number getValue() {
+      return value;
+    }
   }
 }

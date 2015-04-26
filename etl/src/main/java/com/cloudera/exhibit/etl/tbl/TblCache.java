@@ -51,8 +51,6 @@ public class TblCache {
       tbl = config.createTbl();
       tbl.initialize(provider);
       cache.put(key, tbl);
-    } else {
-      int x = 1;
     }
     tbl.add(obs);
   }
