@@ -176,7 +176,7 @@ public class ExhibitTool extends Configured implements Tool {
       } else {
         DatasetDescriptor dd = new DatasetDescriptor.Builder()
                 .schema(outType.getSchema())
-                .format(Formats.PARQUET)
+                .format(output.format)
                 .location(output.path)
                 .build();
         if (Datasets.exists(output.uri) && output.writeMode == Target.WriteMode.OVERWRITE) {

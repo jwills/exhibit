@@ -23,6 +23,7 @@ import java.util.List;
 public class OutputConfig implements Serializable {
   public String uri = "";
   public String path = "";
+  public String format = "parquet";
   public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
   public List<String> attrs = Lists.newArrayList();
   public List<String> keys = Lists.newArrayList();
