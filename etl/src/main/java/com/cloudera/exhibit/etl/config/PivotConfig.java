@@ -18,10 +18,11 @@ import com.cloudera.exhibit.core.PivotCalculator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public class PivotConfig {
+public class PivotConfig implements Serializable {
   public List<String> by = Lists.newArrayList();
-  public Map<String, List<String>> variables = Maps.newHashMap();
+  public Map<String, List<String>> variables = Maps.newLinkedHashMap();
 }

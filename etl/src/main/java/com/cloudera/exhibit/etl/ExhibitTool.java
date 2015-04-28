@@ -95,11 +95,11 @@ public class ExhibitTool extends Configured implements Tool {
   int compute(String arg) throws Exception {
     ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
     Pipeline p = new MRPipeline(ExhibitTool.class, getConf());
-    Dataset<GenericRecord> data = Datasets.load(config.uri);
     PCollection<GenericRecord> input = null;
     if (!config.path.isEmpty()) {
       input = (PCollection) p.read(From.avroFile(config.path));
     } else {
+      Dataset<GenericRecord> data = Datasets.load(config.uri);
       input = p.read(CrunchDatasets.asSource(data));
     }
     // Step one: generate additional tempTables, if any.
