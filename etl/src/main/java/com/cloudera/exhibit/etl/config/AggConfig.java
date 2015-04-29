@@ -29,11 +29,24 @@ import java.util.Map;
 
 public class AggConfig implements Serializable {
 
+  // The type of aggregation that will be performed on the computed records (SUM, PERCENTILE, SUM_TOP, TOP)
   public TblType type = TblType.SUM;
+
+  // Table-specific options (e.g., which fields to sort on for the TOP tbl)
   public Map<String, Object> options = Maps.newHashMap();
+
+  // The frame used to generate the output keys and values
   public FrameConfig frame = null;
+
+  // The names of the grouping keys for the computed frame if they are different from the
+  // names of the keys for the parent {@link OutputConfig}.
   public List<String> keys = Lists.newArrayList();
+
+  // A mapping from the names of fields in the computed frame to their names in the output
+  // aggregation (to allow for columns to be renamed)
   public Map<String, String> values = Maps.newHashMap();
+
+  // The maximum number of keys whose aggregate values should be cached in memory.
   public long cacheSize = 5000;
 
   public Calculator getCalculator() {

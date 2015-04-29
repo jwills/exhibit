@@ -14,7 +14,6 @@
  */
 package com.cloudera.exhibit.etl.config;
 
-import com.cloudera.exhibit.core.PivotCalculator;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -49,6 +48,7 @@ public class ConfigHelper {
 
   public static PCollection<GenericData.Record> getPCollection(Pipeline p, String uri, String pathStr) {
     if (pathStr != null && !pathStr.isEmpty()) {
+      // NOTE: this is for backwards compatibility, think about removing this
       return p.read(From.avroFile(pathStr));
     }
     Dataset ds = Datasets.load(uri);
@@ -62,7 +62,7 @@ public class ConfigHelper {
     } else if (Formats.PARQUET.equals(fmt)) {
       src = new AvroParquetFileSource<GenericData.Record>(path, ptype);
     } else {
-      throw new IllegalArgumentException("Cannot handle format: " + fmt);
+      throw new IllegalArgumentException("Cannot handle input format: " + fmt + " of uri: " + uri);
     }
     return p.read(src);
   }

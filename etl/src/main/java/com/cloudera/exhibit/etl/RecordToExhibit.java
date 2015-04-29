@@ -44,6 +44,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Code for converting a {@link PCollection} of {@link GenericData.Record} instances into
+ * a {@code PCollection} of {@link Exhibit} instances that include both a) any in-memory
+ * frames that should be used for every {@code Exhibit} record and any temporary frames
+ * that need to be computed prior to generating the output frames.
+ */
 public class RecordToExhibit  {
 
   private Map<String, ReadableData<GenericData.Record>> readables;
@@ -79,6 +85,7 @@ public class RecordToExhibit  {
 
   public PCollection<Exhibit> apply(PCollection<GenericData.Record> records) {
     Schema s = ((AvroType) records.getPType()).getSchema();
+    //TODO: real serialization scheme for Exhibits
     return records.parallelDo("recordToExhibit", new RecordToExhibitFn(s, readables, metrics),
             Avros.derivedImmutable(Exhibit.class,
                     new NoOpMapFn<GenericData.Record, Exhibit>(),

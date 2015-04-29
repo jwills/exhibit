@@ -21,11 +21,22 @@ import java.io.Serializable;
 import java.util.List;
 
 public class OutputConfig implements Serializable {
+  // The Kite URI to write the output to (required)
   public String uri = "";
+  // The underlying path that the data should be written to (required)
   public String path = "";
+
+  // The output format to use (parquet or avro)
   public String format = "parquet";
+
   public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
+
+  // Any attributes of the Exhibit that should be included in the output keys
   public List<String> attrs = Lists.newArrayList();
+
+  // The names of the fields from the output frames that should be included in the output keys
   public List<String> keys = Lists.newArrayList();
+
+  // The aggregations to perform by the attrs/keys specified above.
   public List<AggConfig> aggregates = Lists.newArrayList();
 }

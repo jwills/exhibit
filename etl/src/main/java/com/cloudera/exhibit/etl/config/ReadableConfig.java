@@ -14,7 +14,13 @@
  */
 package com.cloudera.exhibit.etl.config;
 
+/**
+ * Config info for in-memory frames that will be available for every exhibit during proceessing.
+ */
 public class ReadableConfig {
+  // The name of this in-memory frame.
   public String name;
+
+  // The Kite URI to read the frame from.
   public String uri;
 }

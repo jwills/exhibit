@@ -31,14 +31,23 @@ import java.util.Map;
 
 public class FrameConfig implements Serializable {
 
+  // An optional name for the generated frame (required for temp frames.)
   public String name = "";
 
-  public Map<String, String> descriptor = Maps.newLinkedHashMap();
-
+  // The engine to use. Currently, only "sql" and "js"/"javascript" are supported.
   public String engine = "sql";
 
+  // The actual code to execute against the exhibits using the given engine.
   public String code = "";
 
+  // For scripting engines, we cannot accurately infer the return type of the code before a job starts.
+  // Therefore, the user needs to manually specify the names/FieldTypes of the returned object/list so that
+  // we can generate the output schemas for this computation. For SQL, this type inference can be done
+  // automatically, so this field is optional.
+  public Map<String, String> descriptor = Maps.newLinkedHashMap();
+
+  // An optional pivot operation that should be applied to convert the result from a "long" to a "wide"
+  // frame format.
   public PivotConfig pivot = null;
 
   public Calculator getCalculator() {

@@ -55,7 +55,6 @@ import org.apache.hadoop.util.ToolRunner;
 import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
-import org.kitesdk.data.Formats;
 import org.kitesdk.data.crunch.CrunchDatasets;
 
 import javax.annotation.Nullable;
@@ -79,7 +78,7 @@ public class ExhibitTool extends Configured implements Tool {
     } else if ("parse".equalsIgnoreCase(args[0])) {
       return parse(args[1]);
     } else {
-      System.err.println("Usage: (build|compute) <config.yml>");
+      System.err.println("Usage: (build|compute|parse) <config.yml>");
       return -1;
     }
   }
@@ -90,14 +89,14 @@ public class ExhibitTool extends Configured implements Tool {
     return 0;
   }
 
-  int compute(String arg) throws Exception {
-    ComputeConfig config = ConfigHelper.parseComputeConfig(arg);
+  int compute(String ymlFile) throws Exception {
+    ComputeConfig config = ConfigHelper.parseComputeConfig(ymlFile);
     Pipeline p = new MRPipeline(ExhibitTool.class, "ComputeSupernova", getConf());
     PCollection<GenericData.Record> input = ConfigHelper.getPCollection(p, config.uri, config.path);
-
     // Step one: generate additional tempTables, if any.
     RecordToExhibit rte = new RecordToExhibit(config.getReadables(p), config.tempTables);
     ExhibitDescriptor descriptor = rte.getDescriptor(input.getPType());
+
     PCollection<Exhibit> exhibits = rte.apply(input);
 
     // Step two: determine the key and value schemas from the outputTables.
@@ -147,9 +146,13 @@ public class ExhibitTool extends Configured implements Tool {
     PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> ptt = Avros.tableOf(
         Avros.pairs(keyType, Avros.ints()),
         Avros.pairs(Avros.ints(), interValueType));
+    // <<Grouping Key, OutputId>, <AggId, AggValue>>
     PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> mapside = null;
     for (int i = 0; i < outputGens.size(); i++) {
+      // First table: <grouping key, <AggIdx, AggValue>>
       PTable<GenericData.Record, Pair<Integer, GenericData.Record>> out = outputGens.get(i).apply(exhibits);
+
+      // Second table: <<Union of grouping keys, OutputId>, <AggIdx, Aggvalue>>
       PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> m = out.parallelDo(
           new SchemaMapFn(i, provider), ptt);
       mapside = (mapside == null) ? m : mapside.union(m);
@@ -162,7 +165,8 @@ public class ExhibitTool extends Configured implements Tool {
         .build();
     Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
     PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
-    PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
+    PTable<Integer, GenericData.Record> reduced = mapside
+        .groupByKey(opts)
         .combineValues(new ExCombiner(provider, keyType, interValueType, config.outputTables, providerLists))
         .parallelDo("merge", new MergeRowsFn(config.outputTables, providerLists, outputUnionSchema),
             Avros.tableOf(Avros.ints(), outputUnion));
@@ -183,7 +187,13 @@ public class ExhibitTool extends Configured implements Tool {
           Datasets.delete(output.uri);
         }
         Datasets.create(output.uri, dd);
-        out.write(new AvroParquetFileTarget(output.path), output.writeMode);
+        if ("avro".equals(output.format)) {
+          out.write(To.avroFile(output.path), output.writeMode);
+        } else if ("parquet".equals(output.format)) {
+          out.write(new AvroParquetFileTarget(output.path), output.writeMode);
+        } else {
+          throw new IllegalArgumentException("Unsupported output format: " + output.format);
+        }
       }
     }
     PipelineResult res = p.done();

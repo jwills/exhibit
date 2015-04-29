@@ -20,11 +20,24 @@ import com.cloudera.exhibit.etl.SchemaProvider;
 import org.apache.avro.generic.GenericData;
 
 public interface Tbl {
+  // Generate the sch$emas (intermediate and output) for a given set of inputs.
+  // Do this first on the client-side
   SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx);
 
+  // Inside of a map/reduce phase: initialize a Tbl using the SchemaProvider
+  // we generated on the client
   void initialize(SchemaProvider provider);
+
+  // Add a single additional observation
   void add(Obs obs);
+
+  // Get the current (intermediate) state of this table
   GenericData.Record getValue();
+
+  // Merge two intermediate states of this table type together
   GenericData.Record  merge(GenericData.Record current, GenericData.Record next);
+
+  // In the reduce phase, "finalize" the output-- transform it from its
+  // intermediate form to its final output form.
   GenericData.Record finalize(GenericData.Record value);
 }
