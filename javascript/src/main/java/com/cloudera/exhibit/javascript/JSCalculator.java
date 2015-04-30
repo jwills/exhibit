@@ -41,6 +41,13 @@ public class JSCalculator implements Calculator {
 
   static {
     ContextFactory.initGlobal(new ExhibitContextFactory());
+    Context ctx = Context.enter();
+    ctx.setClassShutter(new ClassShutter() {
+      @Override
+      public boolean visibleToScripts(String className) {
+        return className.startsWith("com.cloudera.exhibit");
+      }
+    });
   }
 
   private final String src;
@@ -67,12 +74,6 @@ public class JSCalculator implements Calculator {
   public ObsDescriptor initialize(ExhibitDescriptor ed) {
     if (ctx == null) {
       ctx = Context.enter();
-      ctx.setClassShutter(new ClassShutter() {
-        @Override
-        public boolean visibleToScripts(String className) {
-          return className.startsWith("com.cloudera.exhibit");
-        }
-      });
       this.scope = ctx.initStandardObjects(null, true);
       if (hasReturn) {
         this.func = ctx.compileFunction(scope, "function() {" + src + "}", "<cmd>", 1, null);
