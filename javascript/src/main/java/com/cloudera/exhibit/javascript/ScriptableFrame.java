@@ -48,6 +48,9 @@ public class ScriptableFrame extends ScriptableObject {
 
   @Override
   public Object get(String name, Scriptable scriptable) {
+    if ("length".equals(name)) {
+      return frame.size();
+    }
     return new ScriptableColumn(frame.$(name));
   }
 

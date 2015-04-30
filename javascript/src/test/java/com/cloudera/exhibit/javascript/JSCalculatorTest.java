@@ -64,4 +64,19 @@ public class JSCalculatorTest {
     assertEquals(SimpleObs.of(res1, 17.0, true), res);
     jsc.cleanup();
   }
+
+  @Test
+  public void testLength() throws Exception {
+    JSCalculator jsc = new JSCalculator("df.length");
+    ObsDescriptor od = SimpleObsDescriptor.builder().doubleField("a").booleanField("b").build();
+    Obs obs = SimpleObs.of(od, 1729, true);
+    Obs one = SimpleObs.of(od, 17, true);
+    Obs two = SimpleObs.of(od, 12, false);
+    Frame frame = SimpleFrame.of(one, two);
+    Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
+    jsc.initialize(e.descriptor());
+    Obs res = Iterables.getOnlyElement(jsc.apply(e));
+    assertEquals(SimpleObs.of(SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.DOUBLE), 2.0), res);
+    jsc.cleanup();
+  }
 }
