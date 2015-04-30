@@ -63,4 +63,9 @@ public class SimpleFrame extends Frame {
   public Iterator<Obs> iterator() {
     return observations.iterator();
   }
+
+  @Override
+  public String toString() {
+    return observations.toString();
+  }
 }

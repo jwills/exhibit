@@ -21,7 +21,7 @@ import org.apache.calcite.linq4j.Enumerator;
 public class FrameEnumerator implements Enumerator<Object> {
 
   private final Frame frame;
-  private Object[] current;
+  private Object current;
   private int currentIndex = -1;
 
   public FrameEnumerator(Frame frame) {
@@ -40,10 +40,16 @@ public class FrameEnumerator implements Enumerator<Object> {
     boolean hasNext = currentIndex < frame.size();
     if (hasNext) {
       Obs obs = frame.get(currentIndex);
-      this.current = new Object[current.length];
-      for (int i = 0; i < current.length; i++) {
-        current[i] = obs.get(i);
+      if (frame.descriptor().size() > 1) {
+        Object[] values = new Object[frame.descriptor().size()];
+        for (int i = 0; i < values.length; i++) {
+          values[i] = obs.get(i);
+        }
+        this.current = values;
+      } else {
+        this.current = obs.get(0);
       }
+
     }
     return hasNext;
 
@@ -52,7 +58,7 @@ public class FrameEnumerator implements Enumerator<Object> {
   @Override
   public void reset() {
     currentIndex = -1;
-    current = new Object[current.length];
+    current = null;
   }
 
   @Override
