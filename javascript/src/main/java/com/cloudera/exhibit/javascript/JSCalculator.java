@@ -21,6 +21,7 @@ import com.cloudera.exhibit.core.Exhibits;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.collect.ImmutableList;
@@ -87,24 +88,36 @@ public class JSCalculator implements Calculator {
   @Override
   public Iterable<Obs> apply(Exhibit exhibit) {
     Object res = eval(exhibit);
+    List<Obs> ret = Lists.newArrayList();
+    if (res instanceof List) {
+      for (Object obj : (List) res) {
+        ret.add(toObs(obj, exhibit));
+      }
+    } else {
+      ret.add(toObs(res, exhibit));
+    }
+    return new SimpleFrame(descriptor, ret);
+  }
+
+  Obs toObs(Object obj, Exhibit exhibit) {
     List<Object> values = Lists.newArrayListWithExpectedSize(descriptor.size());
-    if (res instanceof Map) {
-      Map mres = (Map) res;
+    if (obj instanceof Map) {
+      Map mres = (Map) obj;
       for (ObsDescriptor.Field f : descriptor) {
         Object v = mres.get(f.name);
         values.add(v == null ? null : f.type.cast(v));
       }
     } else if (descriptor.size() == 1) {
-      if (res == null) {
+      if (obj == null) {
         values.add(null);
       } else {
-        values.add(descriptor.get(0).type.cast(res));
+        values.add(descriptor.get(0).type.cast(obj));
       }
     } else {
       //TODO: log, provide default obs
-      throw new IllegalStateException("Invalid javascript result: " + res + " for exhibit: " + exhibit);
+      throw new IllegalStateException("Invalid javascript result: " + obj + " for exhibit: " + exhibit);
     }
-    return ImmutableList.<Obs>of(new SimpleObs(descriptor, values));
+    return new SimpleObs(descriptor, values);
   }
 
   Object eval(Exhibit exhibit) {
@@ -130,6 +143,8 @@ public class JSCalculator implements Calculator {
   ObsDescriptor toObsDescriptor(Object res) {
     if (res == null) {
       throw new IllegalStateException("Null return values are not permitted");
+    } else if (res instanceof List) {
+      return toObsDescriptor(((List) res).get(0));
     } else if (res instanceof Map) {
       Map<String, Object> mres = (Map<String, Object>) res;
       List<ObsDescriptor.Field> fields = Lists.newArrayList();
