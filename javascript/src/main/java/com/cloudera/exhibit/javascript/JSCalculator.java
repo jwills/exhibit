@@ -65,18 +65,20 @@ public class JSCalculator implements Calculator {
 
   @Override
   public ObsDescriptor initialize(ExhibitDescriptor ed) {
-    ctx = Context.enter();
-    ctx.setClassShutter(new ClassShutter() {
-      @Override
-      public boolean visibleToScripts(String className) {
-        return className.startsWith("com.cloudera.exhibit");
+    if (ctx == null) {
+      ctx = Context.enter();
+      ctx.setClassShutter(new ClassShutter() {
+        @Override
+        public boolean visibleToScripts(String className) {
+          return className.startsWith("com.cloudera.exhibit");
+        }
+      });
+      this.scope = ctx.initStandardObjects(null, true);
+      if (hasReturn) {
+        this.func = ctx.compileFunction(scope, "function() {" + src + "}", "<cmd>", 1, null);
+      } else {
+        this.script = ctx.compileString(src, "<cmd>", 1, null);
       }
-    });
-    this.scope = ctx.initStandardObjects(null, true);
-    if (hasReturn) {
-      this.func = ctx.compileFunction(scope, "function() {" + src + "}", "<cmd>", 1, null);
-    } else {
-      this.script = ctx.compileString(src, "<cmd>", 1, null);
     }
 
     if (this.descriptor == null) {
@@ -177,5 +179,6 @@ public class JSCalculator implements Calculator {
   @Override
   public void cleanup() {
     Context.exit();
+    ctx = null;
   }
 }
