@@ -45,7 +45,7 @@ public class PercentileTbl implements Tbl {
       throw new IllegalArgumentException("PERCENTILE must have exactly one input value");
     }
     if (options.get(PERCENTILES_OPTION) == null) {
-      throw new IllegalArgumentException("PERCENTILE must have a numeric list called percentiles in its options");
+      throw new IllegalArgumentException("PERCENTILE must have an integer list named 'percentiles' in its options");
     }
     Map.Entry<String, String> e = Iterables.getOnlyElement(values.entrySet());
     this.obsKey = e.getKey();
@@ -58,6 +58,11 @@ public class PercentileTbl implements Tbl {
       }
     }
     this.binCount = options.containsKey("bins") ? Integer.valueOf(options.get("bins").toString()) : 10000;
+  }
+
+  @Override
+  public int arity() {
+    return 1;
   }
 
   @Override
@@ -115,7 +120,7 @@ public class PercentileTbl implements Tbl {
   }
 
   @Override
-  public GenericData.Record finalize(GenericData.Record value) {
+  public List<GenericData.Record> finalize(GenericData.Record value) {
     NumericHistogram h = new NumericHistogram();
     h.allocate(binCount);
     h.merge(value);
@@ -125,6 +130,6 @@ public class PercentileTbl implements Tbl {
       double pv = h.quantile(p / 100.0);
       res.put(outKey + "_p" + p, pv);
     }
-    return res;
+    return ImmutableList.of(res);
   }
 }

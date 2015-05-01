@@ -35,10 +35,10 @@ public enum TblType {
       return new PercentileTbl(values, options);
     }
   },
-  TOP {
+  TOP_LIST {
     @Override
     public Tbl create(Map<String, String> values, Map<String, Object> options) {
-      return new TopTbl(values, options);
+      return new TopListTbl(values, options);
     }
   }
   ;

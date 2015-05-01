@@ -60,6 +60,11 @@ public class SumTopTbl implements Tbl {
   }
 
   @Override
+  public int arity() {
+    return 1;
+  }
+
+  @Override
   public SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx) {
     // Validate subKey and ordering args
     ObsDescriptor.Field subKeyField = od.get(od.indexOf(subKey));
@@ -149,7 +154,7 @@ public class SumTopTbl implements Tbl {
   }
 
   @Override
-  public GenericData.Record finalize(GenericData.Record input) {
+  public List<GenericData.Record> finalize(GenericData.Record input) {
     Map<String, GenericData.Record> curValue = (Map<String, GenericData.Record>) input.get("value");
     List<Map.Entry<String, GenericData.Record>> elements = Lists.newArrayList(curValue.entrySet());
     Collections.sort(elements, new SumTopComparator(orderKey));
@@ -163,7 +168,7 @@ public class SumTopTbl implements Tbl {
         }
       }
     }
-    return res;
+    return ImmutableList.of(res);
   }
 
   private static class SumTopComparator implements Comparator<Map.Entry<String, GenericData.Record>> {
@@ -173,6 +178,7 @@ public class SumTopTbl implements Tbl {
     public SumTopComparator(String orderField) {
       this.orderField = orderField;
     }
+
     @Override
     public int compare(Map.Entry<String, GenericData.Record> o1, Map.Entry<String, GenericData.Record> o2) {
       Object k1 = o1.getValue().get(orderField);
