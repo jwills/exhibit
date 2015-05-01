@@ -45,13 +45,13 @@ public class SchemaProvider implements Serializable {
 
   private List<Schema> getSchemas() {
     if (schemas == null) {
-      final Schema.Parser sp = new Schema.Parser();
       Map<String, Schema> defined = Maps.newHashMap();
       this.schemas = Lists.newArrayList();
       for (String s : json) {
         if (defined.containsKey(s)) {
           schemas.add(defined.get(s));
         } else {
+          Schema.Parser sp = new Schema.Parser();
           Schema schema = sp.parse(s);
           defined.put(s, schema);
           schemas.add(schema);
