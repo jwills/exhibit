@@ -17,7 +17,6 @@ package com.cloudera.exhibit.etl.fn;
 import com.cloudera.exhibit.etl.SchemaProvider;
 import com.cloudera.exhibit.etl.config.OutputConfig;
 import com.cloudera.exhibit.etl.tbl.Tbl;
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -26,7 +25,6 @@ import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class MergeRowsFn extends DoFn<
@@ -39,6 +37,7 @@ public class MergeRowsFn extends DoFn<
 
   private transient Schema wrapperSchema;
   private transient List<Schema> schemas;
+  private transient List<List<Tbl>> tbls;
   private transient Integer outputIndex;
   private transient GenericData.Record lastKey = null;
   private transient GenericData.Record lastValue = null;
@@ -56,6 +55,17 @@ public class MergeRowsFn extends DoFn<
     this.schemas = wrapperSchema.getField("value").schema().getTypes();
     lastKey = null;
     lastValue = null;
+    this.tbls = Lists.newArrayList();
+    for (int i = 0; i < configs.size(); i++) {
+      OutputConfig oc = configs.get(i);
+      List<Tbl> oTbl = Lists.newArrayList();
+      for (int j = 0; j < oc.aggregates.size(); j++) {
+        Tbl tbl = oc.aggregates.get(j).createTbl();
+        tbl.initialize(providers.get(i).get(j));
+        oTbl.add(tbl);
+      }
+      tbls.add(oTbl);
+    }
   }
 
   @Override
@@ -75,11 +85,20 @@ public class MergeRowsFn extends DoFn<
     }
     Pair<Integer, GenericData.Record> aggValue = input.second();
     int aggIdx = aggValue.first();
-    Tbl tbl = configs.get(outputIndex).aggregates.get(aggIdx).createTbl();
-    tbl.initialize(providers.get(outputIndex).get(aggIdx));
-    GenericData.Record value = tbl.finalize((GenericData.Record) aggValue.second().get("value"));
-    for (Schema.Field sf : value.getSchema().getFields()) {
-      lastValue.put(sf.name(), value.get(sf.name()));
+    Tbl tbl = tbls.get(outputIndex).get(aggIdx);
+    List<GenericData.Record> values = tbl.finalize((GenericData.Record) aggValue.second().get("value"));
+    if (values.size() == 1) {
+      GenericData.Record value = values.get(0);
+      for (Schema.Field sf : value.getSchema().getFields()) {
+        lastValue.put(sf.name(), value.get(sf.name()));
+      }
+    } else if (tbls.get(outputIndex).size() == 1) {
+      for (GenericData.Record value : values) {
+        for (Schema.Field sf : value.getSchema().getFields()) {
+          lastValue.put(sf.name(), value.get(sf.name()));
+        }
+        emit(emitter);
+      }
     }
   }
 
@@ -88,6 +107,8 @@ public class MergeRowsFn extends DoFn<
     if (lastKey != null && lastValue != null) {
       emit(emitter);
     }
+    lastKey = null;
+    lastValue = null;
   }
 
   private void emit(Emitter<Pair<Integer, GenericData.Record>> emitter) {
@@ -95,7 +116,5 @@ public class MergeRowsFn extends DoFn<
     wrapper.put("value", lastValue);
     increment("Exhibit", "ValueWritten" + outputIndex);
     emitter.emit(Pair.of(outputIndex, wrapper));
-    lastKey = null;
-    lastValue = null;
   }
 }

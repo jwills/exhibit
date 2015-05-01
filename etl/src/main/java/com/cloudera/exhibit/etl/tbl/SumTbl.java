@@ -96,6 +96,11 @@ public class SumTbl implements Tbl {
   }
 
   @Override
+  public int arity() {
+    return 1;
+  }
+
+  @Override
   public SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx) {
     List<Schema.Field> fields = Lists.newArrayList();
     for (int i = 0; i < inputFields.length; i++) {
@@ -166,8 +171,8 @@ public class SumTbl implements Tbl {
   }
 
   @Override
-  public GenericData.Record finalize(GenericData.Record value) {
-    return value;
+  public List<GenericData.Record> finalize(GenericData.Record value) {
+    return ImmutableList.of(value);
   }
 
   @Override

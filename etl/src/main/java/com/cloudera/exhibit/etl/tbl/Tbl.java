@@ -19,7 +19,12 @@ import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.SchemaProvider;
 import org.apache.avro.generic.GenericData;
 
+import java.util.List;
+
 public interface Tbl {
+  // How many rows of output will the finalize method generate?
+  int arity();
+
   // Generate the sch$emas (intermediate and output) for a given set of inputs.
   // Do this first on the client-side
   SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx);
@@ -39,5 +44,5 @@ public interface Tbl {
 
   // In the reduce phase, "finalize" the output-- transform it from its
   // intermediate form to its final output form.
-  GenericData.Record finalize(GenericData.Record value);
+  List<GenericData.Record> finalize(GenericData.Record value);
 }
