@@ -14,13 +14,17 @@
  */
 package com.cloudera.exhibit.etl;
 
+import com.cloudera.exhibit.avro.AvroExhibit;
+import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.config.BuildConfig;
 import com.cloudera.exhibit.etl.config.ComputeConfig;
 import com.cloudera.exhibit.etl.config.ConfigHelper;
 import com.cloudera.exhibit.etl.config.OutputConfig;
 import com.cloudera.exhibit.etl.config.SourceConfig;
+import com.cloudera.exhibit.etl.fn.CollectFn;
 import com.cloudera.exhibit.etl.fn.ExCombiner;
 import com.cloudera.exhibit.etl.fn.FilterOutFn;
 import com.cloudera.exhibit.etl.fn.KeyIndexFn;
@@ -100,107 +104,125 @@ public class ExhibitTool extends Configured implements Tool {
     PCollection<Exhibit> exhibits = rte.apply(input);
 
     // Step two: determine the key and value schemas from the outputTables.
-    List<OutputGen> outputGens = Lists.newArrayList();
+    List<OutputGen> outputAggs = Lists.newArrayList();
     Set<Schema> keySchemas = Sets.newHashSet();
     List<List<SchemaProvider>> providerLists = Lists.newArrayList();
     Set<Schema> interValueSchemas = Sets.newHashSet();
     List<Schema> outputSchemas = Lists.newArrayList();
     for (int i = 0; i < config.outputTables.size(); i++) {
       OutputConfig output = config.outputTables.get(i);
-      OutputGen gen = new OutputGen(i, output, descriptor);
-      Schema keySchema = gen.getKeySchema();
-      List<SchemaProvider> providers = gen.getSchemaProviders();
+      if (output.collect != null) {
+        // map-side output
+        Calculator c = output.collect.getCalculator();
+        ObsDescriptor od = c.initialize(descriptor);
+        List<Schema.Field> mapsideFields = Lists.newArrayList();
+        for (ObsDescriptor.Field f : od) {
+          mapsideFields.add(new Schema.Field(f.name, AvroExhibit.getSchema(f.type), "", null));
+        }
+        Schema mapsideSchema = Schema.createRecord("ExOutput" + i, "", "exhibit", false);
+        mapsideSchema.setFields(mapsideFields);
+        PCollection<GenericData.Record> mapOut = exhibits.parallelDo(new CollectFn(output.collect, mapsideSchema),
+            Avros.generics(mapsideSchema));
+      } else {
+        OutputGen gen = new OutputGen(i, output, descriptor);
+        Schema keySchema = gen.getKeySchema();
+        List<SchemaProvider> providers = gen.getSchemaProviders();
 
-      List<Schema.Field> outputFields = Lists.newArrayList();
-      for (Schema.Field sf : keySchema.getFields()) {
-        outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
-      }
-      for (SchemaProvider sp : providers) {
-        Schema s = sp.get(1); // output
-        for (Schema.Field sf : s.getFields()) {
+        List<Schema.Field> outputFields = Lists.newArrayList();
+        for (Schema.Field sf : keySchema.getFields()) {
           outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
         }
+        for (SchemaProvider sp : providers) {
+          Schema s = sp.get(1); // output
+          for (Schema.Field sf : s.getFields()) {
+            outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
+          }
+        }
+        Schema outputSchema = Schema.createRecord("ExOutput" + i, "", "exhibit", false);
+        outputSchema.setFields(outputFields);
+        System.out.println("Output Schema " + i + ": " + outputSchema.toString(true));
+
+        keySchemas.add(keySchema);
+        interValueSchemas.addAll(Lists.transform(providers, new Function<SchemaProvider, Schema>() {
+          public Schema apply(SchemaProvider schemaProvider) {
+            return schemaProvider.get(0); // intermediate
+          }
+        }));
+        outputAggs.add(gen);
+        outputSchemas.add(outputSchema);
+        providerLists.add(providers);
       }
-      Schema outputSchema = Schema.createRecord("ExOutput" + i, "", "exhibit", false);
-      outputSchema.setFields(outputFields);
-      System.out.println("Output Schema " + i + ": " + outputSchema.toString(true));
-
-      keySchemas.add(keySchema);
-      interValueSchemas.addAll(Lists.transform(providers, new Function<SchemaProvider, Schema>() {
-                @Nullable
-                @Override
-                public Schema apply(SchemaProvider schemaProvider) {
-                  return schemaProvider.get(0); // intermediate
-                }
-              }));
-      outputGens.add(gen);
-      outputSchemas.add(outputSchema);
-      providerLists.add(providers);
     }
 
-    Schema keySchema = unionKeySchema("ExhibitKey", Lists.newArrayList(keySchemas));
-    Schema interValueSchema = unionValueSchema("ExhibitInterValue", Lists.newArrayList(interValueSchemas));
-    SchemaProvider provider = new SchemaProvider(ImmutableList.of(keySchema, interValueSchema));
-    AvroType<GenericData.Record> keyType = Avros.generics(keySchema);
-    AvroType<GenericData.Record> interValueType = Avros.generics(interValueSchema);
-    PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> ptt = Avros.tableOf(
-        Avros.pairs(keyType, Avros.ints()),
-        Avros.pairs(Avros.ints(), interValueType));
-    // <<Grouping Key, OutputId>, <AggId, AggValue>>
-    PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> mapside = null;
-    for (int i = 0; i < outputGens.size(); i++) {
-      // First table: <grouping key, <AggIdx, AggValue>>
-      PTable<GenericData.Record, Pair<Integer, GenericData.Record>> out = outputGens.get(i).apply(exhibits);
+    if (outputAggs.size() > 0) {
+      // Aggregations that require a reduce operation
+      Schema keySchema = unionKeySchema("ExhibitKey", Lists.newArrayList(keySchemas));
+      Schema interValueSchema = unionValueSchema("ExhibitInterValue", Lists.newArrayList(interValueSchemas));
+      SchemaProvider provider = new SchemaProvider(ImmutableList.of(keySchema, interValueSchema));
+      AvroType<GenericData.Record> keyType = Avros.generics(keySchema);
+      AvroType<GenericData.Record> interValueType = Avros.generics(interValueSchema);
+      PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> ptt = Avros.tableOf(
+              Avros.pairs(keyType, Avros.ints()),
+              Avros.pairs(Avros.ints(), interValueType));
+      // <<Grouping Key, OutputId>, <AggId, AggValue>>
+      PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> mapside = null;
+      for (int i = 0; i < outputAggs.size(); i++) {
+        // First table: <grouping key, <AggIdx, AggValue>>
+        PTable<GenericData.Record, Pair<Integer, GenericData.Record>> out = outputAggs.get(i).apply(exhibits);
 
-      // Second table: <<Union of grouping keys, OutputId>, <AggIdx, Aggvalue>>
-      PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> m = out.parallelDo(
-          new SchemaMapFn(i, provider), ptt);
-      mapside = (mapside == null) ? m : mapside.union(m);
-    }
+        // Second table: <<Union of grouping keys, OutputId>, <AggIdx, Aggvalue>>
+        PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> m = out.parallelDo(
+                new SchemaMapFn(i, provider), ptt);
+        mapside = (mapside == null) ? m : mapside.union(m);
+      }
 
-    GroupingOptions opts = GroupingOptions.builder()
-        .numReducers(config.parallelism)
-        .partitionerClass(JoinUtils.AvroIndexedRecordPartitioner.class)
-        .groupingComparatorClass(JoinUtils.AvroPairGroupingComparator.class)
-        .build();
-    Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
-    PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
-    PTable<Integer, GenericData.Record> reduced = mapside
-        .groupByKey(opts)
-        .combineValues(new ExCombiner(provider, keyType, interValueType, config.outputTables, providerLists))
-        .parallelDo("merge", new MergeRowsFn(config.outputTables, providerLists, outputUnionSchema),
-            Avros.tableOf(Avros.ints(), outputUnion));
+      GroupingOptions opts = GroupingOptions.builder()
+              .numReducers(config.parallelism)
+              .partitionerClass(JoinUtils.AvroIndexedRecordPartitioner.class)
+              .groupingComparatorClass(JoinUtils.AvroPairGroupingComparator.class)
+              .build();
+      Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
+      PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
+      PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
+              .combineValues(new ExCombiner(provider, keyType, interValueType, config.outputTables, providerLists))
+              .parallelDo("merge", new MergeRowsFn(config.outputTables, providerLists, outputUnionSchema),
+                      Avros.tableOf(Avros.ints(), outputUnion));
 
-    for (int i = 0; i < config.outputTables.size(); i++) {
-      OutputConfig output = config.outputTables.get(i);
-      AvroType<GenericData.Record> outType = Avros.generics(outputSchemas.get(i));
-      PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), outType);
-      if (config.local) {
-        out.write(To.textFile(output.path), output.writeMode);
-      } else {
-        DatasetDescriptor dd = new DatasetDescriptor.Builder()
-                .schema(outType.getSchema())
-                .format(output.format)
-                .location(output.path)
-                .build();
-        if (Datasets.exists(output.uri) && output.writeMode == Target.WriteMode.OVERWRITE) {
-          Datasets.delete(output.uri);
-        }
-        Datasets.create(output.uri, dd);
-        if ("avro".equals(output.format)) {
-          out.write(To.avroFile(output.path), output.writeMode);
-        } else if ("parquet".equals(output.format)) {
-          out.write(new AvroParquetFileTarget(output.path), output.writeMode);
-        } else {
-          throw new IllegalArgumentException("Unsupported output format: " + output.format);
-        }
+      for (int i = 0; i < outputAggs.size(); i++) {
+        int outputId = outputAggs.get(i).getOutputId();
+        OutputConfig output = config.outputTables.get(outputId);
+        AvroType<GenericData.Record> outType = Avros.generics(outputSchemas.get(i));
+        PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(outputId), outType);
+        prepOutput(out, output, config.local);
       }
     }
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;
   }
 
-
+  private void prepOutput(PCollection<GenericData.Record> out, OutputConfig output, boolean local) {
+    if (local) {
+      out.write(To.textFile(output.path), output.writeMode);
+    } else {
+      AvroType<GenericData.Record> outType = (AvroType<GenericData.Record>) out.getPType();
+      DatasetDescriptor dd = new DatasetDescriptor.Builder()
+              .schema(outType.getSchema())
+              .format(output.format)
+              .location(output.path)
+              .build();
+      if (Datasets.exists(output.uri) && output.writeMode == Target.WriteMode.OVERWRITE) {
+        Datasets.delete(output.uri);
+      }
+      Datasets.create(output.uri, dd);
+      if ("avro".equals(output.format)) {
+        out.write(To.avroFile(output.path), output.writeMode);
+      } else if ("parquet".equals(output.format)) {
+        out.write(new AvroParquetFileTarget(output.path), output.writeMode);
+      } else {
+        throw new IllegalArgumentException("Unsupported output format: " + output.format);
+      }
+    }
+  }
 
   int build(String arg) throws Exception {
     BuildConfig config = ConfigHelper.parseBuildConfig(arg);

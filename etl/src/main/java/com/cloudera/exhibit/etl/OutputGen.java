@@ -60,6 +60,10 @@ public class OutputGen {
     buildSchemas(descriptor);
   }
 
+  public int getOutputId() {
+    return id;
+  }
+
   public Schema getKeySchema() {
     return keySchema;
   }

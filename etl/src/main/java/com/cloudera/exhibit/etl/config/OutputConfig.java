@@ -31,6 +31,10 @@ public class OutputConfig implements Serializable {
 
   public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
 
+  // A single frame that can be used for non-aggregated output tables
+  // that run as map-only jobs
+  public FrameConfig collect = null;
+
   // Any attributes of the Exhibit that should be included in the output keys
   public List<String> attrs = Lists.newArrayList();
 
