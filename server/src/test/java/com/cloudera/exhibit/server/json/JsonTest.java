@@ -14,11 +14,19 @@
  */
 package com.cloudera.exhibit.server.json;
 
+import static org.junit.Assert.assertTrue;
+
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericData;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.cloudera.exhibit.avro.AvroFrame;
 import com.cloudera.exhibit.avro.AvroObsDescriptor;
 import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.ExhibitId;
+import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
@@ -29,13 +37,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.mongodb.BasicDBObject;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.apache.avro.generic.GenericData;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class JsonTest {
 
@@ -50,6 +51,9 @@ public class JsonTest {
   private String expected = "{\"attrs\":{}," +
           "\"columns\":{\"t1\":[\"a\",\"b\",\"c\"],\"e\":[\"a\",\"b\",\"c\"]}," +
           "\"frames\":{\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]],\"e\":[]}}";
+  private String expected2 = "{\"attrs\":{}," +
+          "\"columns\":{\"e\":[\"a\",\"b\",\"c\"],\"t1\":[\"a\",\"b\",\"c\"]}," +
+          "\"frames\":{\"e\":[],\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]]}}";
 
   @Before
   public void setUp() throws Exception {
@@ -74,7 +78,8 @@ public class JsonTest {
     AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2, r3));
     AvroFrame emptyFrame = new AvroFrame(new AvroObsDescriptor(schema));
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
-    assertEquals(expected, mapper.writeValueAsString(e));
+    final String exhibitJson = mapper.writeValueAsString(e);
+    assertTrue("incorrect json " + exhibitJson, exhibitJson.equals(expected) || exhibitJson.equals(expected2));
   }
 
   @Test
@@ -89,6 +94,7 @@ public class JsonTest {
             new BasicDBObject(ImmutableMap.<String, Object>of("b", 17.0))));
     BSONFrame emptyFrame = new BSONFrame(d, ImmutableList.<BasicDBObject>of());
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
-    assertEquals(expected, mapper.writeValueAsString(e));
+    final String exhibitJson = mapper.writeValueAsString(e);
+    assertTrue("incorrect json " + exhibitJson, exhibitJson.equals(expected) || exhibitJson.equals(expected2));
   }
 }
