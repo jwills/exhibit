@@ -14,28 +14,30 @@
  */
 package com.cloudera.exhibit.server.json;
 
-import com.cloudera.exhibit.avro.AvroFrame;
-import com.cloudera.exhibit.avro.AvroObsDescriptor;
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.ExhibitId;
-import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.core.simple.SimpleExhibit;
-import com.cloudera.exhibit.mongodb.BSONFrame;
-import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.mongodb.BasicDBObject;
+import static org.junit.Assert.assertEquals;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import com.cloudera.exhibit.avro.AvroFrame;
+import com.cloudera.exhibit.avro.AvroObsDescriptor;
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitId;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.mongodb.BSONFrame;
+import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
+import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.mongodb.BasicDBObject;
 
 public class JsonTest {
 
@@ -48,8 +50,8 @@ public class JsonTest {
   ObjectMapper mapper;
 
   private String expected = "{\"attrs\":{}," +
-          "\"columns\":{\"t1\":[\"a\",\"b\",\"c\"],\"e\":[\"a\",\"b\",\"c\"]}," +
-          "\"frames\":{\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]],\"e\":[]}}";
+          "\"columns\":{\"e\":[\"a\",\"b\",\"c\"],\"t1\":[\"a\",\"b\",\"c\"]}," +
+          "\"frames\":{\"e\":[],\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]]}}";
 
   @Before
   public void setUp() throws Exception {
@@ -58,6 +60,7 @@ public class JsonTest {
     mod.addSerializer(Frame.class, new FrameSerializer());
     mod.addSerializer(ExhibitId.class, new ExhibitIdSerializer());
     mapper = new ObjectMapper();
+    mapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
     mapper.registerModule(mod);
   }
 
@@ -74,7 +77,8 @@ public class JsonTest {
     AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2, r3));
     AvroFrame emptyFrame = new AvroFrame(new AvroObsDescriptor(schema));
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
-    assertEquals(expected, mapper.writeValueAsString(e));
+    final String exhibitJson = mapper.writeValueAsString(e);
+    assertEquals(expected, exhibitJson);
   }
 
   @Test
@@ -89,6 +93,7 @@ public class JsonTest {
             new BasicDBObject(ImmutableMap.<String, Object>of("b", 17.0))));
     BSONFrame emptyFrame = new BSONFrame(d, ImmutableList.<BasicDBObject>of());
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
-    assertEquals(expected, mapper.writeValueAsString(e));
+    final String exhibitJson = mapper.writeValueAsString(e);
+    assertEquals(expected, exhibitJson);
   }
 }
