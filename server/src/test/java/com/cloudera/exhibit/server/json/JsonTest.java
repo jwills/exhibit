@@ -14,7 +14,7 @@
  */
 package com.cloudera.exhibit.server.json;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -32,6 +32,7 @@ import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
 import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
 import com.fasterxml.jackson.core.Version;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ImmutableList;
@@ -48,6 +49,7 @@ public class JsonTest {
 
   ObjectMapper mapper;
 
+  @SuppressWarnings("unused")
   private String expected = "{\"attrs\":{}," +
           "\"columns\":{\"t1\":[\"a\",\"b\",\"c\"],\"e\":[\"a\",\"b\",\"c\"]}," +
           "\"frames\":{\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]],\"e\":[]}}";
@@ -62,6 +64,7 @@ public class JsonTest {
     mod.addSerializer(Frame.class, new FrameSerializer());
     mod.addSerializer(ExhibitId.class, new ExhibitIdSerializer());
     mapper = new ObjectMapper();
+    mapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
     mapper.registerModule(mod);
   }
 
@@ -79,7 +82,7 @@ public class JsonTest {
     AvroFrame emptyFrame = new AvroFrame(new AvroObsDescriptor(schema));
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
     final String exhibitJson = mapper.writeValueAsString(e);
-    assertTrue("incorrect json " + exhibitJson, exhibitJson.equals(expected) || exhibitJson.equals(expected2));
+    assertEquals(expected2, exhibitJson);
   }
 
   @Test
@@ -95,6 +98,6 @@ public class JsonTest {
     BSONFrame emptyFrame = new BSONFrame(d, ImmutableList.<BasicDBObject>of());
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
     final String exhibitJson = mapper.writeValueAsString(e);
-    assertTrue("incorrect json " + exhibitJson, exhibitJson.equals(expected) || exhibitJson.equals(expected2));
+    assertEquals(expected2, exhibitJson);
   }
 }
