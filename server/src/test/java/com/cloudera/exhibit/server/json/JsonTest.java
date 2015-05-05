@@ -49,11 +49,7 @@ public class JsonTest {
 
   ObjectMapper mapper;
 
-  @SuppressWarnings("unused")
   private String expected = "{\"attrs\":{}," +
-          "\"columns\":{\"t1\":[\"a\",\"b\",\"c\"],\"e\":[\"a\",\"b\",\"c\"]}," +
-          "\"frames\":{\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]],\"e\":[]}}";
-  private String expected2 = "{\"attrs\":{}," +
           "\"columns\":{\"e\":[\"a\",\"b\",\"c\"],\"t1\":[\"a\",\"b\",\"c\"]}," +
           "\"frames\":{\"e\":[],\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]]}}";
 
@@ -82,7 +78,7 @@ public class JsonTest {
     AvroFrame emptyFrame = new AvroFrame(new AvroObsDescriptor(schema));
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
     final String exhibitJson = mapper.writeValueAsString(e);
-    assertEquals(expected2, exhibitJson);
+    assertEquals(expected, exhibitJson);
   }
 
   @Test
@@ -98,6 +94,6 @@ public class JsonTest {
     BSONFrame emptyFrame = new BSONFrame(d, ImmutableList.<BasicDBObject>of());
     Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
     final String exhibitJson = mapper.writeValueAsString(e);
-    assertEquals(expected2, exhibitJson);
+    assertEquals(expected, exhibitJson);
   }
 }
