@@ -16,6 +16,7 @@ package com.cloudera.exhibit.etl.fn;
 
 import com.cloudera.exhibit.etl.config.SourceConfig;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -25,6 +26,7 @@ import org.apache.crunch.Pair;
 import org.apache.crunch.types.avro.AvroType;
 
 import java.util.List;
+import java.util.Set;
 
 public class KeyIndexFn<R extends GenericRecord> extends DoFn<R,
     Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> {
@@ -34,6 +36,7 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R,
   private final SourceConfig src;
   private final int index;
   private transient Schema match;
+  private transient Set<GenericData.Record> ignored;
 
   public KeyIndexFn(
       AvroType<GenericData.Record> keyType,
@@ -51,13 +54,21 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R,
     keyType.initialize(getConfiguration());
     outType.initialize(getConfiguration());
     match = matchSchema();
+    this.ignored = Sets.newHashSet();
+    for (List<Object> invalid : src.invalidKeys) {
+      GenericData.Record key = new GenericData.Record(keyType.getSchema());
+      for (int i = 0; i < invalid.size(); i++) {
+        key.put(i, invalid.get(i));
+      }
+      ignored.add(key);
+    }
   }
 
   @Override
   public void process(R r, Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter) {
     long start = System.currentTimeMillis();
-    int emitted = 0;
     if (r != null) {
+      int emitted = 0;
       GenericData.Record out = new GenericData.Record(outType.getSchema());
       GenericData.Record ret = new GenericData.Record(match);
       for (Schema.Field sf : match.getFields()) {
@@ -69,16 +80,16 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R,
         for (int i = 0; i < fields.size(); i++) {
           key.put(i, r.get(fields.get(i)));
         }
-        //TODO: check invalid
-        emitter.emit(Pair.of(key, Pair.of(index, ret)));
-        emitted++;
+        if (!ignored.contains(key)) {
+          emitter.emit(Pair.of(key, Pair.of(index, ret)));
+          emitted++;
+        }
       }
       increment("ExhibitRuntime", "KeyIndexFnEmits" + index, emitted);
     } else {
       increment("ExhibitRuntime", "NullInput" + index);
     }
     increment("ExhibitRuntime", "KeyIndexFnMsec" + index, System.currentTimeMillis() - start);
-
   }
 
   private Schema matchSchema() {
