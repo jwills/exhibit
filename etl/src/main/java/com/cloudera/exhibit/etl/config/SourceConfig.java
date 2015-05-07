@@ -18,6 +18,7 @@ import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Set;
 
 public class SourceConfig implements Serializable {
@@ -39,9 +40,9 @@ public class SourceConfig implements Serializable {
 
   public Set<String> nested = Sets.newHashSet();
 
-  public Set<String> keyFields;
+  public List<List<String>> keyFields;
 
-  public Set<String> invalidKeys = Sets.newHashSet();
+  public List<List<Object>> invalidKeys;
 
   public Set<String> drop = Sets.newHashSet();
 

@@ -23,65 +23,6 @@ import org.apache.crunch.types.avro.Avros;
 import java.util.List;
 
 public class BuildConfig {
-  public static enum KeyType {
-    STRING {
-      @Override
-      public PType<?> getPType() {
-        return Avros.strings();
-      }
-
-      @Override
-      public Schema getSchema() {
-        return Schema.create(Schema.Type.STRING);
-      }
-
-      @Override
-      public Object parse(String stringKey) {
-        return stringKey;
-      }
-    },
-
-    INT {
-      @Override
-      public PType<?> getPType() {
-        return Avros.ints();
-      }
-
-      @Override
-      public Schema getSchema() {
-        return Schema.create(Schema.Type.INT);
-      }
-
-      @Override
-      public Object parse(String stringKey) {
-        return Integer.valueOf(stringKey);
-      }
-    },
-
-    LONG {
-      @Override
-      public PType<?> getPType() {
-        return Avros.longs();
-      }
-
-      @Override
-      public Schema getSchema() {
-        return Schema.create(Schema.Type.LONG);
-      }
-
-      @Override
-      public Object parse(String stringKey) {
-        return Long.valueOf(stringKey);
-      }
-    };
-
-    public abstract PType<?> getPType();
-
-    public abstract Schema getSchema();
-
-    public abstract Object parse(String stringKey);
-  }
-
   public String uri;
 
   public String format = "avro";
@@ -90,9 +31,9 @@ public class BuildConfig {
 
   public String name;
 
-  public String keyField;
+  public List<String> keys;
 
-  public KeyType keyType;
+  public List<String> keyTypes;
 
   public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
 

@@ -26,14 +26,21 @@ import org.apache.crunch.types.avro.AvroType;
 
 import java.util.List;
 
-public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pair<Integer, GenericData.Record>>> {
+public class KeyIndexFn<R extends GenericRecord> extends DoFn<R,
+    Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> {
 
+  private final AvroType<GenericData.Record> keyType;
   private final AvroType<GenericData.Record> outType;
   private final SourceConfig src;
   private final int index;
   private transient Schema match;
 
-  public KeyIndexFn(AvroType<GenericData.Record> outType, SourceConfig src, int index) {
+  public KeyIndexFn(
+      AvroType<GenericData.Record> keyType,
+      AvroType<GenericData.Record> outType,
+      SourceConfig src,
+      int index) {
+    this.keyType = keyType;
     this.outType = outType;
     this.src = src;
     this.index = index;
@@ -41,12 +48,13 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
 
   @Override
   public void initialize() {
+    keyType.initialize(getConfiguration());
     outType.initialize(getConfiguration());
     match = matchSchema();
   }
 
   @Override
-  public void process(R r, Emitter<Pair<String, Pair<Integer, GenericData.Record>>> emitter) {
+  public void process(R r, Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter) {
     long start = System.currentTimeMillis();
     int emitted = 0;
     if (r != null) {
@@ -56,17 +64,14 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
         ret.put(sf.pos(), r.get(sf.name()));
       }
       out.put(0, ret);
-      for (String field : src.keyFields) {
-        Object key = r.get(field);
-        if (key != null) {
-          String skey = key.toString();
-          if (!src.invalidKeys.contains(skey)) {
-            emitter.emit(Pair.of(skey, Pair.of(index, out)));
-            emitted++;
-          }
-        } else {
-          increment("ExhibitRuntime", "NullGroupingKey" + index);
+      for (List<String> fields : src.keyFields) {
+        GenericData.Record key = new GenericData.Record(keyType.getSchema());
+        for (int i = 0; i < fields.size(); i++) {
+          key.put(i, r.get(fields.get(i)));
         }
+        //TODO: check invalid
+        emitter.emit(Pair.of(key, Pair.of(index, ret)));
+        emitted++;
       }
       increment("ExhibitRuntime", "KeyIndexFnEmits" + index, emitted);
     } else {
