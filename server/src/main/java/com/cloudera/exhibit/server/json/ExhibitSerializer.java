@@ -21,9 +21,11 @@ import com.cloudera.exhibit.core.ObsDescriptor;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.google.common.collect.Sets;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 public class ExhibitSerializer extends JsonSerializer<Exhibit> {
 
@@ -40,9 +42,10 @@ public class ExhibitSerializer extends JsonSerializer<Exhibit> {
 
     // Write frame column names
     gen.writeObjectFieldStart("columns");
-    for (Map.Entry<String, ObsDescriptor> fd : desc.frames().entrySet()) {
-      gen.writeArrayFieldStart(fd.getKey());
-      for (ObsDescriptor.Field f : fd.getValue()) {
+    Set<String> frameNames = Sets.newTreeSet(desc.frames().keySet());
+    for (String frameName : frameNames) {
+      gen.writeArrayFieldStart(frameName);
+      for (ObsDescriptor.Field f : desc.frames().get(frameName)) {
         // TODO: type info?
         gen.writeString(f.name);
       }
@@ -52,12 +55,11 @@ public class ExhibitSerializer extends JsonSerializer<Exhibit> {
 
     // Write frame obs
     gen.writeObjectFieldStart("frames");
-    for (Map.Entry<String, ObsDescriptor> fd : desc.frames().entrySet()) {
-      gen.writeArrayFieldStart(fd.getKey());
-      ObsDescriptor od = fd.getValue();
-      for (Obs obs : exhibit.frames().get(fd.getKey())) {
+    for (String frameName : frameNames) {
+      gen.writeArrayFieldStart(frameName);
+      for (Obs obs : exhibit.frames().get(frameName)) {
         gen.writeStartArray();
-        serializeObsArray(obs, fd.getValue(), gen);
+        serializeObsArray(obs, desc.frames().get(frameName), gen);
         gen.writeEndArray();
       }
       gen.writeEndArray();

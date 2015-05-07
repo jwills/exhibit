@@ -32,7 +32,6 @@ import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
 import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
 import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ImmutableList;
@@ -50,8 +49,8 @@ public class JsonTest {
   ObjectMapper mapper;
 
   private String expected = "{\"attrs\":{}," +
-          "\"columns\":{\"e\":[\"a\",\"b\",\"c\"],\"t1\":[\"a\",\"b\",\"c\"]}," +
-          "\"frames\":{\"e\":[],\"t1\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]]}}";
+          "\"columns\":{\"e\":[\"a\",\"b\",\"c\"],\"f\":[\"a\",\"b\",\"c\"]}," +
+          "\"frames\":{\"e\":[],\"f\":[[1729,null,\"foo\"],[1729,3.0,null],[null,17.0,null]]}}";
 
   @Before
   public void setUp() throws Exception {
@@ -60,7 +59,6 @@ public class JsonTest {
     mod.addSerializer(Frame.class, new FrameSerializer());
     mod.addSerializer(ExhibitId.class, new ExhibitIdSerializer());
     mapper = new ObjectMapper();
-    mapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
     mapper.registerModule(mod);
   }
 
@@ -76,7 +74,7 @@ public class JsonTest {
     r3.put("b", 17.0);
     AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2, r3));
     AvroFrame emptyFrame = new AvroFrame(new AvroObsDescriptor(schema));
-    Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
+    Exhibit e = SimpleExhibit.of("e", emptyFrame, "f", frame);
     final String exhibitJson = mapper.writeValueAsString(e);
     assertEquals(expected, exhibitJson);
   }
@@ -92,7 +90,7 @@ public class JsonTest {
             new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 3.0)),
             new BasicDBObject(ImmutableMap.<String, Object>of("b", 17.0))));
     BSONFrame emptyFrame = new BSONFrame(d, ImmutableList.<BasicDBObject>of());
-    Exhibit e = SimpleExhibit.of("t1", frame, "e", emptyFrame);
+    Exhibit e = SimpleExhibit.of("e", emptyFrame, "f", frame);
     final String exhibitJson = mapper.writeValueAsString(e);
     assertEquals(expected, exhibitJson);
   }
