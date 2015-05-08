@@ -36,7 +36,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.GroupingOptions;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
@@ -56,12 +55,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
-import org.kitesdk.data.crunch.CrunchDatasets;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
 
@@ -286,8 +282,17 @@ public class ExhibitTool extends Configured implements Tool {
         .location(config.path)
         .compressionType(config.compress)
         .build();
-    Dataset<GenericRecord> outputDataset = Datasets.create(config.uri, dd);
-    output.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
+    if (Datasets.exists(config.uri) && config.writeMode == Target.WriteMode.OVERWRITE) {
+      Datasets.delete(config.uri);
+    }
+    Datasets.create(config.uri, dd);
+    if ("avro".equals(config.format)) {
+      output.write(To.avroFile(config.path), config.writeMode);
+    } else if ("parquet".equals(config.format)) {
+      output.write(new AvroParquetFileTarget(config.path), config.writeMode);
+    } else {
+      throw new IllegalArgumentException("Unsupported output format: " + config.format);
+    }
     PipelineResult res = p.done();
     return res.succeeded() ? 0 : 1;
   }
