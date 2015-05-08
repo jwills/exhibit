@@ -283,6 +283,7 @@ public class ExhibitTool extends Configured implements Tool {
     DatasetDescriptor dd = new DatasetDescriptor.Builder()
         .schema(((AvroType) output.getPType()).getSchema())
         .format(config.format)
+        .location(config.path)
         .compressionType(config.compress)
         .build();
     Dataset<GenericRecord> outputDataset = Datasets.create(config.uri, dd);
