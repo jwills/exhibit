@@ -25,6 +25,8 @@ import java.util.List;
 public class BuildConfig {
   public String uri;
 
+  public String path;
+
   public String format = "avro";
 
   public String compress = "uncompressed";
