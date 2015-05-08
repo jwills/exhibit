@@ -38,9 +38,9 @@ import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
 public class MergeSchema implements Serializable {
 
   private final String name;
-  private final Schema keySchema;
   private final List<SourceConfig> sources;
   private final int parallelism;
+  private transient Schema keySchema;
 
   MergeSchema(String name, Schema keySchema, List<SourceConfig> sources, int parallelism) {
     this.name = name;
