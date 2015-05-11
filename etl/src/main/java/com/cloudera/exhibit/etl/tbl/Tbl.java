@@ -25,7 +25,7 @@ public interface Tbl {
   // How many rows of output will the finalize method generate?
   int arity();
 
-  // Generate the sch$emas (intermediate and output) for a given set of inputs.
+  // Generate the schemas (intermediate and output) for a given set of inputs.
   // Do this first on the client-side
   SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx);
 

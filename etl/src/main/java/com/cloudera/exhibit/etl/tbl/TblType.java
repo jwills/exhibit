@@ -17,6 +17,18 @@ package com.cloudera.exhibit.etl.tbl;
 import java.util.Map;
 
 public enum TblType {
+  LIST {
+    @Override
+    public Tbl create(Map<String, String> values, Map<String, Object> options) {
+      return new ArrayTbl(false, options.get("name").toString(), values);
+    }
+  },
+  SET {
+    @Override
+    public Tbl create(Map<String, String> values, Map<String, Object> options) {
+      return new ArrayTbl(true, options.get("name").toString(), values);
+    }
+  },
   SUM {
     @Override
     public Tbl create(Map<String, String> values, Map<String, Object> options) {
@@ -39,6 +51,18 @@ public enum TblType {
     @Override
     public Tbl create(Map<String, String> values, Map<String, Object> options) {
       return new TopListTbl(values, options);
+    }
+  },
+  MIN {
+    @Override
+    public Tbl create(Map<String, String> values, Map<String, Object> options) {
+      return new MinMaxTbl(true, values);
+    }
+  },
+  MAX {
+    @Override
+    public Tbl create(Map<String, String> values, Map<String, Object> options) {
+      return new MinMaxTbl(false, values);
     }
   }
   ;

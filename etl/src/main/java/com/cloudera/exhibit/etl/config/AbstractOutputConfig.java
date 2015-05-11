@@ -14,31 +14,14 @@
  */
 package com.cloudera.exhibit.etl.config;
 
-import com.google.common.collect.Lists;
 import org.apache.crunch.Target;
 
-import java.util.List;
+import java.io.Serializable;
 
-public class BuildConfig {
+public class AbstractOutputConfig implements Serializable {
   public String uri;
 
   public String path;
 
   public String format = "avro";
-
-  public String compress = "uncompressed";
-
-  public String name;
-
-  public List<String> keys;
-
-  public List<String> keyTypes;
-
-  public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
-
-  public int parallelism = -1;
-
-  public List<SourceConfig> sources = Lists.newArrayList();
-
-  public ComputeConfig compute = null;
 }

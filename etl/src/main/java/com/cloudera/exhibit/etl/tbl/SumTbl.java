@@ -123,7 +123,7 @@ public class SumTbl implements Tbl {
           throw new UnsupportedOperationException("Cannot sum field: " + f);
       }
     }
-    this.schema = Schema.createRecord("ExValue_" + outputId + "_" + aggIdx, "", "exhibit", false);
+    this.schema = Schema.createRecord("ExSumValue_" + outputId + "_" + aggIdx, "", "exhibit", false);
     schema.setFields(fields);
     return new SchemaProvider(ImmutableList.of(schema, schema));
   }

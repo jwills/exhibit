@@ -17,6 +17,8 @@ package com.cloudera.exhibit.etl.fn;
 import com.cloudera.exhibit.etl.SchemaProvider;
 import com.cloudera.exhibit.etl.config.OutputConfig;
 import com.cloudera.exhibit.etl.tbl.Tbl;
+import com.cloudera.exhibit.etl.tbl.TblFactory;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -31,8 +33,7 @@ public class MergeRowsFn extends DoFn<
     Pair<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>>,
     Pair<Integer, GenericData.Record>> {
 
-  private final List<OutputConfig> configs;
-  private final List<List<SchemaProvider>> providers;
+  private final TblFactory tblFactory;
   private final String wrapperJson;
 
   private transient Schema wrapperSchema;
@@ -42,9 +43,8 @@ public class MergeRowsFn extends DoFn<
   private transient GenericData.Record lastKey = null;
   private transient GenericData.Record lastValue = null;
 
-  public MergeRowsFn(List<OutputConfig> configs, List<List<SchemaProvider>> providers, Schema unionSchema) {
-    this.configs = configs;
-    this.providers = providers;
+  public MergeRowsFn(TblFactory tblFactory, Schema unionSchema) {
+    this.tblFactory = tblFactory;
     this.wrapperJson = unionSchema.toString();
   }
 
@@ -55,17 +55,7 @@ public class MergeRowsFn extends DoFn<
     this.schemas = wrapperSchema.getField("value").schema().getTypes();
     lastKey = null;
     lastValue = null;
-    this.tbls = Lists.newArrayList();
-    for (int i = 0; i < configs.size(); i++) {
-      OutputConfig oc = configs.get(i);
-      List<Tbl> oTbl = Lists.newArrayList();
-      for (int j = 0; j < oc.aggregates.size(); j++) {
-        Tbl tbl = oc.aggregates.get(j).createTbl();
-        tbl.initialize(providers.get(i).get(j));
-        oTbl.add(tbl);
-      }
-      tbls.add(oTbl);
-    }
+    this.tbls = tblFactory.createAll();
   }
 
   @Override
@@ -85,8 +75,13 @@ public class MergeRowsFn extends DoFn<
     }
     Pair<Integer, GenericData.Record> aggValue = input.second();
     int aggIdx = aggValue.first();
+    List<GenericData.Record> values;
     Tbl tbl = tbls.get(outputIndex).get(aggIdx);
-    List<GenericData.Record> values = tbl.finalize((GenericData.Record) aggValue.second().get("value"));
+    if (tbl == null) {
+      values = ImmutableList.of((GenericData.Record) aggValue.second().get("value"));
+    } else {
+      values = tbl.finalize((GenericData.Record) aggValue.second().get("value"));
+    }
     if (values.size() == 1) {
       GenericData.Record value = values.get(0);
       for (Schema.Field sf : value.getSchema().getFields()) {

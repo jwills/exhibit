@@ -15,24 +15,34 @@
 package com.cloudera.exhibit.etl;
 
 import com.cloudera.exhibit.avro.AvroExhibit;
+import com.cloudera.exhibit.avro.AvroObsDescriptor;
 import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.etl.config.AbstractOutputConfig;
+import com.cloudera.exhibit.etl.config.Build2Config;
 import com.cloudera.exhibit.etl.config.BuildConfig;
+import com.cloudera.exhibit.etl.config.BuildOutConfig;
+import com.cloudera.exhibit.etl.config.ComponentConfig;
 import com.cloudera.exhibit.etl.config.ComputeConfig;
 import com.cloudera.exhibit.etl.config.ConfigHelper;
 import com.cloudera.exhibit.etl.config.OutputConfig;
+import com.cloudera.exhibit.etl.config.Source2Config;
 import com.cloudera.exhibit.etl.config.SourceConfig;
 import com.cloudera.exhibit.etl.fn.CollectFn;
+import com.cloudera.exhibit.etl.fn.ComponentMapFn;
 import com.cloudera.exhibit.etl.fn.ExCombiner;
 import com.cloudera.exhibit.etl.fn.FilterOutFn;
 import com.cloudera.exhibit.etl.fn.KeyIndexFn;
 import com.cloudera.exhibit.etl.fn.MergeRowsFn;
 import com.cloudera.exhibit.etl.fn.SchemaMapFn;
+import com.cloudera.exhibit.etl.tbl.Tbl;
+import com.cloudera.exhibit.etl.tbl.TblFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -59,6 +69,7 @@ import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.cloudera.exhibit.etl.SchemaUtil.unionKeySchema;
@@ -68,11 +79,13 @@ public class ExhibitTool extends Configured implements Tool {
   @Override
   public int run(String[] args) throws Exception {
     if (args.length != 2) {
-      System.err.println("Usage: (build|compute|parse) <config.yml>");
+      System.err.println("Usage: (build|build2|compute|parse) <config.yml>");
       return -1;
     }
     if ("build".equalsIgnoreCase(args[0])) {
       return build(args[1]);
+    } else if ("build2".equalsIgnoreCase(args[0])) {
+      return build2(args[1]);
     } else if ("compute".equalsIgnoreCase(args[0])) {
       return compute(args[1]);
     } else if ("parse".equalsIgnoreCase(args[0])) {
@@ -179,10 +192,12 @@ public class ExhibitTool extends Configured implements Tool {
               .build();
       Schema outputUnionSchema = unionValueSchema("ExOutputUnion", outputSchemas);
       PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
+      TblFactory tblFactory = new TblFactory.Compute(config.outputTables, providerLists);
       PTable<Integer, GenericData.Record> reduced = mapside.groupByKey(opts)
-              .combineValues(new ExCombiner(provider, keyType, interValueType, config.outputTables, providerLists))
-              .parallelDo("merge", new MergeRowsFn(config.outputTables, providerLists, outputUnionSchema),
-                      Avros.tableOf(Avros.ints(), outputUnion));
+              .combineValues(new ExCombiner(provider, keyType, interValueType, tblFactory))
+              .parallelDo("merge",
+                  new MergeRowsFn(tblFactory, outputUnionSchema),
+                  Avros.tableOf(Avros.ints(), outputUnion));
 
       for (int i = 0; i < outputAggs.size(); i++) {
         int outputId = outputAggs.get(i).getOutputId();
@@ -196,9 +211,9 @@ public class ExhibitTool extends Configured implements Tool {
     return res.succeeded() ? 0 : 1;
   }
 
-  private void prepOutput(PCollection<GenericData.Record> out, OutputConfig output, boolean local) {
+  private void prepOutput(PCollection<GenericData.Record> out, AbstractOutputConfig output, boolean local) {
     if (local) {
-      out.write(To.textFile(output.path), output.writeMode);
+      out.write(To.textFile(output.path));
     } else {
       AvroType<GenericData.Record> outType = (AvroType<GenericData.Record>) out.getPType();
       DatasetDescriptor dd = new DatasetDescriptor.Builder()
@@ -206,18 +221,128 @@ public class ExhibitTool extends Configured implements Tool {
               .format(output.format)
               .location(output.path)
               .build();
-      if (Datasets.exists(output.uri) && output.writeMode == Target.WriteMode.OVERWRITE) {
+      if (Datasets.exists(output.uri)) {
         Datasets.delete(output.uri);
       }
       Datasets.create(output.uri, dd);
       if ("avro".equals(output.format)) {
-        out.write(To.avroFile(output.path), output.writeMode);
+        out.write(To.avroFile(output.path), Target.WriteMode.APPEND);
       } else if ("parquet".equals(output.format)) {
-        out.write(new AvroParquetFileTarget(output.path), output.writeMode);
+        out.write(new AvroParquetFileTarget(output.path), Target.WriteMode.APPEND);
       } else {
         throw new IllegalArgumentException("Unsupported output format: " + output.format);
       }
     }
+  }
+
+  int build2(String arg) throws Exception {
+    Build2Config config = ConfigHelper.parseBuild2Config(arg);
+    Pipeline p = new MRPipeline(ExhibitTool.class, "BuildSupernova", getConf());
+
+    Map<String, PCollection<GenericData.Record>> sources = Maps.newHashMap();
+    for (Source2Config src : config.sources) {
+      PCollection<GenericData.Record> pcol = ConfigHelper.getPCollection(p, src.uri, src.path);
+      sources.put(src.name, pcol);
+    }
+
+    List<Schema> keySchemas = Lists.newArrayList();
+    List<Schema> valueSchemas = Lists.newArrayList();
+    List<List<PTable<GenericData.Record, Pair<Integer, GenericData.Record>>>> ptbls = Lists.newArrayList();
+    List<List<SchemaProvider>> providerLists = Lists.newArrayList();
+    List<Schema> outputSchemas = Lists.newArrayList();
+    for (int i = 0; i < config.outputs.size(); i++) {
+      BuildOutConfig out = config.outputs.get(i);
+      List<Schema.Field> keyFields = Lists.newArrayList();
+      List<Schema.Field> outputFields = Lists.newArrayList();
+      List<PTable<GenericData.Record, Pair<Integer, GenericData.Record>>> ptbl = Lists.newArrayList();
+      for (int j = 0; j < out.keys.size(); j++) {
+        Schema fschema = AvroExhibit.getSchema(ObsDescriptor.FieldType.valueOf(out.keyTypes.get(j)));
+        keyFields.add(new Schema.Field(out.keys.get(j), fschema, "", null));
+        outputFields.add(new Schema.Field(out.keys.get(j), fschema, "", null));
+      }
+      Schema keySchema = Schema.createRecord("BuildKey" + i, "", "exhibit", false);
+      keySchema.setFields(keyFields);
+      keySchemas.add(keySchema);
+      AvroType<GenericData.Record> keyType = Avros.generics(keySchema);
+      List<SchemaProvider> providers = Lists.newArrayList();
+      for (int j = 0; j < out.components.size(); j++) {
+        ComponentConfig cmp = out.components.get(j);
+        PCollection<GenericData.Record> src = sources.get(cmp.source);
+        Schema inSchema = ((AvroType) src.getPType()).getSchema();
+        SchemaProvider sp = null;
+        if (cmp.embedded) {
+          Map<String, String> cmpValues = cmp.getValues();
+          List<Schema.Field> outFields = Lists.newArrayList();
+          for (Map.Entry<String, String> e : cmpValues.entrySet()) {
+            Schema.Field sf = inSchema.getField(e.getKey());
+            outFields.add(new Schema.Field(e.getValue(), sf.schema(), sf.doc(), sf.defaultValue()));
+          }
+          Schema outSchema = Schema.createRecord("EmbeddedValue" + i + "_" + j, "", "exhibit", false);
+          outSchema.setFields(outFields);
+          sp = new SchemaProvider(ImmutableList.of(outSchema, outSchema));
+        } else {
+          Tbl tbl = cmp.createTbl();
+          sp = tbl.getSchemas(new AvroObsDescriptor(inSchema), i, j);
+        }
+        for (Schema.Field sf : sp.get(1).getFields()) {
+          // Copy fields to output
+          outputFields.add(new Schema.Field(sf.name(), sf.schema(), sf.doc(), sf.defaultValue()));
+        }
+        valueSchemas.add(sp.get(0));
+        PTable<GenericData.Record, Pair<Integer, GenericData.Record>> pt = src.parallelDo(
+            new ComponentMapFn(j, cmp, keySchema, sp),
+            Avros.tableOf(keyType, Avros.pairs(Avros.ints(), Avros.generics(sp.get(0)))));
+        ptbl.add(pt);
+        providers.add(sp);
+      }
+      Schema outputSchema = Schema.createRecord("ExhibitBuild" + i, "", "exhibit", false);
+      outputSchema.setFields(outputFields);
+      outputSchemas.add(outputSchema);
+      ptbls.add(ptbl);
+      providerLists.add(providers);
+    }
+
+    Schema interKeySchema = unionKeySchema("ExhibitBuildKey", keySchemas);
+    Schema interValueSchema = unionValueSchema("ExhibitBuildValue", valueSchemas);
+    SchemaProvider interProvider = new SchemaProvider(ImmutableList.of(interKeySchema, interValueSchema));
+    PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> merged = null;
+    AvroType<GenericData.Record> keyType = Avros.generics(interKeySchema);
+    AvroType<GenericData.Record> valueType = Avros.generics(interValueSchema);
+    PTableType<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> itype = Avros.tableOf(
+        Avros.pairs(keyType, Avros.ints()),
+        Avros.pairs(Avros.ints(), valueType));
+    for (int i = 0; i < ptbls.size(); i++) {
+      for (int j = 0; j < ptbls.get(i).size(); j++) {
+        PTable<Pair<GenericData.Record, Integer>, Pair<Integer, GenericData.Record>> union = ptbls.get(i).get(j).parallelDo(
+            new SchemaMapFn(i, interProvider), itype);
+        merged = (merged == null) ? union : merged.union(union);
+      }
+    }
+
+    GroupingOptions opts = GroupingOptions.builder()
+            .numReducers(config.parallelism)
+            .partitionerClass(JoinUtils.AvroIndexedRecordPartitioner.class)
+            .groupingComparatorClass(JoinUtils.AvroPairGroupingComparator.class)
+            .build();
+
+    Schema outputUnionSchema = unionValueSchema("ExBuildUnion", outputSchemas);
+    PType<GenericData.Record> outputUnion = Avros.generics(outputUnionSchema);
+    TblFactory tblFactory = new TblFactory.Build(config.outputs, providerLists);
+    PTable<Integer, GenericData.Record> reduced = merged.groupByKey(opts)
+            .combineValues(new ExCombiner(interProvider, keyType, valueType, tblFactory))
+            .parallelDo("merge",
+                    new MergeRowsFn(tblFactory, outputUnionSchema),
+                    Avros.tableOf(Avros.ints(), outputUnion));
+
+    for (int i = 0; i < config.outputs.size(); i++) {
+      BuildOutConfig output = config.outputs.get(i);
+      AvroType<GenericData.Record> outType = Avros.generics(outputSchemas.get(i));
+      PCollection<GenericData.Record> out = reduced.parallelDo(new FilterOutFn(i), outType);
+      prepOutput(out, output, false);
+    }
+
+    PipelineResult res = p.done();
+    return res.succeeded() ? 0 : 1;
   }
 
   int build(String arg) throws Exception {

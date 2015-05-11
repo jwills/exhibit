@@ -32,7 +32,7 @@ public class TblCache {
   private final Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter;
   private final SchemaProvider provider;
 
-  public TblCache(final AggConfig config, final int aggIdx,
+  public TblCache(AggConfig config, final int aggIdx,
                   final Emitter<Pair<GenericData.Record, Pair<Integer, GenericData.Record>>> emitter,
                   final SchemaProvider provider) {
     this.cache = Maps.newHashMap();

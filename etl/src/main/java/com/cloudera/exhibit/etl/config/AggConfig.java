@@ -17,7 +17,6 @@ package com.cloudera.exhibit.etl.config;
 import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.etl.tbl.SumTbl;
 import com.cloudera.exhibit.etl.tbl.Tbl;
 import com.cloudera.exhibit.etl.tbl.TblType;
 import com.google.common.collect.Lists;

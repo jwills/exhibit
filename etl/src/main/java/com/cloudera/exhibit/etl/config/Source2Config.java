@@ -14,31 +14,10 @@
  */
 package com.cloudera.exhibit.etl.config;
 
-import com.google.common.collect.Lists;
-import org.apache.crunch.Target;
+public class Source2Config {
+  public String name;
 
-import java.util.List;
-
-public class BuildConfig {
   public String uri;
 
   public String path;
-
-  public String format = "avro";
-
-  public String compress = "uncompressed";
-
-  public String name;
-
-  public List<String> keys;
-
-  public List<String> keyTypes;
-
-  public Target.WriteMode writeMode = Target.WriteMode.OVERWRITE;
-
-  public int parallelism = -1;
-
-  public List<SourceConfig> sources = Lists.newArrayList();
-
-  public ComputeConfig compute = null;
 }

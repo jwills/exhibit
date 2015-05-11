@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.etl.config;
 
+import com.esotericsoftware.yamlbeans.YamlConfig;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -72,5 +73,14 @@ public class ConfigHelper {
     reader.getConfig().setPropertyElementType(BuildConfig.class, "sources", SourceConfig.class);
     setupComputeReader(reader);
     return reader.read(BuildConfig.class);
+  }
+
+  public static Build2Config parseBuild2Config(String configFile) throws Exception {
+    YamlReader reader = new YamlReader(new FileReader(configFile));
+    YamlConfig c = reader.getConfig();
+    c.setPropertyElementType(Build2Config.class, "sources", Source2Config.class);
+    c.setPropertyElementType(Build2Config.class, "outputs", BuildOutConfig.class);
+    c.setPropertyElementType(BuildOutConfig.class, "components", ComponentConfig.class);
+    return reader.read(Build2Config.class);
   }
 }

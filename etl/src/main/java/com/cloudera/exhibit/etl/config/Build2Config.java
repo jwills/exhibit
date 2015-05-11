@@ -18,17 +18,8 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
-public class OutputConfig extends AbstractOutputConfig {
-  // A single frame that can be used for non-aggregated output tables
-  // that run as map-only jobs
-  public FrameConfig collect = null;
-
-  // Any attributes of the Exhibit that should be included in the output keys
-  public List<String> attrs = Lists.newArrayList();
-
-  // The names of the fields from the output frames that should be included in the output keys
-  public List<String> keys = Lists.newArrayList();
-
-  // The aggregations to perform by the attrs/keys specified above.
-  public List<AggConfig> aggregates = Lists.newArrayList();
+public class Build2Config {
+  public List<Source2Config> sources = Lists.newArrayList();
+  public List<BuildOutConfig> outputs = Lists.newArrayList();
+  public int parallelism = -1;
 }
