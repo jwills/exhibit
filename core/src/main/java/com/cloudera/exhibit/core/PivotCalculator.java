@@ -18,7 +18,6 @@ import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -110,10 +109,13 @@ public class PivotCalculator implements Calculator {
         if (!ids.contains(f.name) && !keys.containsKey(f.name)) {
           String retField = new StringBuilder(f.name).append('_').append(lookupKey).toString();
           int index = descriptor.indexOf(retField);
-          values.set(index - ids.size(), obs.get(f.name));
+          if (index >= ids.size()) {
+            values.set(index - ids.size(), obs.get(f.name));
+          }
         }
       }
     }
+
     return Iterables.transform(valuesById.entrySet(), new Function<Map.Entry<List<Object>, List<Object>>, Obs>() {
       @Override
       public Obs apply(Map.Entry<List<Object>, List<Object>> e) {
