@@ -41,6 +41,12 @@ public enum TblType {
       return new SumTopTbl(values, options);
     }
   },
+  AVG {
+    @Override
+    public Tbl create(Map<String, String> values, Map<String, Object> options) {
+      return new AvgTbl(values);
+    }
+  },
   PERCENTILE {
     @Override
     public Tbl create(Map<String, String> values, Map<String, Object> options) {
