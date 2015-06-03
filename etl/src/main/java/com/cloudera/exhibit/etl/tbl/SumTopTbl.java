@@ -118,7 +118,7 @@ public class SumTopTbl implements Tbl {
     Object subKeyValue = obs.get(subKey);
     if (subKeyValue != null) {
       String skv = subKeyValue.toString();
-      Map<String, GenericData.Record> inner = (Map<String, GenericData.Record>) wrapper.get("value");
+      Map<CharSequence, GenericData.Record> inner = (Map<CharSequence, GenericData.Record>) wrapper.get("value");
       Schema vschema = intermediate.getField("value").schema().getValueType();
       GenericData.Record innerValue = new GenericData.Record(vschema);
       for (Map.Entry<String, String> e : values.entrySet()) {
@@ -143,12 +143,12 @@ public class SumTopTbl implements Tbl {
     if (current == null) {
       return next;
     }
-    Map<String, GenericData.Record> curValue = (Map<String, GenericData.Record>) current.get("value");
-    Map<String, GenericData.Record> nextValue = (Map<String, GenericData.Record>) next.get("value");
+    Map<CharSequence, GenericData.Record> curValue = (Map<CharSequence, GenericData.Record>) current.get("value");
+    Map<CharSequence, GenericData.Record> nextValue = (Map<CharSequence, GenericData.Record>) next.get("value");
     Schema vschema = intermediate.getField("value").schema().getValueType();
-    for (String key : Sets.union(curValue.keySet(), nextValue.keySet())) {
+    for (CharSequence key : Sets.union(curValue.keySet(), nextValue.keySet())) {
       GenericData.Record sum = (GenericData.Record) SumTbl.add(curValue.get(key), nextValue.get(key), vschema);
-      current.put(key, sum);
+      current.put(key.toString(), sum);
     }
     return current;
   }

@@ -46,8 +46,10 @@ public class SumTbl implements Tbl {
             return 0.0f;
           case LONG:
             return 0L;
+          case RECORD:
+            return new GenericData.Record(schema);
           default:
-            throw new UnsupportedOperationException("Cannot handle zero-values for null records");
+            throw new UnsupportedOperationException("Cannot handle zero-values for null records of type: " + schema);
         }
       } else {
         return next;
