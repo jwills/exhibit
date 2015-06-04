@@ -30,7 +30,7 @@
     <hadoop.version>2.3.0</hadoop.version>
     <avro.version>1.7.7</avro.version>
     <dropwizard.version>0.7.1</dropwizard.version>
-    <crunch.version>0.11.0-cdh5.4.0</crunch.version>
+    <crunch.version>0.11.0-hadoop2</crunch.version>
     <yamlbeans.version>1.09</yamlbeans.version>
     <kite.version>1.0.0</kite.version>
     <hive.version>0.13.0</hive.version>
