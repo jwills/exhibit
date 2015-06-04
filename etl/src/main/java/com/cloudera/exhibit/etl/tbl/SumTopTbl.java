@@ -159,7 +159,7 @@ public class SumTopTbl implements Tbl {
     List<Map.Entry<String, GenericData.Record>> elements = Lists.newArrayList(curValue.entrySet());
     Collections.sort(elements, new SumTopComparator(orderKey));
     GenericData.Record res = new GenericData.Record(output);
-    for (int i = 1; i <= limit; i++) {
+    for (int i = 1; i <= limit && i <= elements.size(); i++) {
       Map.Entry<String, GenericData.Record> cur = elements.get(i - 1);
       res.put(outputFieldName(subKey, i), cur.getKey());
       for (Map.Entry<String, String> e : values.entrySet()) {
