@@ -146,21 +146,23 @@ public class SumTopTbl implements Tbl {
     Map<CharSequence, GenericData.Record> curValue = (Map<CharSequence, GenericData.Record>) current.get("value");
     Map<CharSequence, GenericData.Record> nextValue = (Map<CharSequence, GenericData.Record>) next.get("value");
     Schema vschema = intermediate.getField("value").schema().getValueType();
+    GenericData.Record merged = new GenericData.Record(vschema);
+    Map<CharSequence, GenericData.Record> mergedValue = (Map<CharSequence, GenericData.Record>) merged.get("value");
     for (CharSequence key : Sets.union(curValue.keySet(), nextValue.keySet())) {
       GenericData.Record sum = (GenericData.Record) SumTbl.add(curValue.get(key), nextValue.get(key), vschema);
-      current.put(key.toString(), sum);
+      mergedValue.put(key, sum);
     }
-    return current;
+    return merged;
   }
 
   @Override
   public List<GenericData.Record> finalize(GenericData.Record input) {
-    Map<String, GenericData.Record> curValue = (Map<String, GenericData.Record>) input.get("value");
-    List<Map.Entry<String, GenericData.Record>> elements = Lists.newArrayList(curValue.entrySet());
+    Map<CharSequence, GenericData.Record> curValue = (Map<CharSequence, GenericData.Record>) input.get("value");
+    List<Map.Entry<CharSequence, GenericData.Record>> elements = Lists.newArrayList(curValue.entrySet());
     Collections.sort(elements, new SumTopComparator(orderKey));
     GenericData.Record res = new GenericData.Record(output);
     for (int i = 1; i <= limit && i <= elements.size(); i++) {
-      Map.Entry<String, GenericData.Record> cur = elements.get(i - 1);
+      Map.Entry<CharSequence, GenericData.Record> cur = elements.get(i - 1);
       res.put(outputFieldName(subKey, i), cur.getKey());
       for (Map.Entry<String, String> e : values.entrySet()) {
         if (!subKey.equals(e.getKey())) {
@@ -171,7 +173,7 @@ public class SumTopTbl implements Tbl {
     return ImmutableList.of(res);
   }
 
-  private static class SumTopComparator implements Comparator<Map.Entry<String, GenericData.Record>> {
+  private static class SumTopComparator implements Comparator<Map.Entry<CharSequence, GenericData.Record>> {
 
     private final String orderField;
 
@@ -180,7 +182,7 @@ public class SumTopTbl implements Tbl {
     }
 
     @Override
-    public int compare(Map.Entry<String, GenericData.Record> o1, Map.Entry<String, GenericData.Record> o2) {
+    public int compare(Map.Entry<CharSequence, GenericData.Record> o1, Map.Entry<CharSequence, GenericData.Record> o2) {
       Object k1 = o1.getValue().get(orderField);
       Object k2 = o2.getValue().get(orderField);
       return -((Comparable) k1).compareTo(k2);
