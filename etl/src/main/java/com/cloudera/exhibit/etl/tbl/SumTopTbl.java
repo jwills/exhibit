@@ -67,7 +67,12 @@ public class SumTopTbl implements Tbl {
   @Override
   public SchemaProvider getSchemas(ObsDescriptor od, int outputId, int aggIdx) {
     // Validate subKey and ordering args
-    ObsDescriptor.Field subKeyField = od.get(od.indexOf(subKey));
+    int subKeyIdx = od.indexOf(subKey);
+    if (subKeyIdx < 0) {
+      throw new IllegalArgumentException(String.format("SUM_TOP by key named '%s' not found in query",
+          subKey));
+    }
+    ObsDescriptor.Field subKeyField = od.get(subKeyIdx);
     if (subKeyField == null || subKeyField.type != ObsDescriptor.FieldType.STRING) {
       throw new IllegalArgumentException(String.format("SUM_TOP by key named '%s' must be of type string, found %s",
           subKey, subKeyField == null ? "null" : subKeyField.type));
