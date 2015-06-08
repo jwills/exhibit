@@ -153,6 +153,10 @@ public class SumTopTbl implements Tbl {
     Schema vschema = intermediate.getField("value").schema().getValueType();
     GenericData.Record merged = new GenericData.Record(vschema);
     Map<CharSequence, GenericData.Record> mergedValue = (Map<CharSequence, GenericData.Record>) merged.get("value");
+    if (mergedValue == null) {
+      mergedValue = Maps.newHashMap();
+      merged.put("value", mergedValue);
+    }
     for (CharSequence key : Sets.union(curValue.keySet(), nextValue.keySet())) {
       GenericData.Record sum = (GenericData.Record) SumTbl.add(curValue.get(key), nextValue.get(key), vschema);
       mergedValue.put(key, sum);
