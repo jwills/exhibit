@@ -151,7 +151,7 @@ public class SumTopTbl implements Tbl {
     Map<CharSequence, GenericData.Record> curValue = (Map<CharSequence, GenericData.Record>) current.get("value");
     Map<CharSequence, GenericData.Record> nextValue = (Map<CharSequence, GenericData.Record>) next.get("value");
     Schema vschema = intermediate.getField("value").schema().getValueType();
-    GenericData.Record merged = new GenericData.Record(vschema);
+    GenericData.Record merged = new GenericData.Record(intermediate);
     Map<CharSequence, GenericData.Record> mergedValue = (Map<CharSequence, GenericData.Record>) merged.get("value");
     if (mergedValue == null) {
       mergedValue = Maps.newHashMap();
