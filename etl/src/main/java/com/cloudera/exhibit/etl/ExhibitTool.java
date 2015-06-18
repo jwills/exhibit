@@ -42,6 +42,7 @@ import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
+import org.apache.crunch.PipelineExecution;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.Target;
 import org.apache.crunch.impl.mr.MRPipeline;
@@ -54,6 +55,7 @@ import org.apache.crunch.types.avro.AvroType;
 import org.apache.crunch.types.avro.Avros;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.kitesdk.data.Dataset;
@@ -61,7 +63,7 @@ import org.kitesdk.data.DatasetDescriptor;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.crunch.CrunchDatasets;
 
-import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -196,8 +198,40 @@ public class ExhibitTool extends Configured implements Tool {
         prepOutput(out, output, config.local);
       }
     }
-    PipelineResult res = p.done();
-    return res.succeeded() ? 0 : 1;
+    return exec(p, config.sleepTimeMsec);
+  }
+
+  private int exec(Pipeline p, long sleepTimeMsec) {
+    UserGroupInformation ugi = null;
+    try {
+      ugi = UserGroupInformation.getLoginUser();
+    } catch (IOException e) {
+      e.printStackTrace();
+      return 1;
+    }
+
+    PipelineExecution pe = p.runAsync();
+    while (!pe.isDone()) {
+      try {
+        Thread.sleep(sleepTimeMsec);
+        ugi.reloginFromTicketCache();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+        break;
+      } catch (IOException e) {
+        e.printStackTrace();
+        break;
+      }
+    }
+
+    if (pe.isDone()) {
+      PipelineResult pr = pe.getResult();
+      if (pr.succeeded()) {
+        return 0;
+      }
+    }
+    p.cleanup(false /* force */);
+    return 1;
   }
 
   private void prepOutput(PCollection<GenericData.Record> out, OutputConfig output, boolean local) {
@@ -276,8 +310,7 @@ public class ExhibitTool extends Configured implements Tool {
         .build();
     Dataset<GenericRecord> outputDataset = Datasets.create(config.uri, dd);
     output.write(CrunchDatasets.asTarget(outputDataset), config.writeMode);
-    PipelineResult res = p.done();
-    return res.succeeded() ? 0 : 1;
+    return exec(p, config.sleepTimeMsec);
   }
 
   public static void main(String[] args) throws Exception {

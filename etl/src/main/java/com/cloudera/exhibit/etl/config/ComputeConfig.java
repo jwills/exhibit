@@ -70,6 +70,8 @@ public class ComputeConfig {
   // computations of other output tables.
   public List<OutputConfig> outputTables = Lists.newArrayList();
 
+  public long sleepTimeMsec = 5000L;
+
   public Map<String, ReadableData<GenericData.Record>> getReadables(Pipeline p) {
     Map<String, ReadableData<GenericData.Record>> ret = Maps.newHashMap();
     for (ReadableConfig rc : memoryTables) {

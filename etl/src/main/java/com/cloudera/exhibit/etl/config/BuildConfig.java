@@ -23,6 +23,8 @@ import org.apache.crunch.types.avro.Avros;
 import java.util.List;
 
 public class BuildConfig {
+  public long sleepTimeMsec = 5000L;
+
   public static enum KeyType {
     STRING {
       @Override
