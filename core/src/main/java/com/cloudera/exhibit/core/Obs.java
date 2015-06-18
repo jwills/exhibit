@@ -14,7 +14,12 @@
  */
 package com.cloudera.exhibit.core;
 
-public abstract class Obs {
+import com.google.common.collect.ImmutableList;
+
+import java.io.Serializable;
+import java.util.Iterator;
+
+public abstract class Obs implements Iterable<Object>, Serializable {
   public abstract ObsDescriptor descriptor();
 
   public abstract Object get(int index);
@@ -27,7 +32,33 @@ public abstract class Obs {
     return clazz.cast(get(name));
   }
 
+  public Iterator<Object> iterator() {
+    return new Iterator<Object>() {
+      int offset = 0;
+      @Override
+      public boolean hasNext() {
+        return offset < descriptor().size();
+      }
+
+      @Override
+      public Object next() {
+        Object ret = get(offset);
+        offset++;
+        return ret;
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
   public static final Obs EMPTY = new Obs() {
+    @Override
+    public Iterator<Object> iterator() {
+      return ImmutableList.of().iterator();
+    }
+
     @Override
     public ObsDescriptor descriptor() {
       return ObsDescriptor.EMPTY;

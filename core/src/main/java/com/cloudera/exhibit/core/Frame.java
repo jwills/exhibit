@@ -14,7 +14,9 @@
  */
 package com.cloudera.exhibit.core;
 
-public abstract class Frame implements Iterable<Obs> {
+import java.io.Serializable;
+
+public abstract class Frame implements Iterable<Obs>, Serializable {
   public abstract ObsDescriptor descriptor();
   public abstract int size();
   public abstract Obs get(int rowIndex);

@@ -19,6 +19,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TFieldIdEnum;
 import org.apache.thrift.meta_data.FieldMetaData;
@@ -29,13 +30,19 @@ import java.util.List;
 import java.util.Map;
 
 public class ThriftObsDescriptor implements ObsDescriptor {
-  private final List<FieldData> fields;
+  private final List<Field> fields;
+  private final List<Short> ids;
+  private final Map<String, Integer> fieldNames;
 
   public ThriftObsDescriptor(Class<? extends TBase> thriftClass) {
     Map<? extends TFieldIdEnum, FieldMetaData> mdm = FieldMetaData.getStructMetaDataMap(thriftClass);
     this.fields = Lists.newArrayListWithExpectedSize(mdm.size());
+    this.ids = Lists.newArrayListWithExpectedSize(mdm.size());
+    this.fieldNames = Maps.newHashMap();
     for (Map.Entry<? extends TFieldIdEnum, FieldMetaData> e : mdm.entrySet()) {
-      fields.add(new FieldData(e.getKey(), e.getValue()));
+      fields.add(new Field(e.getValue().fieldName, getFieldType(e.getValue())));
+      ids.add(e.getKey().getThriftFieldId());
+      fieldNames.put(e.getValue().fieldName, fields.size() - 1);
     }
   }
 
@@ -44,8 +51,17 @@ public class ThriftObsDescriptor implements ObsDescriptor {
     return fields.size();
   }
 
-  Object getFieldValue(int i, TBase tBase) {
-    return tBase.getFieldValue(fields.get(i).id);
+  Object getFieldValue(final int i, TBase tBase) {
+    return tBase.getFieldValue(new TFieldIdEnum() {
+      @Override
+      public short getThriftFieldId() {
+        return ids.get(i);
+      }
+      @Override
+      public String getFieldName() {
+        return fields.get(i).name;
+      }
+    });
   }
 
   private static final Map<Byte, FieldType> TYPE_CLASSES = ImmutableMap.<Byte, FieldType>builder()
@@ -68,32 +84,20 @@ public class ThriftObsDescriptor implements ObsDescriptor {
 
   @Override
   public Field get(int i) {
-    FieldData fd = fields.get(i);
-    return new Field(fd.metadata.fieldName, getFieldType(fd.metadata));
+    return fields.get(i);
   }
 
   @Override
   public int indexOf(String name) {
-    return 0;
+    Integer idx = fieldNames.get(name);
+    if (idx == null) {
+      return -1;
+    }
+    return idx;
   }
 
   @Override
   public Iterator<Field> iterator() {
-    return Iterators.transform(fields.iterator(), new Function<FieldData, Field>() {
-      @Override
-      public Field apply(FieldData fieldData) {
-        return new Field(fieldData.metadata.fieldName, getFieldType(fieldData.metadata));
-      }
-    });
-  }
-
-  private static class FieldData {
-    TFieldIdEnum id;
-    FieldMetaData metadata;
-
-    public FieldData(TFieldIdEnum id, FieldMetaData metadata) {
-      this.id = id;
-      this.metadata = metadata;
-    }
+    return fields.iterator();
   }
 }

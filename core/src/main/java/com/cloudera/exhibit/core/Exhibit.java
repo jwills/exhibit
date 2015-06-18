@@ -14,10 +14,11 @@
  */
 package com.cloudera.exhibit.core;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-public interface Exhibit {
+public interface Exhibit extends Serializable {
   ExhibitDescriptor descriptor();
   Obs attributes();
   Map<String, Frame> frames();

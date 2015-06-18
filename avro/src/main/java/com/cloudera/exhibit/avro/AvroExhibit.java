@@ -94,7 +94,7 @@ public class AvroExhibit {
           recs.add(getInnerRecord(rawRec));
         }
       }
-      frames.put(frameName, new AvroFrame(desc.frames().get(frameName), recs));
+      frames.put(frameName, new AvroFrame((AvroObsDescriptor) desc.frames().get(frameName), recs));
     }
     return new SimpleExhibit(new SimpleObs(desc.attributes(), attrValues), frames);
   }

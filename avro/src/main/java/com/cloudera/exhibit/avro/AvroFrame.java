@@ -17,22 +17,28 @@ package com.cloudera.exhibit.avro;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.EncoderFactory;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
 public class AvroFrame extends Frame {
 
-  private final ObsDescriptor descriptor;
-  private final List<Obs> records;
+  private AvroObsDescriptor descriptor;
+  private List<AvroObs> records;
 
-  public AvroFrame(ObsDescriptor descriptor) {
+  public AvroFrame(AvroObsDescriptor descriptor) {
     this(descriptor, ImmutableList.<GenericRecord>of());
   }
 
@@ -40,23 +46,14 @@ public class AvroFrame extends Frame {
     this(new AvroObsDescriptor(records.get(0).getSchema()), records);
   }
 
-  public AvroFrame(final ObsDescriptor descriptor, List<? extends GenericRecord> records) {
+  public AvroFrame(final AvroObsDescriptor descriptor, List<? extends GenericRecord> records) {
     this.descriptor = descriptor;
-    this.records = ImmutableList.copyOf(Lists.transform(records, new Function<GenericRecord, Obs>() {
+    this.records = ImmutableList.copyOf(Lists.transform(records, new Function<GenericRecord, AvroObs>() {
       @Override
-      public Obs apply(GenericRecord genericRecord) {
+      public AvroObs apply(GenericRecord genericRecord) {
         return new AvroObs(descriptor, genericRecord);
       }
     }));
-  }
-
-  private static SimpleObs createObs(ObsDescriptor desc, GenericRecord rec) {
-    AvroObs aobs = new AvroObs(desc, rec);
-    List<Object> values = Lists.newArrayListWithExpectedSize(desc.size());
-    for (int i = 0; i < desc.size(); i++) {
-      values.add(aobs.get(i));
-    }
-    return new SimpleObs(desc, values);
   }
 
   @Override
@@ -76,6 +73,32 @@ public class AvroFrame extends Frame {
 
   @Override
   public Iterator<Obs> iterator() {
-    return records.iterator();
+    return Iterators.transform(records.iterator(), new Function<AvroObs, Obs>() {
+      @Override
+      public Obs apply(AvroObs obs) {
+        return obs;
+      }
+    });
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.writeObject(descriptor);
+    out.writeInt(records.size());
+    BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+    GenericDatumWriter writer = new GenericDatumWriter(descriptor.schema());
+    for (int i = 0; i < records.size(); i++) {
+      writer.write(records.get(i).record(), encoder);
+    }
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    descriptor = (AvroObsDescriptor) in.readObject();
+    int sz = in.readInt();
+    BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(in, null);
+    GenericDatumReader reader = new GenericDatumReader(descriptor.schema());
+    this.records = Lists.newArrayListWithExpectedSize(sz);
+    for (int i = 0; i < sz; i++) {
+      records.add(new AvroObs(descriptor, (GenericRecord) reader.read(null, decoder)));
+    }
   }
 }

@@ -32,6 +32,10 @@ public class AvroObs extends Obs {
     this.record = record;
   }
 
+  GenericRecord record() {
+    return record;
+  }
+
   @Override
   public ObsDescriptor descriptor() {
     return descriptor;

@@ -53,7 +53,6 @@ public class FrameTable extends AbstractTable implements QueryableTable {
   }
 
   public FrameTable updateFrame(Frame frame) {
-    assert(this.descriptor.equals(frame.descriptor()));
     this.frame = frame;
     return this;
   }

@@ -117,7 +117,6 @@ public class JSCalculator implements Calculator {
         values.add(descriptor.get(0).type.cast(obj));
       }
     } else {
-      //TODO: log, provide default obs
       throw new IllegalStateException("Invalid javascript result: " + obj + " for exhibit: " + exhibit);
     }
     return new SimpleObs(descriptor, values);

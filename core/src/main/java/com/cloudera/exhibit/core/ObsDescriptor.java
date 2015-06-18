@@ -153,7 +153,7 @@ public interface ObsDescriptor extends Iterable<ObsDescriptor.Field>, Serializab
     public abstract Object cast(Object in);
   }
 
-  static class Field {
+  static class Field implements Serializable {
     public final String name;
     public final FieldType type;
 

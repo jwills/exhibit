@@ -19,6 +19,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.avro.Schema;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -26,10 +27,14 @@ public class AvroObsDescriptor implements ObsDescriptor {
 
   private static Schema NULL = Schema.create(Schema.Type.NULL);
 
-  private final Schema schema;
+  private Schema schema;
 
   public AvroObsDescriptor(Schema schema) {
     this.schema = unwrap(schema);
+  }
+
+  Schema schema() {
+    return schema;
   }
 
   @Override
@@ -90,5 +95,13 @@ public class AvroObsDescriptor implements ObsDescriptor {
         return new Field(f.name(), getFieldType(f.schema()));
       }
     });
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.writeUTF(schema.toString());
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    schema = (new Schema.Parser()).parse(in.readUTF());
   }
 }

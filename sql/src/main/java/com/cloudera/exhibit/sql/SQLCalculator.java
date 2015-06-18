@@ -99,12 +99,16 @@ public class SQLCalculator implements Serializable, Calculator {
   public void cleanup() {
     try {
       rootSchema = null;
-      for (PreparedStatement stmt : stmts) {
-        stmt.close();
+      if (stmts != null) {
+        for (PreparedStatement stmt : stmts) {
+          stmt.close();
+        }
+        this.stmts = null;
       }
-      this.stmts = null;
-      conn.close();
-      conn = null;
+      if (conn != null) {
+        conn.close();
+        conn = null;
+      }
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
