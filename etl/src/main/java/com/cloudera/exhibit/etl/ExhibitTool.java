@@ -45,6 +45,7 @@ import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineExecution;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.Target;
+import org.apache.crunch.impl.dist.DistributedPipeline;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.io.To;
 import org.apache.crunch.io.parquet.AvroParquetFileTarget;
@@ -225,12 +226,12 @@ public class ExhibitTool extends Configured implements Tool {
     }
 
     if (pe.isDone()) {
+      System.out.println("Temp directories for data at: " + ((MRPipeline) p).createTempPath().getParent());
       PipelineResult pr = pe.getResult();
       if (pr.succeeded()) {
         return 0;
       }
     }
-    p.cleanup(false /* force */);
     return 1;
   }
 
