@@ -211,7 +211,6 @@ public class ExhibitTool extends Configured implements Tool {
       return 1;
     }
 
-    System.out.println("Temp dir for job data: " + ((MRPipeline) p).createTempPath().getParent());
     PipelineExecution pe = p.runAsync();
     while (!pe.isDone()) {
       try {
@@ -229,6 +228,7 @@ public class ExhibitTool extends Configured implements Tool {
     if (pe.isDone()) {
       PipelineResult pr = pe.getResult();
       if (pr.succeeded()) {
+        p.cleanup(true);
         return 0;
       }
     }

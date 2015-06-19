@@ -40,7 +40,6 @@ public class SchemaMapFn extends
     outKey.put("key", input.first());
     GenericData.Record outValue = new GenericData.Record(provider.get(1));
     outValue.put("value", input.second().second());
-    increment("Exhibit", "MappedSchema" + index);
     return Pair.of(Pair.of(outKey, aggIdx), Pair.of(aggIdx, outValue));
   }
 }

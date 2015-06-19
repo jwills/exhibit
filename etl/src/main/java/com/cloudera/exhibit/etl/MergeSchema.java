@@ -181,8 +181,6 @@ public class MergeSchema implements Serializable {
           }
         }
       }
-      increment("ExhibitRuntime", "MergeSchemaMsec", System.currentTimeMillis() - start);
-      increment("ExhibitRuntime", "MergeSchemaMapped");
       return ret;
     }
   }

@@ -209,7 +209,6 @@ public class OutputGen {
             keyRec.put(config.keys.get(j), obs.get(keys.get(j)));
           }
           tblCaches.get(i).update(keyRec, obs);
-          increment("Exhibit", "Calc" + outputId + "_" + i);
         }
       }
     }

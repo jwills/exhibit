@@ -114,7 +114,6 @@ public class MergeRowsFn extends DoFn<
   private void emit(Emitter<Pair<Integer, GenericData.Record>> emitter) {
     GenericData.Record wrapper = new GenericData.Record(wrapperSchema);
     wrapper.put("value", lastValue);
-    increment("Exhibit", "ValueWritten" + outputIndex);
     emitter.emit(Pair.of(outputIndex, wrapper));
   }
 }

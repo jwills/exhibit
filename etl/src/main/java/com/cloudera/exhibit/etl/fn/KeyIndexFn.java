@@ -47,8 +47,6 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
 
   @Override
   public void process(R r, Emitter<Pair<String, Pair<Integer, GenericData.Record>>> emitter) {
-    long start = System.currentTimeMillis();
-    int emitted = 0;
     if (r != null) {
       GenericData.Record out = new GenericData.Record(outType.getSchema());
       GenericData.Record ret = new GenericData.Record(match);
@@ -62,18 +60,14 @@ public class KeyIndexFn<R extends GenericRecord> extends DoFn<R, Pair<String, Pa
           String skey = key.toString();
           if (!src.invalidKeys.contains(skey)) {
             emitter.emit(Pair.of(skey, Pair.of(index, out)));
-            emitted++;
           }
         } else {
-          increment("ExhibitRuntime", "NullGroupingKey" + index);
+          increment("ExhibitRuntime", "NullGroupingKey");
         }
       }
-      increment("ExhibitRuntime", "KeyIndexFnEmits" + index, emitted);
     } else {
-      increment("ExhibitRuntime", "NullInput" + index);
+      increment("ExhibitRuntime", "NullInput");
     }
-    increment("ExhibitRuntime", "KeyIndexFnMsec" + index, System.currentTimeMillis() - start);
-
   }
 
   private Schema matchSchema() {

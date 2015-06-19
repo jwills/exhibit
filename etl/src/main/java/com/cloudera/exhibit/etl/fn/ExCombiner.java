@@ -62,7 +62,6 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
     for (Pair<Integer, GenericData.Record> p : input.second()) {
       if (aggIdx < 0 || aggIdx != p.first()) {
         if (aggIdx >= 0) {
-          increment("Exhibit", "MergedValues");
           GenericData.Record outValue = new GenericData.Record(provider.get(1));
           outValue.put("value", merged);
           emitter.emit(Pair.of(Pair.of(key, aggIdx), Pair.of(aggIdx, outValue)));
@@ -76,7 +75,6 @@ public class ExCombiner extends CombineFn<Pair<GenericData.Record, Integer>, Pai
       merged = tbl.merge(merged, (GenericData.Record) val.get("value"));
     }
     if (aggIdx >= 0) {
-      increment("Exhibit", "MergedValues");
       GenericData.Record outValue = new GenericData.Record(provider.get(1));
       outValue.put("value", merged);
       emitter.emit(Pair.of(Pair.of(key, aggIdx), Pair.of(aggIdx, outValue)));
