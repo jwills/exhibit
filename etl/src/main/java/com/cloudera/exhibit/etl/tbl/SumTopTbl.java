@@ -25,6 +25,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Script;
+import org.mozilla.javascript.Scriptable;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -35,12 +38,17 @@ public class SumTopTbl implements Tbl {
 
   private final Map<String, String> values;
   private final String subKey;
-  private final String orderKey;
+  private final String keepExpr;
+  private final String orderExpr;
   private final int limit;
 
+  private Context ctx;
+  private Scriptable scope;
   private Schema intermediate;
   private Schema output;
   private GenericData.Record wrapper;
+  private SumTopComparator cmp;
+  private Script keep;
 
   public SumTopTbl(Map<String, String> values, Map<String, Object> options) {
     this.values = values;
@@ -51,12 +59,17 @@ public class SumTopTbl implements Tbl {
     if (options.get("order") == null) {
       throw new IllegalArgumentException("SUM_TOP aggregation must have an 'order' key in its options");
     }
-    this.orderKey = options.get("order").toString();
+    this.orderExpr = options.get("order").toString();
     if (options.get("limit") == null) {
       throw new IllegalArgumentException("SUM_TOP aggregation must have a 'limit' integer value in its options");
     }
     this.limit = Integer.valueOf(options.get("limit").toString());
     Preconditions.checkArgument(limit > 0, "limit option must be greater than zero, found: " + limit);
+    if (options.get("keep") != null) {
+      this.keepExpr = options.get("keep").toString();
+    } else {
+      this.keepExpr = null;
+    }
   }
 
   @Override
@@ -77,10 +90,16 @@ public class SumTopTbl implements Tbl {
       throw new IllegalArgumentException(String.format("SUM_TOP by key named '%s' must be of type string, found %s",
           subKey, subKeyField == null ? "null" : subKeyField.type));
     }
-    ObsDescriptor.Field orderField = od.get(od.indexOf(orderKey));
-    if (orderField == null) {
-      throw new IllegalArgumentException("SUM_TOP missing ordering field from input frame: " + orderKey);
+
+    // Verify the order expression compiles
+    this.ctx = Context.enter();
+    this.scope = ctx.initStandardObjects(null, true);
+    new SumTopComparator(ctx, scope, orderExpr);
+    if (keepExpr != null) {
+      //Verify that we can compile the filter expression
+      ctx.compileString(keepExpr, "<cmd>", 1, null);
     }
+
     List<Schema.Field> interFields = Lists.newArrayList();
     for (Map.Entry<String, String> e : values.entrySet()) {
       if (!subKey.equals(e.getKey())) {
@@ -116,6 +135,12 @@ public class SumTopTbl implements Tbl {
     this.output = provider.get(1);
     this.wrapper = new GenericData.Record(intermediate);
     this.wrapper.put("value", Maps.newHashMap());
+    this.ctx = Context.enter();
+    this.scope = ctx.initStandardObjects(null, true);
+    this.cmp = new SumTopComparator(ctx, scope, orderExpr);
+    if (keepExpr != null) {
+      this.keep = ctx.compileString(keepExpr, "<cmd>", 1, null);
+    }
   }
 
   @Override
@@ -164,11 +189,38 @@ public class SumTopTbl implements Tbl {
     return merged;
   }
 
+  public List<Map.Entry<CharSequence, GenericData.Record>> filter(Map<CharSequence, GenericData.Record> curValue) {
+    List<Map.Entry<CharSequence, GenericData.Record>> elements = Lists.newArrayList();
+    for (Map.Entry<CharSequence, GenericData.Record> e : curValue.entrySet()) {
+      if (keep == null) {
+        elements.add(e);
+      } else {
+        GenericData.Record v = e.getValue();
+        Scriptable evalScope = ctx.newObject(scope);
+        evalScope.setPrototype(scope);
+        evalScope.setParentScope(null);
+        for (int i = 0; i < v.getSchema().getFields().size(); i++) {
+          evalScope.put(v.getSchema().getFields().get(i).name(), evalScope, v.get(i));
+        }
+        Boolean kept = (Boolean) keep.exec(ctx, evalScope);
+        if (kept.booleanValue()) {
+          elements.add(e);
+        }
+      }
+    }
+    return elements;
+  }
+
+  public List<Map.Entry<CharSequence, GenericData.Record>> sort(
+      List<Map.Entry<CharSequence, GenericData.Record>> elements) {
+    Collections.sort(elements, cmp);
+    return elements;
+  }
+
   @Override
   public List<GenericData.Record> finalize(GenericData.Record input) {
     Map<CharSequence, GenericData.Record> curValue = (Map<CharSequence, GenericData.Record>) input.get("value");
-    List<Map.Entry<CharSequence, GenericData.Record>> elements = Lists.newArrayList(curValue.entrySet());
-    Collections.sort(elements, new SumTopComparator(orderKey));
+    List<Map.Entry<CharSequence, GenericData.Record>> elements = sort(filter(curValue));
     GenericData.Record res = new GenericData.Record(output);
     for (int i = 1; i <= limit && i <= elements.size(); i++) {
       Map.Entry<CharSequence, GenericData.Record> cur = elements.get(i - 1);
@@ -184,17 +236,36 @@ public class SumTopTbl implements Tbl {
 
   private static class SumTopComparator implements Comparator<Map.Entry<CharSequence, GenericData.Record>> {
 
-    private final String orderField;
+    private final Context ctx;
+    private final Scriptable scope;
+    private final Script script;
+    private final Map<Map.Entry<CharSequence, GenericData.Record>, Double> cache;
 
-    public SumTopComparator(String orderField) {
-      this.orderField = orderField;
+    public SumTopComparator(Context ctx, Scriptable scope, String orderExpression) {
+      this.ctx = ctx;
+      this.scope = scope;
+      this.script = ctx.compileString(orderExpression, "<cmd>", 1, null);
+      this.cache = Maps.newHashMap();
     }
 
     @Override
     public int compare(Map.Entry<CharSequence, GenericData.Record> o1, Map.Entry<CharSequence, GenericData.Record> o2) {
-      Object k1 = o1.getValue().get(orderField);
-      Object k2 = o2.getValue().get(orderField);
-      return -((Comparable) k1).compareTo(k2);
+      return -eval(o1).compareTo(eval(o2));
+    }
+
+    private Double eval(Map.Entry<CharSequence, GenericData.Record> o) {
+      Double score = cache.get(o);
+      if (score == null) {
+        GenericData.Record v = o.getValue();
+        Scriptable evalScope = ctx.newObject(scope);
+        evalScope.setPrototype(scope);
+        evalScope.setParentScope(null);
+        for (int i = 0; i < v.getSchema().getFields().size(); i++) {
+          evalScope.put(v.getSchema().getFields().get(i).name(), evalScope, v.get(i));
+        }
+        score = ((Number) script.exec(ctx, evalScope)).doubleValue();
+      }
+      return score;
     }
   }
 }
