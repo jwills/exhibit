@@ -53,9 +53,14 @@ public class AvroExhibit {
   }
 
   static Schema getRecordElement(Schema schema) {
-    if (schema.getType() == Schema.Type.RECORD) {
+    // It's records all the way down (!)
+    if (schema.getType() == Schema.Type.UNION) {
+      Schema unwrappedField = AvroObsDescriptor.unwrap(schema);
+      if ( unwrappedField.getType() == Schema.Type.RECORD ){
+        return getRecordElement(unwrappedField);
+      }
+    } else if (schema.getType() == Schema.Type.RECORD) {
       if (schema.getFields().size() == 1) {
-        // It's records all the way down
         Schema unwrappedField = AvroObsDescriptor.unwrap(schema.getFields().get(0).schema());
         return getRecordElement(unwrappedField);
       } else {

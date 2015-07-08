@@ -27,15 +27,26 @@ import java.util.List;
 
 public class AvroExhibitTest {
 
+  static Schema createNullableType(Schema s) {
+    return Schema.createUnion(Lists.newArrayList(Schema.create(Schema.Type.NULL),s));
+  }
+
   Schema inner = SchemaBuilder.record("foo").fields()
           .nullableString("f1", "")
           .optionalBoolean("f2")
           .requiredInt("f3")
           .endRecord();
+
   Schema outer = SchemaBuilder.record("bar").fields()
           .requiredInt("id")
-          .name("ifoo").type(Schema.createUnion(
-              Lists.newArrayList(Schema.create(Schema.Type.NULL), Schema.createArray(inner)))).noDefault()
+          .name("ifoo").type(createNullableType(Schema.createArray(inner))).noDefault()
+          .optionalString("short")
+          .endRecord();
+
+  Schema nullableInner = SchemaBuilder.record("bar").fields()
+          .requiredInt("id")
+          .name("ifoo").type(createNullableType(
+                Schema.createArray(createNullableType(inner)))).noDefault()
           .optionalString("short")
           .endRecord();
 
@@ -57,6 +68,34 @@ public class AvroExhibitTest {
     List<GenericData.Record> recs = Lists.newArrayList(in1, in2);
 
     GenericData.Record o1 = new GenericData.Record(outer);
+    o1.put("id", 17);
+    o1.put("short", "jw");
+    o1.put("ifoo", recs);
+
+    Exhibit exhibit = AvroExhibit.create(o1);
+    System.out.println(exhibit);
+    System.out.println(exhibit.attributes());
+    System.out.println(Iterables.toString(exhibit.frames().get("ifoo")));
+  }
+
+  @Test
+  public void testNullableExhibitDescriptor() {
+    ExhibitDescriptor desc = AvroExhibit.createDescriptor(nullableInner);
+    System.out.println(desc);
+  }
+
+  @Test
+  public void testNullableElementArrayAvroExhibit() {
+    GenericData.Record in1 = new GenericData.Record(inner);
+    in1.put("f1", null);
+    in1.put("f2", true);
+    in1.put("f3", 1729);
+    GenericData.Record in2 = new GenericData.Record(inner);
+    in2.put("f1", "josh");
+    in2.put("f3", 29);
+    List<GenericData.Record> recs = Lists.newArrayList(in1, in2);
+
+    GenericData.Record o1 = new GenericData.Record(nullableInner);
     o1.put("id", 17);
     o1.put("short", "jw");
     o1.put("ifoo", recs);
