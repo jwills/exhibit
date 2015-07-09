@@ -22,12 +22,10 @@ import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.{GenericData, GenericDatumWriter}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
-import org.junit.{Assert, Before, Test}
+import org.junit.{After, Assert, Before, Test}
 
 class ExhibitRDDTest {
 
-  val conf = new SparkConf().setMaster("local").setAppName(getClass.getName)
-  val sc = new SQLContext(new SparkContext(conf))
   val innerSchema = SchemaBuilder.record("SparkInTest").fields()
     .optionalDouble("a").optionalString("b").optionalInt("c")
     .endRecord()
@@ -35,9 +33,26 @@ class ExhibitRDDTest {
     .optionalString("name")
     .name("tbl").`type`().array().items(innerSchema).arrayDefault(Lists.newArrayList())
     .endRecord()
+
+  var conf: SparkConf = null
+  var sc: SQLContext = null
   var testFile: File = null
 
+  @After def tearDown: Unit = {
+    sc.sparkContext.stop
+    sc = null
+    // To avoid Akka rebinding to the same port,
+    // since it doesn't unbind immediately on shutdown
+    System.clearProperty("spark.master.port")
+  }
+
   @Before def setUp: Unit = {
+    conf = new SparkConf()
+           .setMaster("local")
+           .setAppName(getClass.getName)
+
+    sc = new SQLContext(new SparkContext(conf))
+
     testFile = File.createTempFile("exhibit", ".avro")
     testFile.deleteOnExit()
     val writer = new GenericDatumWriter[GenericData.Record](outerSchema)
@@ -59,14 +74,6 @@ class ExhibitRDDTest {
     dfw.close()
   }
 
-  @Test def readExhibitJS: Unit = {
-    val erdd = ExhibitRDD.avroFile(testFile.toString, sc)
-    val defcnt = erdd.js("tbl.length")
-    val res = defcnt.collect()
-    Assert.assertEquals(1, res.length)
-    Assert.assertEquals(2L, res(0).getLong(0))
-  }
-
   @Test def readExhibitSQL: Unit = {
     val erdd = ExhibitRDD.avroFile(testFile.toString, sc)
     val defcnt = erdd.sql( """select sum(a) suma, sum(c) sumc, count(*) from tbl""")
@@ -75,5 +82,13 @@ class ExhibitRDDTest {
     Assert.assertEquals(32.0, res(0).getDouble(0), 0.001)
     Assert.assertEquals(46, res(0).getInt(1))
     Assert.assertEquals(2L, res(0).getLong(2))
+  }
+
+  @Test def readExhibitJS: Unit = {
+    val erdd = ExhibitRDD.avroFile(testFile.toString, sc)
+    val defcnt = erdd.js("tbl.length")
+    val res = defcnt.collect()
+    Assert.assertEquals(1, res.length)
+    Assert.assertEquals(2.0, res(0).getDouble(0), 0.001)
   }
 }

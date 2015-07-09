@@ -94,25 +94,4 @@ public class AvroTableTest {
     assertEquals(null, res.get(0).get(0));
     assertEquals(1729, res.get(0).get(1));
   }
-
-  @Test
-  public void testMultipleQueries() throws Exception {
-    GenericData.Record r1 = new GenericData.Record(schema);
-    r1.put("f1", "foo");
-    r1.put("f3", 1729);
-    GenericData.Record r2 = new GenericData.Record(schema);
-    r2.put("f2", true);
-    r2.put("f3", 17);
-    AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2));
-    String[] queries = new String[] {
-        "select f2 as f2group, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
-      , "select sum(f3) as all_sumf3 from t1"
-    };
-    SQLCalculator calc = new SQLCalculator(queries);
-    Frame res = eval(calc, SimpleExhibit.of("t1", frame));
-    assertTrue(res.size() == 1);
-    assertEquals(null, res.get(0).get(0));
-    assertEquals(1729, res.get(0).get(1));
-  }
-
 }

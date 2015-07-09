@@ -40,22 +40,11 @@ import java.util.Map;
 
 public class JSCalculator implements Serializable, Calculator {
 
-  static void initializeContextFactory() {
-    ContextFactory.initGlobal(new ExhibitContextFactory());
-    Context ctx = Context.enter();
-    ctx.setClassShutter(new ClassShutter() {
-      @Override
-      public boolean visibleToScripts(String className) {
-        return className.startsWith("com.cloudera.exhibit");
-      }
-    });
-  }
-
   private String src;
   private boolean hasReturn;
 
   private transient ObsDescriptor descriptor;
-  private transient Context ctx;
+  private transient Context ctx = null;
   private transient Scriptable scope;
   private transient Script script;
   private transient Function func;
@@ -72,9 +61,17 @@ public class JSCalculator implements Serializable, Calculator {
 
   @Override
   public ObsDescriptor initialize(ExhibitDescriptor ed) {
+    if( !ContextFactory.hasExplicitGlobal() ){
+      ContextFactory.initGlobal(new ExhibitContextFactory());
+    }
     if (ctx == null) {
-      initializeContextFactory();
       ctx = Context.enter();
+      ctx.setClassShutter(new ClassShutter() {
+        @Override
+        public boolean visibleToScripts(String className) {
+          return className.startsWith("com.cloudera.exhibit");
+        }
+      });
       this.scope = ctx.initStandardObjects(null, true);
       if (hasReturn) {
         this.func = ctx.compileFunction(scope, "function() {" + src + "}", "<cmd>", 1, null);
@@ -179,7 +176,9 @@ public class JSCalculator implements Serializable, Calculator {
 
   @Override
   public void cleanup() {
-    Context.exit();
-    ctx = null;
+    if( ctx != null ) {
+      Context.exit();
+      ctx = null;
+    }
   }
 }
