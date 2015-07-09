@@ -19,25 +19,40 @@ import java.io.File
 import com.google.common.collect.Lists
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.file.DataFileWriter
-import org.apache.avro.generic.{GenericDatumWriter, GenericData}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.avro.generic.{GenericData, GenericDatumWriter}
 import org.apache.spark.sql.SQLContext
-import org.junit.{Before, Test, Assert}
+import org.apache.spark.{SparkConf, SparkContext}
+import org.junit.{After, Assert, Before, Test}
 
 class ExhibitRDDTest {
 
-  val conf = new SparkConf().setMaster("local").setAppName(getClass.getName)
-  val sc = new SQLContext(new SparkContext(conf))
   val innerSchema = SchemaBuilder.record("SparkInTest").fields()
-      .optionalDouble("a").optionalString("b").optionalInt("c")
-      .endRecord()
+    .optionalDouble("a").optionalString("b").optionalInt("c")
+    .endRecord()
   val outerSchema = SchemaBuilder.record("SparkExTest").fields()
-      .optionalString("name")
-      .name("tbl").`type`().array().items(innerSchema).arrayDefault(Lists.newArrayList())
-      .endRecord()
+    .optionalString("name")
+    .name("tbl").`type`().array().items(innerSchema).arrayDefault(Lists.newArrayList())
+    .endRecord()
+
+  var conf: SparkConf = null
+  var sc: SQLContext = null
   var testFile: File = null
 
+  @After def tearDown: Unit = {
+    sc.sparkContext.stop
+    sc = null
+    // To avoid Akka rebinding to the same port,
+    // since it doesn't unbind immediately on shutdown
+    System.clearProperty("spark.master.port")
+  }
+
   @Before def setUp: Unit = {
+    conf = new SparkConf()
+           .setMaster("local")
+           .setAppName(getClass.getName)
+
+    sc = new SQLContext(new SparkContext(conf))
+
     testFile = File.createTempFile("exhibit", ".avro")
     testFile.deleteOnExit()
     val writer = new GenericDatumWriter[GenericData.Record](outerSchema)
@@ -59,13 +74,21 @@ class ExhibitRDDTest {
     dfw.close()
   }
 
-  @Test def readExhibit: Unit = {
+  @Test def readExhibitSQL: Unit = {
     val erdd = ExhibitRDD.avroFile(testFile.toString, sc)
-    val defcnt = erdd.sql("""select sum(a) suma, sum(c) sumc, count(*) from tbl""")
+    val defcnt = erdd.sql( """select sum(a) suma, sum(c) sumc, count(*) from tbl""")
     val res = defcnt.collect()
     Assert.assertEquals(1, res.length)
     Assert.assertEquals(32.0, res(0).getDouble(0), 0.001)
     Assert.assertEquals(46, res(0).getInt(1))
     Assert.assertEquals(2L, res(0).getLong(2))
+  }
+
+  @Test def readExhibitJS: Unit = {
+    val erdd = ExhibitRDD.avroFile(testFile.toString, sc)
+    val defcnt = erdd.js("tbl.length")
+    val res = defcnt.collect()
+    Assert.assertEquals(1, res.length)
+    Assert.assertEquals(2.0, res(0).getDouble(0), 0.001)
   }
 }

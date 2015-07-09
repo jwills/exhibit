@@ -34,31 +34,20 @@ import org.mozilla.javascript.Function;
 import org.mozilla.javascript.Script;
 import org.mozilla.javascript.Scriptable;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public class JSCalculator implements Calculator {
+public class JSCalculator implements Serializable, Calculator {
 
-  static {
-    ContextFactory.initGlobal(new ExhibitContextFactory());
-    Context ctx = Context.enter();
-    ctx.setClassShutter(new ClassShutter() {
-      @Override
-      public boolean visibleToScripts(String className) {
-        return className.startsWith("com.cloudera.exhibit");
-      }
-    });
-  }
+  private String src;
+  private boolean hasReturn;
 
-  private final String src;
-  private final boolean hasReturn;
-
-  private ObsDescriptor descriptor;
-
-  private Context ctx;
-  private Scriptable scope;
-  private Script script;
-  private Function func;
+  private transient ObsDescriptor descriptor;
+  private transient Context ctx = null;
+  private transient Scriptable scope;
+  private transient Script script;
+  private transient Function func;
 
   public JSCalculator(String src) {
     this(null, src);
@@ -72,8 +61,17 @@ public class JSCalculator implements Calculator {
 
   @Override
   public ObsDescriptor initialize(ExhibitDescriptor ed) {
+    if( !ContextFactory.hasExplicitGlobal() ){
+      ContextFactory.initGlobal(new ExhibitContextFactory());
+    }
     if (ctx == null) {
       ctx = Context.enter();
+      ctx.setClassShutter(new ClassShutter() {
+        @Override
+        public boolean visibleToScripts(String className) {
+          return className.startsWith("com.cloudera.exhibit");
+        }
+      });
       this.scope = ctx.initStandardObjects(null, true);
       if (hasReturn) {
         this.func = ctx.compileFunction(scope, "function() {" + src + "}", "<cmd>", 1, null);
@@ -178,7 +176,9 @@ public class JSCalculator implements Calculator {
 
   @Override
   public void cleanup() {
-    Context.exit();
-    ctx = null;
+    if( ctx != null ) {
+      Context.exit();
+      ctx = null;
+    }
   }
 }
