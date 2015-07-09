@@ -21,6 +21,7 @@ import com.cloudera.exhibit.core.ObsDescriptor.FieldType
 import com.cloudera.exhibit.core._
 import com.cloudera.exhibit.javascript.JSCalculator
 import com.cloudera.exhibit.sql.SQLCalculator
+
 import org.apache.avro.file.DataFileReader
 import org.apache.avro.generic.{GenericRecord, GenericDatumReader}
 import org.apache.avro.mapred.FsInput
@@ -47,6 +48,10 @@ class ExhibitRDD private[spark](
       attrsDF = sqlContext.createDataFrame(parent.map(e => obs2row(e.attributes())), schemas._1)
     }
     return attrsDF
+  }
+
+  def frames(): Iterator[String] = {
+    descriptor.frames.keySet.iterator
   }
 
   def frame(name: String): DataFrame = {

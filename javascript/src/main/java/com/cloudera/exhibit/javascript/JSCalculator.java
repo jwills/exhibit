@@ -34,12 +34,13 @@ import org.mozilla.javascript.Function;
 import org.mozilla.javascript.Script;
 import org.mozilla.javascript.Scriptable;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public class JSCalculator implements Calculator {
+public class JSCalculator implements Serializable, Calculator {
 
-  static {
+  static void initializeContextFactory() {
     ContextFactory.initGlobal(new ExhibitContextFactory());
     Context ctx = Context.enter();
     ctx.setClassShutter(new ClassShutter() {
@@ -50,15 +51,14 @@ public class JSCalculator implements Calculator {
     });
   }
 
-  private final String src;
-  private final boolean hasReturn;
+  private String src;
+  private boolean hasReturn;
 
-  private ObsDescriptor descriptor;
-
-  private Context ctx;
-  private Scriptable scope;
-  private Script script;
-  private Function func;
+  private transient ObsDescriptor descriptor;
+  private transient Context ctx;
+  private transient Scriptable scope;
+  private transient Script script;
+  private transient Function func;
 
   public JSCalculator(String src) {
     this(null, src);
@@ -73,6 +73,7 @@ public class JSCalculator implements Calculator {
   @Override
   public ObsDescriptor initialize(ExhibitDescriptor ed) {
     if (ctx == null) {
+      initializeContextFactory();
       ctx = Context.enter();
       this.scope = ctx.initStandardObjects(null, true);
       if (hasReturn) {
