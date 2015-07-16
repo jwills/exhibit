@@ -60,19 +60,43 @@
         <artifactId>maven-compiler-plugin</artifactId>
       </plugin>
       <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>1.6</version>
         <configuration>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
+          <minimizeJar>true</minimizeJar>
+          <filters>
+            <filter>
+              <artifact>*:*</artifact>
+              <excludes>
+                <exclude>META-INF/*.SF</exclude>
+                <exclude>META-INF/*.DSA</exclude>
+                <exclude>META-INF/*.RSA</exclude>
+              </excludes>
+            </filter>
+          </filters>
+          <relocations>
+            <relocation>
+              <pattern>org.apache.calcite</pattern>
+              <shadedPattern>org.shaded.apache.calcite</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>net.hydromatic</pattern>
+              <shadedPattern>net.shaded.hydromatic</shadedPattern>
+            </relocation>
+          </relocations>
         </configuration>
         <executions>
           <execution>
-            <id>make-assembly</id> <!-- this is used for inheritance merges -->
-            <phase>package</phase> <!-- bind to the packaging phase -->
+            <phase>package</phase>
             <goals>
-              <goal>single</goal>
+              <goal>shade</goal>
             </goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -46,6 +46,13 @@
 
   <dependencyManagement>
     <dependencies>
+
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>com.cloudera.exhibit</groupId>
         <artifactId>exhibit-core</artifactId>
@@ -115,6 +122,12 @@
       <dependency>
         <groupId>org.apache.calcite</groupId>
         <artifactId>calcite-core</artifactId>
+        <version>${calcite.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-avatica</artifactId>
         <version>${calcite.version}</version>
       </dependency>
 
@@ -189,12 +202,6 @@
         <groupId>org.mongodb</groupId>
         <artifactId>mongo-java-driver</artifactId>
         <version>${mongodb.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
       </dependency>
 
       <dependency>
