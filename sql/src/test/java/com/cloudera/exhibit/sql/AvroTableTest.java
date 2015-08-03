@@ -34,7 +34,7 @@ public class AvroTableTest {
   Schema schema = SchemaBuilder.record("foo").fields()
       .nullableString("f1", "")
       .optionalBoolean("f2")
-      .requiredInt("f3")
+      .requiredLong("f3")
       .endRecord();
 
   private Frame eval(SQLCalculator calc, Exhibit e) {
@@ -60,30 +60,35 @@ public class AvroTableTest {
     GenericData.Record r1 = new GenericData.Record(schema);
     r1.put("f1", "foo");
     r1.put("f2", true);
-    r1.put("f3", 1729);
+    r1.put("f3", 1729L);
     GenericData.Record r2 = new GenericData.Record(schema);
     r2.put("f1", "for");
     r2.put("f2", true);
-    r2.put("f3", 17);
+    r2.put("f3", 17L);
     AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2));
+    StringBuilder inb = new StringBuilder("1729");
+    for (int i = 0; i < 19; i++) {
+      inb.append(',').append(1730 + i);
+    }
+    String in = inb.toString();
     String[] queries = new String[] {
-        "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
+        "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' and f3 in ("+in+") group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
     Frame res = eval(calc, SimpleExhibit.of("t1", frame));
-    assertTrue(res.size() == 1);
+    assertEquals(1, res.size());
     assertEquals(Boolean.TRUE, res.get(0).get(0));
-    assertEquals(1729, res.get(0).get(1));
+    assertEquals(1729L, res.get(0).get(1));
   }
 
   @Test
   public void testMissingFields() throws Exception {
     GenericData.Record r1 = new GenericData.Record(schema);
     r1.put("f1", "foo");
-    r1.put("f3", 1729);
+    r1.put("f3", 1729L);
     GenericData.Record r2 = new GenericData.Record(schema);
     r2.put("f2", true);
-    r2.put("f3", 17);
+    r2.put("f3", 17L);
     AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2));
     String[] queries = new String[] {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
@@ -92,6 +97,6 @@ public class AvroTableTest {
     Frame res = eval(calc, SimpleExhibit.of("t1", frame));
     assertTrue(res.size() == 1);
     assertEquals(null, res.get(0).get(0));
-    assertEquals(1729, res.get(0).get(1));
+    assertEquals(1729L, res.get(0).get(1));
   }
 }
