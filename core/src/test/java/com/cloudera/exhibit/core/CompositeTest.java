@@ -39,7 +39,7 @@ public class CompositeTest {
     assertEquals(1, cod.indexOf("v1"));
     assertEquals(2, cod.indexOf("x"));
     assertEquals(-1, cod.indexOf("v3"));
-    assertEquals(new ObsDescriptor.Field("x", ObsDescriptor.FieldType.INTEGER), cod.get(2));
+    assertEquals(new ObsDescriptor.Field("x", FieldType.INTEGER), cod.get(2));
   }
 
   @Test
@@ -49,7 +49,7 @@ public class CompositeTest {
     assertEquals(0, cod.indexOf("v0"));
     assertEquals(1, cod.indexOf("v1"));
     assertEquals(-1, cod.indexOf("q"));
-    assertEquals(new ObsDescriptor.Field("v1", ObsDescriptor.FieldType.STRING), cod.get(1));
-    assertEquals(new ObsDescriptor.Field("v0", ObsDescriptor.FieldType.DOUBLE), cod.get(0));
+    assertEquals(new ObsDescriptor.Field("v1", FieldType.STRING), cod.get(1));
+    assertEquals(new ObsDescriptor.Field("v0", FieldType.DOUBLE), cod.get(0));
   }
 }

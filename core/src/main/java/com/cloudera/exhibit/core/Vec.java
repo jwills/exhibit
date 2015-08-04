@@ -21,7 +21,7 @@ import java.io.Serializable;
 
 public interface Vec extends Iterable<Object>, Serializable {
 
-  ObsDescriptor.FieldType getType();
+  FieldType getType();
 
   Object get(int index);
 

@@ -51,7 +51,7 @@ public class ScriptableFrame extends ScriptableObject {
     if ("length".equals(name)) {
       return frame.size();
     }
-    return new ScriptableColumn(frame.$(name));
+    return new ScriptableVec(frame.$(name));
   }
 
   @Override

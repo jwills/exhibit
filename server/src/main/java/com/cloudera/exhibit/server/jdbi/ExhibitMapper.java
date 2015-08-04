@@ -14,10 +14,7 @@
  */
 package com.cloudera.exhibit.server.jdbi;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
@@ -40,7 +37,7 @@ public class ExhibitMapper implements ResultSetMapper<Exhibit> {
   private final ObsDescriptor id;
 
   public ExhibitMapper(String id) {
-    this.id = SimpleObsDescriptor.of(id, ObsDescriptor.FieldType.STRING);
+    this.id = SimpleObsDescriptor.of(id, FieldType.STRING);
   }
 
   @Override
@@ -73,21 +70,21 @@ public class ExhibitMapper implements ResultSetMapper<Exhibit> {
     return new SimpleFrame(desc, obs);
   }
 
-  private Map<Integer, ObsDescriptor.FieldType> SQL_TO_FIELD_TYPE = ImmutableMap.<Integer, ObsDescriptor.FieldType>builder()
-          .put(Types.INTEGER, ObsDescriptor.FieldType.INTEGER)
-          .put(Types.BIGINT, ObsDescriptor.FieldType.LONG)
-          .put(Types.VARCHAR, ObsDescriptor.FieldType.STRING)
-          .put(Types.CHAR, ObsDescriptor.FieldType.STRING)
-          .put(Types.BOOLEAN, ObsDescriptor.FieldType.BOOLEAN)
-          .put(Types.DOUBLE, ObsDescriptor.FieldType.DOUBLE)
-          .put(Types.FLOAT, ObsDescriptor.FieldType.FLOAT)
+  private Map<Integer, FieldType> SQL_TO_FIELD_TYPE = ImmutableMap.<Integer, FieldType>builder()
+          .put(Types.INTEGER, FieldType.INTEGER)
+          .put(Types.BIGINT, FieldType.LONG)
+          .put(Types.VARCHAR, FieldType.STRING)
+          .put(Types.CHAR, FieldType.STRING)
+          .put(Types.BOOLEAN, FieldType.BOOLEAN)
+          .put(Types.DOUBLE, FieldType.DOUBLE)
+          .put(Types.FLOAT, FieldType.FLOAT)
           .build();
 
   private ObsDescriptor fromMetaData(ResultSetMetaData metaData) throws SQLException {
     List<ObsDescriptor.Field> fields = Lists.newArrayList();
     for (int i = 1; i <= metaData.getColumnCount(); i++) {
       String name = metaData.getColumnLabel(i);
-      ObsDescriptor.FieldType type = SQL_TO_FIELD_TYPE.get(metaData.getColumnType(i));
+      FieldType type = SQL_TO_FIELD_TYPE.get(metaData.getColumnType(i));
       if (type != null) {
         fields.add(new ObsDescriptor.Field(name, type));
       } else {

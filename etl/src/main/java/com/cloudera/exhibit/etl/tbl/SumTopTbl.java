@@ -15,6 +15,7 @@
 package com.cloudera.exhibit.etl.tbl;
 
 import com.cloudera.exhibit.avro.AvroExhibit;
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.etl.SchemaProvider;
@@ -86,7 +87,7 @@ public class SumTopTbl implements Tbl {
           subKey));
     }
     ObsDescriptor.Field subKeyField = od.get(subKeyIdx);
-    if (subKeyField == null || subKeyField.type != ObsDescriptor.FieldType.STRING) {
+    if (subKeyField == null || subKeyField.type != FieldType.STRING) {
       throw new IllegalArgumentException(String.format("SUM_TOP by key named '%s' must be of type string, found %s",
           subKey, subKeyField == null ? "null" : subKeyField.type));
     }

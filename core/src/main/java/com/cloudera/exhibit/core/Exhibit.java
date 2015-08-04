@@ -14,12 +14,14 @@
  */
 package com.cloudera.exhibit.core;
 
+import com.cloudera.exhibit.core.vector.Vector;
+
 import java.io.Serializable;
 import java.util.Map;
-import java.util.Set;
 
 public interface Exhibit extends Serializable {
   ExhibitDescriptor descriptor();
   Obs attributes();
   Map<String, Frame> frames();
+  Map<String, Vector> vectors();
 }

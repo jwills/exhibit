@@ -15,6 +15,7 @@
 package com.cloudera.exhibit.etl.config;
 
 import com.cloudera.exhibit.core.Calculator;
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.PivotCalculator;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
@@ -56,7 +57,7 @@ public class FrameConfig implements Serializable {
       List<ObsDescriptor.Field> fields = Lists.newArrayList();
       for (Map.Entry<String, String> e : descriptor.entrySet()) {
         fields.add(new ObsDescriptor.Field(e.getKey(),
-                ObsDescriptor.FieldType.valueOf(e.getValue().toUpperCase(Locale.ENGLISH))));
+                FieldType.valueOf(e.getValue().toUpperCase(Locale.ENGLISH))));
       }
       od = new SimpleObsDescriptor(fields);
     }

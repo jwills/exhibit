@@ -14,8 +14,9 @@
  */
 package com.cloudera.exhibit.sql;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.FieldType;
 import com.google.common.collect.ImmutableMap;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -45,25 +46,48 @@ public class TypeUtils {
       .put(Types.VARCHAR, String.class)
       .build();
 
-  private static final Map<Integer, ObsDescriptor.FieldType> SQL_TYPES_TO_FIELD_TYPES =
-      ImmutableMap.<Integer, ObsDescriptor.FieldType>builder()
-              .put(Types.BIGINT, ObsDescriptor.FieldType.LONG)
-              .put(Types.BIT, ObsDescriptor.FieldType.BOOLEAN)
-              .put(Types.BOOLEAN, ObsDescriptor.FieldType.BOOLEAN)
-              .put(Types.CHAR, ObsDescriptor.FieldType.STRING)
-              .put(Types.DATE, ObsDescriptor.FieldType.DATE)
-              .put(Types.DECIMAL, ObsDescriptor.FieldType.DECIMAL)
-              .put(Types.DOUBLE, ObsDescriptor.FieldType.DOUBLE)
-              .put(Types.FLOAT, ObsDescriptor.FieldType.DOUBLE) // Note: Yes, this is right.
-              .put(Types.INTEGER, ObsDescriptor.FieldType.INTEGER)
-              .put(Types.LONGVARCHAR, ObsDescriptor.FieldType.STRING)
-              .put(Types.REAL, ObsDescriptor.FieldType.FLOAT)
-              .put(Types.SMALLINT, ObsDescriptor.FieldType.SHORT)
-              .put(Types.TIME, ObsDescriptor.FieldType.TIME)
-              .put(Types.TIMESTAMP, ObsDescriptor.FieldType.TIMESTAMP)
-              .put(Types.TINYINT, ObsDescriptor.FieldType.SHORT)
-              .put(Types.VARCHAR, ObsDescriptor.FieldType.STRING)
+  private static final Map<Integer, FieldType> SQL_TYPES_TO_FIELD_TYPES =
+      ImmutableMap.<Integer, FieldType>builder()
+              .put(Types.BIGINT, FieldType.LONG)
+              .put(Types.BIT, FieldType.BOOLEAN)
+              .put(Types.BOOLEAN, FieldType.BOOLEAN)
+              .put(Types.CHAR, FieldType.STRING)
+              .put(Types.DATE, FieldType.DATE)
+              .put(Types.DECIMAL, FieldType.DECIMAL)
+              .put(Types.DOUBLE, FieldType.DOUBLE)
+              .put(Types.FLOAT, FieldType.DOUBLE) // Note: Yes, this is right.
+              .put(Types.INTEGER, FieldType.INTEGER)
+              .put(Types.LONGVARCHAR, FieldType.STRING)
+              .put(Types.REAL, FieldType.FLOAT)
+              .put(Types.SMALLINT, FieldType.SHORT)
+              .put(Types.TIME, FieldType.TIME)
+              .put(Types.TIMESTAMP, FieldType.TIMESTAMP)
+              .put(Types.TINYINT, FieldType.SHORT)
+              .put(Types.VARCHAR, FieldType.STRING)
               .build();
+
+  protected static Map<FieldType, SqlTypeName> FIELD_TYPES_TO_SQL_TYPES = ImmutableMap.<FieldType, SqlTypeName>builder()
+      .put(FieldType.DATE, SqlTypeName.DATE)
+      .put(FieldType.TIMESTAMP, SqlTypeName.TIMESTAMP)
+      .put(FieldType.BOOLEAN, SqlTypeName.BOOLEAN)
+      .put(FieldType.DOUBLE, SqlTypeName.DOUBLE)
+      .put(FieldType.FLOAT, SqlTypeName.FLOAT)
+      .put(FieldType.INTEGER, SqlTypeName.INTEGER)
+      .put(FieldType.LONG, SqlTypeName.BIGINT)
+      .build();
+
+  protected static Map<FieldType, Class> FIELD_TYPES_TO_JAVA_TYPES = ImmutableMap.<FieldType, Class>builder()
+      .put(FieldType.DATE, Date.class)
+      .put(FieldType.TIMESTAMP, Timestamp.class)
+      .put(FieldType.DECIMAL, BigDecimal.class)
+      .put(FieldType.SHORT, Short.class)
+      .put(FieldType.BOOLEAN, Boolean.class)
+      .put(FieldType.DOUBLE, Double.class)
+      .put(FieldType.FLOAT, Float.class)
+      .put(FieldType.INTEGER, Integer.class)
+      .put(FieldType.LONG, Long.class)
+      .put(FieldType.STRING, String.class)
+      .build();
 
   public static Class getJavaClassForSQLType(int sqlType) {
     Class clazz = SQL_TYPES_TO_JAVA.get(sqlType);
@@ -73,8 +97,8 @@ public class TypeUtils {
     return clazz;
   }
 
-  public static ObsDescriptor.FieldType getFieldTypeForSQLType(int sqlType) {
-    ObsDescriptor.FieldType ft = SQL_TYPES_TO_FIELD_TYPES.get(sqlType);
+  public static FieldType getFieldTypeForSQLType(int sqlType) {
+    FieldType ft = SQL_TYPES_TO_FIELD_TYPES.get(sqlType);
     if (ft == null) {
       throw new IllegalArgumentException("Unsupported sql type = " + sqlType);
     }

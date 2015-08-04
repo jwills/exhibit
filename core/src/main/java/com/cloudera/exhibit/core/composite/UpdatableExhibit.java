@@ -14,10 +14,8 @@
  */
 package com.cloudera.exhibit.core.composite;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
@@ -26,21 +24,35 @@ public class UpdatableExhibit implements Exhibit {
 
   private final Exhibit base;
   private final Map<String, Frame> frames;
+  private final Map<String, Vector> vectors;
   private UpdatableExhibitDescriptor descriptor;
 
   public UpdatableExhibit(Exhibit base) {
     this.base = base;
     this.frames = Maps.newHashMap();
+    this.vectors = Maps.newHashMap();
     this.descriptor = new UpdatableExhibitDescriptor(base.descriptor());
   }
 
+  public UpdatableExhibit add(String name, Vector vector) {
+    this.vectors.put(name, vector);
+    this.descriptor.add(name, vector.getType());
+    return this;
+  }
   public UpdatableExhibit add(String name, Frame frame) {
     this.frames.put(name, frame);
     this.descriptor.add(name, frame.descriptor());
     return this;
   }
 
-  public UpdatableExhibit addAll(Map<String, Frame> frames) {
+  public UpdatableExhibit addAllVectors(Map<String, Vector> vectors) {
+    for (Map.Entry<String, Vector> e : vectors.entrySet()) {
+      add(e.getKey(), e.getValue());
+    }
+    return this;
+  }
+
+  public UpdatableExhibit addAllFrames(Map<String, Frame> frames) {
     for (Map.Entry<String, Frame> e : frames.entrySet()) {
       add(e.getKey(), e.getValue());
     }
@@ -62,6 +74,14 @@ public class UpdatableExhibit implements Exhibit {
     Map<String, Frame> union = Maps.newHashMap();
     union.putAll(base.frames());
     union.putAll(frames);
+    return union;
+  }
+
+  @Override
+  public Map<String, Vector> vectors() {
+    Map<String, Vector> union = Maps.newHashMap();
+    union.putAll(base.vectors());
+    union.putAll(vectors);
     return union;
   }
 }

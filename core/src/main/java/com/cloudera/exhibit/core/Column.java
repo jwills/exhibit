@@ -36,7 +36,7 @@ public class Column extends AbstractList<Object> implements Vec {
   }
 
   @Override
-  public ObsDescriptor.FieldType getType() {
+  public FieldType getType() {
     return frame.descriptor().get(index).type;
   }
 

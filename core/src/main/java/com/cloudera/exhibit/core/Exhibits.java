@@ -17,6 +17,8 @@ package com.cloudera.exhibit.core;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
+import com.cloudera.exhibit.core.vector.Vector;
+import com.cloudera.exhibit.core.vector.VectorBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -28,17 +30,17 @@ import java.util.Map;
 
 public class Exhibits {
 
-  private static final Map<ObsDescriptor.FieldType, Object> DV = ImmutableMap.<ObsDescriptor.FieldType, Object>builder()
-      .put(ObsDescriptor.FieldType.BOOLEAN, Boolean.FALSE)
-      .put(ObsDescriptor.FieldType.DATE, new java.sql.Date(System.currentTimeMillis()))
-      .put(ObsDescriptor.FieldType.DECIMAL, new BigDecimal(0))
-      .put(ObsDescriptor.FieldType.DOUBLE, Double.valueOf(0.0))
-      .put(ObsDescriptor.FieldType.FLOAT, Float.valueOf(0.0f))
-      .put(ObsDescriptor.FieldType.INTEGER, Integer.valueOf(0))
-      .put(ObsDescriptor.FieldType.LONG, Long.valueOf(0L))
-      .put(ObsDescriptor.FieldType.SHORT, Short.valueOf((short) 0))
-      .put(ObsDescriptor.FieldType.STRING, "")
-      .put(ObsDescriptor.FieldType.TIMESTAMP, new java.sql.Time(System.currentTimeMillis()))
+  private static final Map<FieldType, Object> DV = ImmutableMap.<FieldType, Object>builder()
+      .put(FieldType.BOOLEAN, Boolean.FALSE)
+      .put(FieldType.DATE, new java.sql.Date(System.currentTimeMillis()))
+      .put(FieldType.DECIMAL, new BigDecimal(0))
+      .put(FieldType.DOUBLE, Double.valueOf(0.0))
+      .put(FieldType.FLOAT, Float.valueOf(0.0f))
+      .put(FieldType.INTEGER, Integer.valueOf(0))
+      .put(FieldType.LONG, Long.valueOf(0L))
+      .put(FieldType.SHORT, Short.valueOf((short) 0))
+      .put(FieldType.STRING, "")
+      .put(FieldType.TIMESTAMP, new java.sql.Time(System.currentTimeMillis()))
       .build();
 
   public static Exhibit defaultValues(ExhibitDescriptor descriptor) {
@@ -46,16 +48,16 @@ public class Exhibits {
   }
 
   public static Exhibit defaultValues(
-      ExhibitDescriptor descriptor, ObsDescriptor.FieldType ft, Object value, Object... args) {
-    Map<ObsDescriptor.FieldType, Object> defaults = Maps.newHashMap(DV);
+      ExhibitDescriptor descriptor, FieldType ft, Object value, Object... args) {
+    Map<FieldType, Object> defaults = Maps.newHashMap(DV);
     defaults.put(ft, value);
     for (int i = 0; i < args.length; i += 2) {
-      defaults.put((ObsDescriptor.FieldType) args[i], args[i + 1]);
+      defaults.put((FieldType) args[i], args[i + 1]);
     }
     return defaultValues(descriptor, defaults);
   }
 
-  public static Exhibit defaultValues(ExhibitDescriptor descriptor, Map<ObsDescriptor.FieldType, Object> defaults) {
+  public static Exhibit defaultValues(ExhibitDescriptor descriptor, Map<FieldType, Object> defaults) {
     List<Object> attrValues = Lists.newArrayList();
     for (ObsDescriptor.Field f : descriptor.attributes()) {
       attrValues.add(defaults.get(f.type));
@@ -70,6 +72,12 @@ public class Exhibits {
       Obs frameObs = new SimpleObs(e.getValue(), frameValues);
       frames.put(e.getKey(), new SimpleFrame(ImmutableList.of(frameObs)));
     }
-    return new SimpleExhibit(attrs, frames);
+    Map<String, Vector> vectors = Maps.newHashMap();
+    for (Map.Entry<String, FieldType> e : descriptor.vectors().entrySet()) {
+      FieldType type = e.getValue();
+      Vector vector = VectorBuilder.build(type, ImmutableList.of(defaults.get(type)));
+      vectors.put(e.getKey(), vector);
+    }
+    return new SimpleExhibit(attrs, frames, vectors);
   }
 }

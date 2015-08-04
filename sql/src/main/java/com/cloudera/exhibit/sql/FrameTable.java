@@ -14,8 +14,8 @@
  */
 package com.cloudera.exhibit.sql;
 
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.core.ObsDescriptor.FieldType;
 import com.cloudera.exhibit.core.Frame;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

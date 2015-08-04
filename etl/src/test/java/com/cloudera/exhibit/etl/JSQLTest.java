@@ -14,10 +14,7 @@
  */
 package com.cloudera.exhibit.etl;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.composite.UpdatableExhibit;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
@@ -46,12 +43,11 @@ public class JSQLTest {
     jsc.initialize(e.descriptor());
     UpdatableExhibit ue = new UpdatableExhibit(e);
     ue.add("jsres", (Frame) jsc.apply(e));
-
     SQLCalculator sql = SQLCalculator.create(null, "SELECT count(*) suma FROM jsres where id > 0");
     sql.initialize(ue.descriptor());
     Iterable<Obs> res = sql.apply(ue);
     assertEquals(
-        new SimpleObs(SimpleObsDescriptor.of("suma", ObsDescriptor.FieldType.LONG), ImmutableList.<Object>of(1L)),
+        new SimpleObs(SimpleObsDescriptor.of("suma", FieldType.LONG), ImmutableList.<Object>of(1L)),
         Iterables.getOnlyElement(res));
   }
 }

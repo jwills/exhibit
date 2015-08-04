@@ -20,6 +20,7 @@ import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.vector.Vector;
 import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
@@ -56,7 +57,8 @@ public class WithinUDF extends GenericUDF {
       HiveFrame frame = HiveUtils.getHiveFrame(args[i]);
       frames.put("T" + i, frame);
     }
-    this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
+    Map<String, Vector> vectors = Maps.newHashMap(); // TODO: implement
+    this.exhibit = new SimpleExhibit(Obs.EMPTY, frames, vectors);
     this.calculator = new SQLCalculator(queries);
     ObsDescriptor od = calculator.initialize(exhibit.descriptor());
     return HiveUtils.fromDescriptor(od, false);

@@ -15,7 +15,7 @@
 package com.cloudera.exhibit.sql;
 
 import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.ObsDescriptor.FieldType;
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;

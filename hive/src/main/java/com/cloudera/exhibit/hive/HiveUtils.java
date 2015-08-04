@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.hive;
 
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -36,18 +37,18 @@ import java.util.Map;
 
 public final class HiveUtils {
 
-  private static final Map<ObsDescriptor.FieldType, ObjectInspector> FIELD_TYPES_TO_OI =
-      ImmutableMap.<ObsDescriptor.FieldType, ObjectInspector>builder()
-      .put(ObsDescriptor.FieldType.LONG, PrimitiveObjectInspectorFactory.javaLongObjectInspector)
-      .put(ObsDescriptor.FieldType.BOOLEAN, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
-      .put(ObsDescriptor.FieldType.DATE, PrimitiveObjectInspectorFactory.javaDateObjectInspector)
-      .put(ObsDescriptor.FieldType.DECIMAL, PrimitiveObjectInspectorFactory.javaHiveDecimalObjectInspector)
-      .put(ObsDescriptor.FieldType.DOUBLE, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector)
-      .put(ObsDescriptor.FieldType.FLOAT, PrimitiveObjectInspectorFactory.javaFloatObjectInspector)
-      .put(ObsDescriptor.FieldType.INTEGER, PrimitiveObjectInspectorFactory.javaIntObjectInspector)
-      .put(ObsDescriptor.FieldType.SHORT, PrimitiveObjectInspectorFactory.javaShortObjectInspector)
-      .put(ObsDescriptor.FieldType.TIMESTAMP, PrimitiveObjectInspectorFactory.javaTimestampObjectInspector)
-      .put(ObsDescriptor.FieldType.STRING, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
+  private static final Map<FieldType, ObjectInspector> FIELD_TYPES_TO_OI =
+      ImmutableMap.<FieldType, ObjectInspector>builder()
+      .put(FieldType.LONG, PrimitiveObjectInspectorFactory.javaLongObjectInspector)
+      .put(FieldType.BOOLEAN, PrimitiveObjectInspectorFactory.javaBooleanObjectInspector)
+      .put(FieldType.DATE, PrimitiveObjectInspectorFactory.javaDateObjectInspector)
+      .put(FieldType.DECIMAL, PrimitiveObjectInspectorFactory.javaHiveDecimalObjectInspector)
+      .put(FieldType.DOUBLE, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector)
+      .put(FieldType.FLOAT, PrimitiveObjectInspectorFactory.javaFloatObjectInspector)
+      .put(FieldType.INTEGER, PrimitiveObjectInspectorFactory.javaIntObjectInspector)
+      .put(FieldType.SHORT, PrimitiveObjectInspectorFactory.javaShortObjectInspector)
+      .put(FieldType.TIMESTAMP, PrimitiveObjectInspectorFactory.javaTimestampObjectInspector)
+      .put(FieldType.STRING, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
       .build();
 
   public static String[] getQueries(ObjectInspector first) throws UDFArgumentException {
@@ -76,23 +77,23 @@ public final class HiveUtils {
     return queries;
   }
 
-  private static final Map<Class, ObsDescriptor.FieldType> FIELD_TYPES = ImmutableMap.<Class, ObsDescriptor.FieldType>builder()
-          .put(Boolean.class, ObsDescriptor.FieldType.BOOLEAN)
-          .put(Integer.class, ObsDescriptor.FieldType.INTEGER)
-          .put(Long.class, ObsDescriptor.FieldType.LONG)
-          .put(Float.class, ObsDescriptor.FieldType.FLOAT)
-          .put(Double.class, ObsDescriptor.FieldType.DOUBLE)
-          .put(String.class, ObsDescriptor.FieldType.STRING)
-          .put(HiveDecimal.class, ObsDescriptor.FieldType.DECIMAL)
-          .put(BigDecimal.class, ObsDescriptor.FieldType.DECIMAL)
-          .put(Timestamp.class, ObsDescriptor.FieldType.TIMESTAMP)
-          .put(Short.class, ObsDescriptor.FieldType.SHORT)
-          .put(Date.class, ObsDescriptor.FieldType.DATE)
+  private static final Map<Class, FieldType> FIELD_TYPES = ImmutableMap.<Class, FieldType>builder()
+          .put(Boolean.class, FieldType.BOOLEAN)
+          .put(Integer.class, FieldType.INTEGER)
+          .put(Long.class, FieldType.LONG)
+          .put(Float.class, FieldType.FLOAT)
+          .put(Double.class, FieldType.DOUBLE)
+          .put(String.class, FieldType.STRING)
+          .put(HiveDecimal.class, FieldType.DECIMAL)
+          .put(BigDecimal.class, FieldType.DECIMAL)
+          .put(Timestamp.class, FieldType.TIMESTAMP)
+          .put(Short.class, FieldType.SHORT)
+          .put(Date.class, FieldType.DATE)
           .build();
 
-  public static ObsDescriptor.FieldType getFieldType(ObjectInspector oi) {
+  public static FieldType getFieldType(ObjectInspector oi) {
     if (oi instanceof PrimitiveObjectInspector) {
-      ObsDescriptor.FieldType ft = FIELD_TYPES.get(((PrimitiveObjectInspector) oi).getJavaPrimitiveClass());
+      FieldType ft = FIELD_TYPES.get(((PrimitiveObjectInspector) oi).getJavaPrimitiveClass());
       if (ft != null) {
         return ft;
       }
