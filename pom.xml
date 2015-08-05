@@ -19,6 +19,7 @@
     <module>hive</module>
     <module>javascript</module>
     <module>mongodb</module>
+    <module>renjin</module>
     <module>server</module>
     <module>sql</module>
     <module>thrift</module>

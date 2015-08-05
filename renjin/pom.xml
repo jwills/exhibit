@@ -1,0 +1,61 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.cloudera.exhibit</groupId>
+    <artifactId>exhibit-parent</artifactId>
+    <version>0.6.0</version>
+  </parent>
+
+  <artifactId>exhibit-renjin</artifactId>
+  <name>Exhibit for Renjin</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.cloudera.exhibit</groupId>
+      <artifactId>exhibit-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.renjin</groupId>
+      <artifactId>renjin-script-engine</artifactId>
+      <version>RELEASE</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.cloudera.exhibit</groupId>
+      <artifactId>exhibit-avro</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <repositories>
+    <repository>
+      <id>bedatadriven</id>
+      <name>bedatadriven public repo</name>
+      <url>http://nexus.bedatadriven.com/content/groups/public/</url>
+    </repository>
+  </repositories>
+
+</project>
