@@ -30,7 +30,7 @@ public class ShortVector extends Vector {
     int idx = 0;
     for(Object o: values) {
       if(!(o instanceof Short)){
-        throw new IllegalArgumentException("Received non-short value" + o.toString() );
+        throw new IllegalArgumentException("Received non-short value" + o.toString() + " class: " + o.getClass().getCanonicalName());
       }
       this.values[idx] = (Short)o;
       idx++;

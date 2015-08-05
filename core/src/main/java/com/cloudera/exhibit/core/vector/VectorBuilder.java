@@ -8,18 +8,15 @@ public class VectorBuilder {
 
   public static Vector build(FieldType type, List<Object> values) {
     switch(type) {
+      case LONG:
+      case FLOAT:
       case DOUBLE:
         return new DoubleVector(values);
       case BOOLEAN:
         return new BooleanVector(values);
       case SHORT:
-        return new ShortVector(values);
       case INTEGER:
         return new IntVector(values);
-      case LONG:
-        return new LongVector(values);
-      case FLOAT:
-        return new FloatVector(values);
       case STRING:
       case DATE:
       case TIME:
@@ -39,7 +36,8 @@ public class VectorBuilder {
   }
 
   public static Vector shorts(List<Object> values) {
-    return new ShortVector(values);
+    return new IntVector(values);
+    // return new ShortVector(values);
   }
 
   public static Vector ints(List<Object> values) {
@@ -47,10 +45,12 @@ public class VectorBuilder {
   }
 
   public static Vector longs(List<Object> values) {
-    return new LongVector(values);
+    return new DoubleVector(values);
+    // return new LongVector(values);
   }
 
   public static Vector floats(List<Object> values) {
-    return new FloatVector(values);
+    return new DoubleVector(values);
+    // return new FloatVector(values);
   }
 }

@@ -29,12 +29,16 @@ public class DoubleVector extends Vector {
     this.values = new double[this.size];
     int idx = 0;
     for(Object o: values) {
-      if(!(o instanceof Double)){
+      if(!(o instanceof Number)){
         throw new IllegalArgumentException("Received non-double value" + o.toString() );
       }
-      this.values[idx] = (Double)o;
+      this.values[idx] = ((Number)o).doubleValue();
       idx++;
     }
+  }
+
+  public double[] getData() {
+    return values;
   }
 
   @Override

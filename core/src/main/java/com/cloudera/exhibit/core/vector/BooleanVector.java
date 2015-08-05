@@ -37,6 +37,10 @@ public class BooleanVector extends Vector {
     }
   }
 
+  public boolean[] getData() {
+    return values;
+  }
+
   @Override
   public Boolean get(int index) {
     return values[index];
