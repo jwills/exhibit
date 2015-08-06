@@ -17,7 +17,6 @@ package com.cloudera.exhibit.spark
 import java.io.FileNotFoundException
 
 import com.cloudera.exhibit.avro.AvroExhibit
-import com.cloudera.exhibit.core.ObsDescriptor.FieldType
 import com.cloudera.exhibit.core._
 import com.cloudera.exhibit.javascript.JSCalculator
 import com.cloudera.exhibit.sql.SQLCalculator

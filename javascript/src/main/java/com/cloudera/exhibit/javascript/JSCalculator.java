@@ -14,17 +14,11 @@
  */
 package com.cloudera.exhibit.javascript;
 
-import com.cloudera.exhibit.core.Calculator;
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.Exhibits;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.google.common.collect.ImmutableList;
+import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.mozilla.javascript.ClassShutter;
@@ -132,6 +126,9 @@ public class JSCalculator implements Serializable, Calculator {
     for (Map.Entry<String, Frame> e : exhibit.frames().entrySet()) {
       exhibitScope.put(e.getKey(), exhibitScope, new ScriptableFrame(e.getValue()));
     }
+    for (Map.Entry<String, Vector> e : exhibit.vectors().entrySet()) {
+      exhibitScope.put(e.getKey(), exhibitScope, new ScriptableVec(e.getValue()));
+    }
 
     if (hasReturn) {
       return func.call(ctx, exhibitScope, null, new Object[0]);
@@ -150,25 +147,25 @@ public class JSCalculator implements Serializable, Calculator {
       List<ObsDescriptor.Field> fields = Lists.newArrayList();
       for (String key : Sets.newTreeSet(mres.keySet())) {
         Object val = mres.get(key);
-        ObsDescriptor.FieldType ft = null;
+        FieldType ft = null;
         if (val == null) {
           throw new IllegalStateException("Null value for key: " + key);
         } else if (val instanceof Number) {
-          ft = ObsDescriptor.FieldType.DOUBLE;
+          ft = FieldType.DOUBLE;
         } else if (val instanceof String) {
-          ft = ObsDescriptor.FieldType.STRING;
+          ft = FieldType.STRING;
         } else if (val instanceof Boolean) {
-          ft = ObsDescriptor.FieldType.BOOLEAN;
+          ft = FieldType.BOOLEAN;
         }
         fields.add(new ObsDescriptor.Field(key, ft));
       }
       return new SimpleObsDescriptor(fields);
     } else if (res instanceof Number) {
-      return SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.DOUBLE);
+      return SimpleObsDescriptor.of("res", FieldType.DOUBLE);
     } else if (res instanceof String) {
-      return SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.STRING);
+      return SimpleObsDescriptor.of("res", FieldType.STRING);
     } else if (res instanceof Boolean) {
-      return SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.BOOLEAN);
+      return SimpleObsDescriptor.of("res", FieldType.BOOLEAN);
     } else {
       throw new IllegalStateException("Unsupported result type: " + res);
     }

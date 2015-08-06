@@ -19,6 +19,7 @@ import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.vector.Vector;
 import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.hive.ql.exec.Description;
@@ -56,7 +57,8 @@ public class WithinUDTF extends GenericUDTF {
     for (int i = 1; i < args.length; i++) {
       frames.put("T" + i, HiveUtils.getHiveFrame(args[i]));
     }
-    this.exhibit = new SimpleExhibit(Obs.EMPTY, frames);
+    Map<String, Vector> vectors = Maps.newHashMap(); // TODO: implement
+    this.exhibit = new SimpleExhibit(Obs.EMPTY, frames, vectors);
     this.calculator = new SQLCalculator(queries);
     ObsDescriptor od = calculator.initialize(exhibit.descriptor());
 

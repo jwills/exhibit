@@ -15,16 +15,22 @@
 package com.cloudera.exhibit.core.composite;
 
 import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.Maps;
 
 public class UpdatableExhibitDescriptor extends ExhibitDescriptor {
   public UpdatableExhibitDescriptor(ExhibitDescriptor base) {
-    super(base.attributes(), Maps.newHashMap(base.frames()));
+    super(base.attributes(), Maps.newHashMap(base.frames()), Maps.newHashMap(base.vectors()));
   }
 
   public UpdatableExhibitDescriptor add(String name, ObsDescriptor od) {
     frames().put(name, od);
+    return this;
+  }
+
+  public UpdatableExhibitDescriptor add(String name, FieldType vd) {
+    vectors().put(name, vd);
     return this;
   }
 }

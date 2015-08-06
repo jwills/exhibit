@@ -37,6 +37,10 @@ public class ModifiableSchema extends AbstractSchema {
     return (FrameTable) tableMap.get(name);
   }
 
+  public VectorTable getVector(String name) {
+    return (VectorTable) tableMap.get(name);
+  }
+
   @Override
   public boolean isMutable() {
     return true;

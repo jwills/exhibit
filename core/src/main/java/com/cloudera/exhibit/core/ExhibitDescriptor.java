@@ -17,20 +17,25 @@ package com.cloudera.exhibit.core;
 import com.google.common.collect.ImmutableMap;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Map;
 
 public class ExhibitDescriptor implements Serializable {
 
   private final ObsDescriptor attributes;
   private final Map<String, ObsDescriptor> frames;
+  private final Map<String, FieldType> vectors;
 
   public static ExhibitDescriptor of(String name, ObsDescriptor frame) {
-    return new ExhibitDescriptor(ObsDescriptor.EMPTY, ImmutableMap.of(name, frame));
+    return new ExhibitDescriptor(ObsDescriptor.EMPTY
+        , ImmutableMap.of(name, frame)
+        , Collections.<String, FieldType>emptyMap());
   }
 
-  public ExhibitDescriptor(ObsDescriptor attributes, Map<String, ObsDescriptor> frames) {
+  public ExhibitDescriptor(ObsDescriptor attributes, Map<String, ObsDescriptor> frames, Map<String, FieldType> vectors) {
     this.attributes = attributes;
     this.frames = frames;
+    this.vectors = vectors;
   }
 
   public ObsDescriptor attributes() {
@@ -39,6 +44,10 @@ public class ExhibitDescriptor implements Serializable {
 
   public Map<String, ObsDescriptor> frames() {
     return frames;
+  }
+
+  public Map<String, FieldType> vectors() {
+    return vectors;
   }
 
   public String toString() {
@@ -50,16 +59,25 @@ public class ExhibitDescriptor implements Serializable {
       sb.append("  ").append(e.getKey()).append("\n");
       toStringHelper(sb, 4, e.getValue());
     }
+    sb.append("Vectors:\n");
+    for (Map.Entry<String, FieldType> e : vectors.entrySet()) {
+      sb.append("  ").append(e.getKey()).append("\n");
+      toStringHelper(sb, 4, e.getKey(), e.getValue());
+    }
     return sb.toString();
+  }
+
+  private static void toStringHelper(StringBuilder sb, int indent, String name, FieldType type) {
+    for (int j = 0; j < indent; j++) {
+      sb.append(' ');
+    }
+    sb.append(name).append(": ").append(type).append("\n");
   }
 
   private static void toStringHelper(StringBuilder sb, int indent, ObsDescriptor desc) {
     for (int i = 0; i < desc.size(); i++) {
       ObsDescriptor.Field f = desc.get(i);
-      for (int j = 0; j < indent; j++) {
-        sb.append(' ');
-      }
-      sb.append(f.name).append(": ").append(f.type).append("\n");
+      toStringHelper(sb, indent, f.name, f.type);
     }
   }
 }

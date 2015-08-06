@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.avro;
 
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
@@ -77,9 +78,14 @@ public class AvroObsDescriptor implements ObsDescriptor {
       case STRING:
         return FieldType.STRING;
       default:
-        System.err.println("Unknown schema type = " + s);
+        System.err.println("Unknown schema type = " + s); // TODO: remove
         return null;
     }
+  }
+
+  @Override
+  public String toString() {
+    return Iterators.toString(iterator());
   }
 
   @Override

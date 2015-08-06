@@ -14,39 +14,39 @@
  */
 package com.cloudera.exhibit.javascript;
 
-import com.cloudera.exhibit.core.Column;
+import com.cloudera.exhibit.core.Vec;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 
-public class ScriptableColumn extends ScriptableObject {
+public class ScriptableVec extends ScriptableObject {
 
-  private final Column column;
+  private final Vec vec;
 
-  public ScriptableColumn(Column column) {
-    this.column = column;
+  public ScriptableVec(Vec vec) {
+    this.vec = vec;
   }
 
   @Override
   public String getClassName() {
-    return "Column";
+    return "Vec";
   }
 
   @Override
   public Object get(int index, Scriptable scriptable) {
-    return column.get(index);
+    return vec.get(index);
   }
 
   @Override
   public Object get(String property, Scriptable scriptable) {
     if ("length".equals(property)) {
-      return column.size();
+      return vec.size();
     }
     return super.get(property, scriptable);
   }
 
   @Override
   public boolean has(int index, Scriptable scriptable) {
-    return 0 <= index && index < column.size();
+    return 0 <= index && index < vec.size();
   }
 
   @Override
@@ -56,6 +56,6 @@ public class ScriptableColumn extends ScriptableObject {
 
   @Override
   public Object getDefaultValue(Class<?> typeHint) {
-    return column.toString();
+    return vec.toString();
   }
 }

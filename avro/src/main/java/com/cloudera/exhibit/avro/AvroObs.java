@@ -14,8 +14,9 @@
  */
 package com.cloudera.exhibit.avro;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import org.apache.avro.generic.GenericRecord;
 
 public class AvroObs extends Obs {
@@ -37,6 +38,11 @@ public class AvroObs extends Obs {
   }
 
   @Override
+  public String toString() {
+    return record.toString();
+  }
+
+  @Override
   public ObsDescriptor descriptor() {
     return descriptor;
   }
@@ -45,7 +51,7 @@ public class AvroObs extends Obs {
   public Object get(int index) {
     ObsDescriptor.Field f = descriptor.get(index);
     Object r = record.get(f.name);
-    if (f.type == ObsDescriptor.FieldType.STRING) {
+    if (f.type == FieldType.STRING) {
       return r == null ? null : r.toString();
     } else {
       return r;

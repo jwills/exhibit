@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.mongodb;
 
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;

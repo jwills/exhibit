@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.core.simple;
 
+import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;

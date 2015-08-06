@@ -16,6 +16,7 @@ package com.cloudera.exhibit.server.json;
 
 import static org.junit.Assert.assertEquals;
 
+import com.cloudera.exhibit.core.*;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
@@ -24,10 +25,6 @@ import org.junit.Test;
 
 import com.cloudera.exhibit.avro.AvroFrame;
 import com.cloudera.exhibit.avro.AvroObsDescriptor;
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitId;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
 import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
@@ -83,8 +80,8 @@ public class JsonTest {
   public void testObsBsonJson() throws Exception {
     BSONObsDescriptor d = new BSONObsDescriptor(
             ImmutableList.of("a", "b", "c"),
-            ImmutableList.of(ObsDescriptor.FieldType.INTEGER, ObsDescriptor.FieldType.DOUBLE,
-                    ObsDescriptor.FieldType.STRING));
+            ImmutableList.of(FieldType.INTEGER, FieldType.DOUBLE,
+                    FieldType.STRING));
     BSONFrame frame = new BSONFrame(d, ImmutableList.of(
             new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "c", "foo")),
             new BasicDBObject(ImmutableMap.<String, Object>of("a", 1729, "b", 3.0)),

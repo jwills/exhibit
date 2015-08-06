@@ -14,15 +14,11 @@
  */
 package com.cloudera.exhibit.sql;
 
-import com.cloudera.exhibit.core.Calculator;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -77,6 +73,9 @@ public class SQLCalculator implements Serializable, Calculator {
     for (Map.Entry<String, ObsDescriptor> e : descriptor.frames().entrySet()) {
       rootSchema.getTableMap().put(e.getKey().toUpperCase(), new FrameTable(e.getValue()));
     }
+    for (Map.Entry<String, FieldType> e : descriptor.vectors().entrySet()) {
+      rootSchema.getTableMap().put(e.getKey().toUpperCase(), new VectorTable(e.getValue()));
+    }
     try {
       this.conn = newConnection();
       this.stmts = Lists.newArrayList();
@@ -127,6 +126,9 @@ public class SQLCalculator implements Serializable, Calculator {
     rootSchema.getFrame("ATTRS").updateFrame(new SimpleFrame(ImmutableList.of(exhibit.attributes())));
     for (Map.Entry<String, Frame> e : exhibit.frames().entrySet()) {
       rootSchema.getFrame(e.getKey().toUpperCase()).updateFrame(e.getValue());
+    }
+    for (Map.Entry<String, Vector> e : exhibit.vectors().entrySet()) {
+      rootSchema.getVector(e.getKey().toUpperCase()).updateVector(e.getValue());
     }
     conn.getRootSchema().add("X", rootSchema);
     try {

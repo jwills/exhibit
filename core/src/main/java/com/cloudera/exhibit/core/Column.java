@@ -14,9 +14,10 @@
  */
 package com.cloudera.exhibit.core;
 
+
 import java.util.AbstractList;
 
-public class Column extends AbstractList<Object> {
+public class Column extends AbstractList<Object> implements Vec {
 
   private final Frame frame;
   private final int index;
@@ -32,6 +33,11 @@ public class Column extends AbstractList<Object> {
   public Column(Frame frame, int index) {
     this.frame = frame;
     this.index = index;
+  }
+
+  @Override
+  public FieldType getType() {
+    return frame.descriptor().get(index).type;
   }
 
   @Override

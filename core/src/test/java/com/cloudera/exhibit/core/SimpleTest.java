@@ -32,6 +32,6 @@ public class SimpleTest {
     assertEquals(3, ATTR_DESC.size());
     assertEquals(1, ATTR_DESC.indexOf("b"));
     assertEquals(-1, ATTR_DESC.indexOf("q"));
-    assertEquals(new ObsDescriptor.Field("c", ObsDescriptor.FieldType.INTEGER), ATTR_DESC.get(2));
+    assertEquals(new ObsDescriptor.Field("c", FieldType.INTEGER), ATTR_DESC.get(2));
   }
 }

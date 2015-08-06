@@ -14,11 +14,8 @@
  */
 package com.cloudera.exhibit.core.composite;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -30,32 +27,38 @@ public class CompositeExhibit implements Exhibit {
   private ExhibitDescriptor descriptor;
   private Obs attributes;
   private Map<String, Frame> frames;
+  private Map<String, Vector> vectors;
 
   public static CompositeExhibit create(List<Exhibit> components) {
     List<ObsDescriptor> descs = Lists.newArrayList();
     Map<String, ObsDescriptor> frameDescs = Maps.newHashMap();
+    Map<String, FieldType> vectorDescs = Maps.newHashMap();
     for (Exhibit e : components) {
       descs.add(e.descriptor().attributes());
       frameDescs.putAll(e.descriptor().frames());
+      vectorDescs.putAll(e.descriptor().vectors());
     }
-    return create(new ExhibitDescriptor(new CompositeObsDescriptor(descs), frameDescs), components);
+    return create(new ExhibitDescriptor(new CompositeObsDescriptor(descs), frameDescs, vectorDescs), components);
   }
 
   public static CompositeExhibit create(ExhibitDescriptor descriptor, List<Exhibit> components) {
     Map<String, Frame> frames = Maps.newHashMap();
+    Map<String, Vector> vectors = Maps.newHashMap();
     List<Obs> attrs = Lists.newArrayList();
     for (Exhibit e : components) {
       attrs.add(e.attributes());
       frames.putAll(e.frames());
+      vectors.putAll(e.vectors());
     }
     CompositeObsDescriptor cod = (CompositeObsDescriptor) descriptor.attributes();
-    return new CompositeExhibit(descriptor, new CompositeObs(cod, attrs), frames);
+    return new CompositeExhibit(descriptor, new CompositeObs(cod, attrs), frames, vectors);
   }
 
-  CompositeExhibit(ExhibitDescriptor descriptor, Obs attributes, Map<String, Frame> frames) {
+  CompositeExhibit(ExhibitDescriptor descriptor, Obs attributes, Map<String, Frame> frames, Map<String, Vector> vectors) {
     this.descriptor = descriptor;
     this.attributes = attributes;
     this.frames = frames;
+    this.vectors= vectors;
   }
 
   @Override
@@ -71,5 +74,10 @@ public class CompositeExhibit implements Exhibit {
   @Override
   public Map<String, Frame> frames() {
     return frames;
+  }
+
+  @Override
+  public Map<String, Vector> vectors() {
+    return vectors;
   }
 }

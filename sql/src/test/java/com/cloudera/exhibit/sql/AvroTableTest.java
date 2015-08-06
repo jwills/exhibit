@@ -18,12 +18,20 @@ import com.cloudera.exhibit.avro.AvroFrame;
 import com.cloudera.exhibit.avro.AvroObsDescriptor;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.vector.DoubleVector;
+import com.cloudera.exhibit.core.vector.Vector;
+import com.cloudera.exhibit.core.vector.VectorBuilder;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
+import org.apache.calcite.rel.core.Collect;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -45,14 +53,26 @@ public class AvroTableTest {
   }
 
   @Test
-  public void testEmpty() throws Exception {
+  public void testEmptyFrame() throws Exception {
     AvroObsDescriptor at = new AvroObsDescriptor(schema);
     String[] queries = new String[] {
-      "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
+        "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
     Frame frame = eval(calc, SimpleExhibit.of("t1", new AvroFrame(at)));
     assertFalse(frame.size() > 0);
+  }
+
+  @Test
+  public void testEmptyVector() throws Exception {
+    String[] queries = new String[] {
+      "select count(*) as ct from v1"
+    };
+    SQLCalculator calc = new SQLCalculator(queries);
+    Vector v = VectorBuilder.doubles(Collections.emptyList());
+    Frame frame = eval(calc, SimpleExhibit.of("v1", v));
+    assertEquals("Single Record returned", 1, frame.size());
+    assertEquals("Zero Count", 0L, frame.get(0).get("ct"));
   }
 
   @Test
@@ -79,6 +99,31 @@ public class AvroTableTest {
     assertEquals(1, res.size());
     assertEquals(Boolean.TRUE, res.get(0).get(0));
     assertEquals(1729L, res.get(0).get(1));
+  }
+
+  @Test
+  public void testFrameVectorJoin() throws Exception {
+    GenericData.Record r1 = new GenericData.Record(schema);
+    r1.put("f1", "foo");
+    r1.put("f2", true);
+    r1.put("f3", 1729L);
+    GenericData.Record r2 = new GenericData.Record(schema);
+    r2.put("f1", "for");
+    r2.put("f2", true);
+    r2.put("f3", 17L);
+    AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2));
+    Vector v = VectorBuilder.doubles(ImmutableList.<Object>of(1729.0));
+    SimpleExhibit se = new SimpleExhibit(Obs.EMPTY,
+        ImmutableMap.<String, Frame>of("t1", frame), ImmutableMap.of("v1", v));
+    String[] queries = new String[] {
+        "select * from t1, v1 where t1.f3=v1.c0"
+    };
+    SQLCalculator calc = new SQLCalculator(queries);
+    Frame res = eval(calc, se);
+    assertEquals(1, res.size());
+    assertEquals(Boolean.TRUE, res.get(0).get("f2"));
+    assertEquals(1729L, res.get(0).get("f3"));
+    assertEquals(1729.0, res.get(0).get("c0"));
   }
 
   @Test

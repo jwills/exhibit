@@ -14,9 +14,9 @@
  */
 package com.cloudera.exhibit.avro;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -54,6 +54,22 @@ public class AvroFrame extends Frame {
         return new AvroObs(descriptor, genericRecord);
       }
     }));
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("Descriptor: ");
+    builder.append(descriptor.toString());
+    builder.append("\n");
+    int ct = 1;
+    for(AvroObs obs: records){
+      builder.append("AvroObs" + ct + ": ");
+      builder.append(obs.toString());
+      builder.append("\n");
+      ct++;
+    }
+    return builder.toString();
   }
 
   @Override

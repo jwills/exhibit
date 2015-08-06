@@ -14,14 +14,14 @@
  */
 package com.cloudera.exhibit.javascript;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import com.cloudera.exhibit.core.vector.Vector;
+import com.cloudera.exhibit.core.vector.VectorBuilder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import org.junit.Test;
@@ -51,6 +51,24 @@ public class JSCalculatorTest {
   }
 
   @Test
+  public void testVector() throws Exception {
+    ObsDescriptor od = SimpleObsDescriptor.builder().doubleField("a").booleanField("b").build();
+    Obs obs = SimpleObs.of(od, 1729, true);
+    Obs one = SimpleObs.of(od, 17, true);
+    Obs two = SimpleObs.of(od, 12, false);
+    Frame frame = SimpleFrame.of(one, two);
+    Vector vector = VectorBuilder.doubles(ImmutableList.<Object>of(1.0, 2.0, 3.0));
+    Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame), ImmutableMap.of("v1", vector));
+
+    ObsDescriptor resultObs = SimpleObsDescriptor.builder().doubleField("a").doubleField("b").build();
+    JSCalculator jsc = new JSCalculator("var a = function() { return {a: v1[0], b: v1.length}; }; return a()");
+    jsc.initialize(e.descriptor());
+    Obs res = Iterables.getOnlyElement(jsc.apply(e));
+    assertEquals(SimpleObs.of(resultObs, 1.0, 3.0), res);
+    jsc.cleanup();
+  }
+
+  @Test
   public void testArray() throws Exception {
     JSCalculator jsc = new JSCalculator("var a = function() { return [{a: df[0].a, b: true}]; }; return a()");
     ObsDescriptor od = SimpleObsDescriptor.builder().doubleField("a").booleanField("b").build();
@@ -76,7 +94,7 @@ public class JSCalculatorTest {
     Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
     jsc.initialize(e.descriptor());
     Obs res = Iterables.getOnlyElement(jsc.apply(e));
-    assertEquals(SimpleObs.of(SimpleObsDescriptor.of("res", ObsDescriptor.FieldType.DOUBLE), 2.0), res);
+    assertEquals(SimpleObs.of(SimpleObsDescriptor.of("res", FieldType.DOUBLE), 2.0), res);
     jsc.cleanup();
   }
 }

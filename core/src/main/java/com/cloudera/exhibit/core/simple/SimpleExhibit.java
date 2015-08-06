@@ -14,47 +14,67 @@
  */
 package com.cloudera.exhibit.core.simple;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.ExhibitId;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import sun.java2d.pipe.SpanShapeRenderer;
 
 import java.util.Map;
-import java.util.Set;
 
 public class SimpleExhibit implements Exhibit {
 
   private final Obs attributes;
   private final Map<String, Frame> frames;
+  private final Map<String, Vector> vectors;
+
+  public static SimpleExhibit of(String name, Vector vec, Object... args) {
+    Map<String, Vector>   v = Maps.newHashMap();
+    Map<String, Frame> m = Maps.newHashMap();
+    v.put(name, vec);
+    for (int i = 0; i < args.length; i += 2) {
+      v.put(args[i].toString(), (Vector) args[i + 1]);
+    }
+    return new SimpleExhibit(Obs.EMPTY, m, v);
+  }
 
   public static SimpleExhibit of(String name, Frame frame, Object... args) {
+    Map<String, Vector>   v = Maps.newHashMap();
     Map<String, Frame> m = Maps.newHashMap();
     m.put(name, frame);
     for (int i = 0; i < args.length; i += 2) {
       m.put(args[i].toString(), (Frame) args[i + 1]);
     }
-    return new SimpleExhibit(Obs.EMPTY, m);
+    return new SimpleExhibit(Obs.EMPTY, m, v);
   }
 
   public SimpleExhibit(Obs attributes, Map<String, Frame> frames) {
     this.attributes = attributes;
     this.frames = frames;
+    this.vectors = Maps.newHashMap();
+  }
+
+  public SimpleExhibit(Obs attributes, Map<String, Frame> frames, Map<String, Vector> vectors) {
+    this.attributes = attributes;
+    this.frames = frames;
+    this.vectors = vectors;
   }
 
   @Override
   public ExhibitDescriptor descriptor() {
-    return new ExhibitDescriptor(attributes.descriptor(), Maps.transformValues(frames, new Function<Frame, ObsDescriptor>() {
-      @Override
-      public ObsDescriptor apply(Frame frame) {
-        return frame.descriptor();
-      }
-    }));
+    return new ExhibitDescriptor(attributes.descriptor(),
+      Maps.transformValues(frames, new Function<Frame, ObsDescriptor>() {
+        @Override
+        public ObsDescriptor apply(Frame frame) {
+          return frame.descriptor();
+        }
+      }),
+      Maps.transformValues(vectors, new Function<Vector, FieldType>() {
+        @Override
+        public FieldType apply(Vector vector) {
+          return vector.getType();
+        }
+      })
+    );
   }
 
   @Override
@@ -68,6 +88,11 @@ public class SimpleExhibit implements Exhibit {
   }
 
   @Override
+  public Map<String, Vector> vectors() {
+    return vectors;
+  }
+
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("Obs:\n");
@@ -77,6 +102,14 @@ public class SimpleExhibit implements Exhibit {
       sb.append("Frame ").append(e.getKey()).append(": [\n");
       for (Obs obs : e.getValue()) {
         sb.append(obs).append(",\n");
+      }
+      sb.append("]");
+    }
+    sb.append("\n");
+    for (Map.Entry<String, Vector> e : vectors.entrySet()) {
+      sb.append("Vector ").append(e.getKey()).append(": [\n");
+      for (Object obs : e.getValue()) {
+        sb.append(obs.toString()).append(",\n");
       }
       sb.append("]");
     }

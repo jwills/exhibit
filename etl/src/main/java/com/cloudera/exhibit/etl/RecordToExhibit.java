@@ -144,7 +144,7 @@ public class RecordToExhibit  {
     @Override
     public Exhibit map(GenericData.Record genericRecord) {
       UpdatableExhibit ue = new UpdatableExhibit(AvroExhibit.create(genericRecord));
-      ue.addAll(readFrames);
+      ue.addAllFrames(readFrames);
       for (int i = 0; i < calcs.size(); i++) {
         String name = metrics.get(i).name;
         Iterable<Obs> res = calcs.get(i).apply(ue);

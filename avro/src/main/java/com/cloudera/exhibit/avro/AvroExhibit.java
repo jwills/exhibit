@@ -14,20 +14,18 @@
  */
 package com.cloudera.exhibit.avro;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
+import com.cloudera.exhibit.core.vector.Vector;
+import com.cloudera.exhibit.core.vector.VectorBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -36,20 +34,37 @@ public class AvroExhibit {
   public static ExhibitDescriptor createDescriptor(Schema schema) {
     List<ObsDescriptor.Field> fields = Lists.newArrayList();
     Map<String, ObsDescriptor> frames = Maps.newHashMap();
+    Map<String, FieldType> vectors = Maps.newHashMap();
     for (int i = 0; i < schema.getFields().size(); i++) {
       Schema.Field f = schema.getFields().get(i);
       Schema unwrapped = AvroObsDescriptor.unwrap(f.schema());
       if (unwrapped.getType() == Schema.Type.ARRAY) {
-        //TODO be careful
-        frames.put(f.name(), new AvroObsDescriptor(getRecordElement(unwrapped.getElementType())));
+        Schema elementType = unwrapped.getElementType();
+        if(isRecordElement(elementType)) {
+          frames.put(f.name(), new AvroObsDescriptor(getRecordElement(elementType)));
+        } else {
+          vectors.put(f.name(), AvroObsDescriptor.getFieldType(elementType));
+        }
       } else {
-        ObsDescriptor.FieldType ft = AvroObsDescriptor.getFieldType(unwrapped);
+        FieldType ft = AvroObsDescriptor.getFieldType(unwrapped);
         if (ft != null) {
           fields.add(new ObsDescriptor.Field(f.name(), ft));
         }
       }
     }
-    return new ExhibitDescriptor(new SimpleObsDescriptor(fields), frames);
+    return new ExhibitDescriptor(new SimpleObsDescriptor(fields), frames, vectors);
+  }
+
+  static boolean isRecordElement(Schema schema) {
+    if (schema.getType() == Schema.Type.RECORD) {
+      return true;
+    } else if (schema.getType() == Schema.Type.UNION) {
+      Schema unwrappedField = AvroObsDescriptor.unwrap(schema);
+      if ( unwrappedField.getType() == Schema.Type.RECORD ){
+        return true;
+      }
+    }
+    return false;
   }
 
   static Schema getRecordElement(Schema schema) {
@@ -85,7 +100,7 @@ public class AvroExhibit {
     List<Object> attrValues = Lists.newArrayListWithExpectedSize(desc.attributes().size());
     for (int i = 0; i < desc.attributes().size(); i++) {
       Object val = record.get(desc.attributes().get(i).name);
-      if (val != null && desc.attributes().get(i).type == ObsDescriptor.FieldType.STRING) {
+      if (val != null && desc.attributes().get(i).type == FieldType.STRING) {
         val = val.toString();
       }
       attrValues.add(val);
@@ -101,7 +116,12 @@ public class AvroExhibit {
       }
       frames.put(frameName, new AvroFrame((AvroObsDescriptor) desc.frames().get(frameName), recs));
     }
-    return new SimpleExhibit(new SimpleObs(desc.attributes(), attrValues), frames);
+    Map<String, Vector> vectors = Maps.newHashMap();
+    for (Map.Entry<String, FieldType> v: desc.vectors().entrySet()) {
+      List vals = Arrays.asList((Object[])record.get(v.getKey()));
+      vectors.put(v.getKey(), VectorBuilder.build(v.getValue(), vals));
+    }
+    return new SimpleExhibit(new SimpleObs(desc.attributes(), attrValues), frames, vectors);
   }
 
   private AvroExhibit() {}
@@ -110,7 +130,7 @@ public class AvroExhibit {
     return new Schema.Field(f.name, getSchema(f.type), "", null);
   }
 
-  public static Schema getSchema(ObsDescriptor.FieldType type) {
+  public static Schema getSchema(FieldType type) {
     Schema internal;
     switch (type) {
       case BOOLEAN:
