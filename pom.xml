@@ -24,7 +24,6 @@
     <module>thrift</module>
     <module>etl</module>
     <module>spark</module>
-    <module>octave</module>
   </modules>
 
   <properties>
