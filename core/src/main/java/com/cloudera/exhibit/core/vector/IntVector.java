@@ -37,6 +37,10 @@ public class IntVector extends Vector {
     }
   }
 
+  public int[] getData() {
+    return values;
+  }
+
   @Override
   public Integer get(int index) {
     return values[index];
