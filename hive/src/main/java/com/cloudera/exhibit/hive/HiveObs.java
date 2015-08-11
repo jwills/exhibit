@@ -14,8 +14,8 @@
  */
 package com.cloudera.exhibit.hive;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 
 class HiveObs extends Obs {
 
@@ -30,6 +30,11 @@ class HiveObs extends Obs {
   @Override
   public ObsDescriptor descriptor() {
     return descriptor;
+  }
+
+  @Override
+  public int size() {
+    return descriptor.size();
   }
 
   @Override

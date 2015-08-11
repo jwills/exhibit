@@ -16,6 +16,9 @@ package com.cloudera.exhibit.spark
 
 import java.io.File
 
+import com.cloudera.exhibit.core.Exhibit
+import com.cloudera.exhibit.javascript.JsFunctorConstants
+import com.cloudera.exhibit.sql.SQLFunctor
 import com.google.common.collect.Lists
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.file.DataFileWriter
@@ -77,18 +80,25 @@ class ExhibitRDDTest {
   @Test def readExhibitSQL: Unit = {
     val erdd = ExhibitRDD.avroFile(testFile.toString, sc)
     val defcnt = erdd.sql( """select sum(a) suma, sum(c) sumc, count(*) from tbl""")
-    val res = defcnt.collect()
-    Assert.assertEquals(1, res.length)
-    Assert.assertEquals(32.0, res(0).getDouble(0), 0.001)
-    Assert.assertEquals(46, res(0).getInt(1))
-    Assert.assertEquals(2L, res(0).getLong(2))
+    val exhibits = defcnt.collect()
+    Assert.assertEquals(1, exhibits.size)
+    val resultExhibit: Exhibit = exhibits(0)
+    Assert.assertTrue(resultExhibit.frames().containsKey(SQLFunctor.DEFAULT_RESULT_FRAME))
+    val res = resultExhibit.frames.get(SQLFunctor.DEFAULT_RESULT_FRAME)
+    Assert.assertEquals(1, res.size)
+    Assert.assertEquals(32.0, res.get(0).get(0))
+    Assert.assertEquals(46, res.get(0).get(1))
+    Assert.assertEquals(2L, res.get(0).get(2))
   }
 
   @Test def readExhibitJS: Unit = {
     val erdd = ExhibitRDD.avroFile(testFile.toString, sc)
     val defcnt = erdd.js("tbl.length")
-    val res = defcnt.collect()
-    Assert.assertEquals(1, res.length)
-    Assert.assertEquals(2.0, res(0).getDouble(0), 0.001)
+    val exhibits = defcnt.collect()
+    Assert.assertEquals(1, exhibits.size)
+    val resultExhibit: Exhibit = exhibits(0)
+    Assert.assertEquals(1, resultExhibit.attributes().size())
+    val res = resultExhibit.attributes().get(JsFunctorConstants.DEFAULT_FIELD_NAME)
+    Assert.assertEquals(2.0, res)
   }
 }

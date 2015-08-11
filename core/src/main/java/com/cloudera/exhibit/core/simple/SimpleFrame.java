@@ -18,6 +18,7 @@ import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.Iterator;
 import java.util.List;
@@ -27,8 +28,15 @@ public class SimpleFrame extends Frame {
   private final ObsDescriptor descriptor;
   private final List<Obs> observations;
 
+  public static SimpleFrame of(Iterable<Obs> obs) {
+    return new SimpleFrame(obs);
+  }
   public static SimpleFrame of(Obs... obs) {
     return new SimpleFrame(ImmutableList.copyOf(obs));
+  }
+
+  public SimpleFrame(Iterable<Obs> observations){
+    this(Lists.newArrayList(observations));
   }
 
   public SimpleFrame(ObsDescriptor descriptor) {

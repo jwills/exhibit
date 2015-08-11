@@ -19,6 +19,7 @@ import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
+import java.util.Collections;
 import java.util.Map;
 
 public class SimpleExhibit implements Exhibit {
@@ -60,8 +61,8 @@ public class SimpleExhibit implements Exhibit {
   }
 
   @Override
-  public ExhibitDescriptor descriptor() {
-    return new ExhibitDescriptor(attributes.descriptor(),
+  public SimpleExhibitDescriptor descriptor() {
+    return new SimpleExhibitDescriptor(attributes.descriptor(),
       Maps.transformValues(frames, new Function<Frame, ObsDescriptor>() {
         @Override
         public ObsDescriptor apply(Frame frame) {
@@ -93,6 +94,20 @@ public class SimpleExhibit implements Exhibit {
   }
 
   @Override
+  public boolean equals(Object o) {
+    if( this == o ) {
+      return true;
+    }
+    if (o == null || !(o instanceof Exhibit )) {
+      return false;
+    }
+    Exhibit other = (Exhibit) o;
+    return attributes() == other.attributes()
+        && frames().equals(other.frames())
+        && vectors().equals(other.vectors());
+  }
+
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("Obs:\n");
@@ -115,4 +130,6 @@ public class SimpleExhibit implements Exhibit {
     }
     return sb.toString();
   }
+
+  public static final SimpleExhibit EMPTY = new SimpleExhibit(Obs.EMPTY, Collections.EMPTY_MAP, Collections.EMPTY_MAP);
 }

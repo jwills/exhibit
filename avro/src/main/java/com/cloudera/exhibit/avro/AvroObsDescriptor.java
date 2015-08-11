@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-public class AvroObsDescriptor implements ObsDescriptor {
+public class AvroObsDescriptor extends ObsDescriptor {
 
   private static Schema NULL = Schema.create(Schema.Type.NULL);
 
@@ -91,6 +91,11 @@ public class AvroObsDescriptor implements ObsDescriptor {
   @Override
   public int size() {
     return schema.getFields().size();
+  }
+
+  @Override
+  public ObsDescriptor clone() {
+    return new AvroObsDescriptor(this.schema);
   }
 
   @Override

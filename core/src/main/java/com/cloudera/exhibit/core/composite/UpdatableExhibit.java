@@ -14,7 +14,9 @@
  */
 package com.cloudera.exhibit.core.composite;
 
-import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.collect.Maps;
 
@@ -36,12 +38,12 @@ public class UpdatableExhibit implements Exhibit {
 
   public UpdatableExhibit add(String name, Vector vector) {
     this.vectors.put(name, vector);
-    this.descriptor.add(name, vector.getType());
+    this.descriptor.addVector(name, vector.getType());
     return this;
   }
   public UpdatableExhibit add(String name, Frame frame) {
     this.frames.put(name, frame);
-    this.descriptor.add(name, frame.descriptor());
+    this.descriptor.addFrame(name, frame.descriptor());
     return this;
   }
 
@@ -60,7 +62,7 @@ public class UpdatableExhibit implements Exhibit {
   }
 
   @Override
-  public ExhibitDescriptor descriptor() {
+  public UpdatableExhibitDescriptor descriptor() {
     return descriptor;
   }
 
@@ -83,5 +85,19 @@ public class UpdatableExhibit implements Exhibit {
     union.putAll(base.vectors());
     union.putAll(vectors);
     return union;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if( this == o ) {
+      return true;
+    }
+    if (o == null || !(o instanceof Exhibit )) {
+      return false;
+    }
+    Exhibit other = (Exhibit) o;
+    return attributes() == other.attributes()
+        && frames().equals(other.frames())
+        && vectors().equals(other.vectors());
   }
 }

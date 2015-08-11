@@ -15,32 +15,21 @@
 package com.cloudera.exhibit.etl;
 
 import com.cloudera.exhibit.avro.AvroExhibit;
-import com.cloudera.exhibit.core.Calculator;
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.etl.config.AggConfig;
 import com.cloudera.exhibit.etl.config.OutputConfig;
 import com.cloudera.exhibit.etl.tbl.Tbl;
 import com.cloudera.exhibit.etl.tbl.TblCache;
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
-import org.apache.crunch.DoFn;
-import org.apache.crunch.Emitter;
-import org.apache.crunch.PCollection;
-import org.apache.crunch.PTable;
-import org.apache.crunch.Pair;
+import org.apache.crunch.*;
 import org.apache.crunch.types.avro.AvroType;
 import org.apache.crunch.types.avro.Avros;
 
-import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.cloudera.exhibit.etl.SchemaUtil.unionValueSchema;
@@ -164,7 +153,7 @@ public class OutputGen {
     private final List<SchemaProvider> providers;
     private transient Schema key;
     private transient List<TblCache> tblCaches;
-    private transient List<Calculator> calcs;
+    private transient List<Functor> calcs;
     private boolean initialized = false;
 
     public MapOutFn(int outputId, OutputConfig config, Schema keySchema, List<SchemaProvider> providers) {
@@ -187,7 +176,7 @@ public class OutputGen {
       if (!initialized) {
         for (int i = 0; i < config.aggregates.size(); i++) {
           AggConfig ac = config.aggregates.get(i);
-          Calculator c = ac.getCalculator();
+          Functor c = ac.getCalculator();
           c.initialize(exhibit.descriptor());
           calcs.add(c);
           TblCache tc = new TblCache(ac, i, emitter, providers.get(i));
@@ -198,7 +187,7 @@ public class OutputGen {
 
       for (int i = 0; i < calcs.size(); i++) {
         AggConfig ac = config.aggregates.get(i);
-        for (Obs obs : calcs.get(i).apply(exhibit)) {
+        for (Obs obs : MIGRATION_UTILITIES.eval(calcs.get(i),exhibit)) {
           List<String> keys = getKeys(ac, config);
           GenericData.Record keyRec = new GenericData.Record(key);
           // Copy attributes

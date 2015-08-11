@@ -48,6 +48,11 @@ public class AvroObs extends Obs {
   }
 
   @Override
+  public int size() {
+    return descriptor().size();
+  }
+
+  @Override
   public Object get(int index) {
     ObsDescriptor.Field f = descriptor.get(index);
     Object r = record.get(f.name);

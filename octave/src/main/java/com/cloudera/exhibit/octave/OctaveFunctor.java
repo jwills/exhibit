@@ -1,44 +1,56 @@
+/*
+ * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+ *
+ * Cloudera, Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the
+ * License.
+ */
 package com.cloudera.exhibit.octave;
 
 import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.vector.Vector;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import dk.ange.octave.OctaveEngine;
+import dk.ange.octave.OctaveEngineFactory;
+import dk.ange.octave.OctaveUtils;
+import dk.ange.octave.type.OctaveObject;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import com.cloudera.exhibit.core.vector.Vector;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import dk.ange.octave.*;
-import dk.ange.octave.type.OctaveObject;
-
-/**
- * Created by prungta on 8/5/15.
- */
-public class OctaveCalculator implements Calculator, Serializable{
-  private ObsDescriptor descriptor;
+public class OctaveFunctor implements Functor, Serializable{
+  private ExhibitDescriptor descriptor;
   private String script;
 
   private transient OctaveEngine octaveEngine;
 
-  OctaveCalculator(String script) throws OctaveScriptFormatException {
+  OctaveFunctor(String script) {
     this(null, script);
   }
 
-  OctaveCalculator(ObsDescriptor descriptor, String script) throws OctaveScriptFormatException {
+  OctaveFunctor(ExhibitDescriptor descriptor, String script) {
     this.descriptor = descriptor;
     this.script = script;
     this.octaveEngine = null;
   }
 
   @Override
-  public ObsDescriptor initialize(ExhibitDescriptor ed) {
+  public ExhibitDescriptor initialize(ExhibitDescriptor ed) {
     if(octaveEngine == null) {
       this.octaveEngine = new OctaveEngineFactory().getScriptEngine();
     }
     if(this.descriptor == null){
-      OctaveFrame of = execute(Exhibits.defaultValues(ed));
-      this.descriptor = of.descriptor();
+      Exhibit e = execute(Exhibits.defaultValues2(ed));
+      this.descriptor = e.descriptor();
     }
     return this.descriptor;
   }
@@ -52,7 +64,7 @@ public class OctaveCalculator implements Calculator, Serializable{
   }
 
   @Override
-  public Iterable<Obs> apply(Exhibit input) {
+  public Exhibit apply(Exhibit input) {
     this.octaveEngine.eval("clear");
     return execute(input);
   }
@@ -86,7 +98,7 @@ public class OctaveCalculator implements Calculator, Serializable{
     return vars;
   }
 
-  private OctaveFrame execute(Exhibit exhibit) {
+  private Exhibit execute(Exhibit exhibit) {
     Set<String> originalVars = Sets.newHashSet(OctaveUtils.listVars(octaveEngine).iterator());
     Map<String,OctaveObject> vars = createOctaveEnv(exhibit);
     originalVars.addAll(vars.keySet());
@@ -94,11 +106,11 @@ public class OctaveCalculator implements Calculator, Serializable{
     octaveEngine.eval(this.script);
     Set<String> newVars = Sets.newHashSet(OctaveUtils.listVars(octaveEngine).iterator());
     Set<String> deltaVars = Sets.difference(newVars,originalVars);
-    if(deltaVars.size() != 1) {
-      throw new UnsupportedOperationException("Currently only support the extraction of a single variable");
+    if(deltaVars.size() <= 0) {
+      throw new UnsupportedOperationException("No new variables detected");
     }
-    String varName = Iterables.getOnlyElement(deltaVars);
-    return new OctaveFrame(varName, octaveEngine.get(varName));
+    return new OctaveTypeUtils.OctaveConverter(octaveEngine)
+        .addVars(deltaVars)
+        .convert();
   }
-
 }

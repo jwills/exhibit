@@ -16,21 +16,18 @@ package com.cloudera.exhibit.avro;
 
 import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.ObsDescriptor.Field;
-import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
+import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class AvroExhibitTest {
 
@@ -61,9 +58,8 @@ public class AvroExhibitTest {
   public void testExhibitDescriptorFrame() {
     // Apply same tests to both schemas
     // null-able inner types should not alter inference
-    List<ExhibitDescriptor> descriptors = ImmutableList.of(
-        AvroExhibit.createDescriptor(outer1)
-        , AvroExhibit.createDescriptor(outer2));
+    ImmutableList<ExhibitDescriptor> descriptors = ImmutableList.of(
+        AvroExhibit.createDescriptor(outer1), AvroExhibit.createDescriptor(outer2));
     for(ExhibitDescriptor desc: descriptors){
       ObsDescriptor attributes = desc.attributes();
       assertEquals("Infer number of attributes", 2, attributes.size());

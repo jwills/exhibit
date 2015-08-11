@@ -31,7 +31,6 @@ import org.apache.crunch.types.avro.Avros;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static com.cloudera.exhibit.etl.SchemaUtil.unwrapNull;
 

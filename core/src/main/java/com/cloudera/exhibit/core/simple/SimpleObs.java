@@ -42,25 +42,16 @@ public class SimpleObs extends Obs {
   }
 
   @Override
+  public int size() {
+    return values.size();
+  }
+
+  @Override
   public Object get(int index) {
     return values.get(index);
   }
 
   public List<Object> getValues() {
     return values;
-  }
-
-  @Override
-  public int hashCode() {
-    return descriptor.hashCode() + 17 * values.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == null || !(other instanceof SimpleObs)) {
-      return false;
-    }
-    SimpleObs obs = (SimpleObs) other;
-    return descriptor.equals(obs.descriptor) && values.equals(obs.values);
   }
 }

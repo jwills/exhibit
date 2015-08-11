@@ -14,8 +14,8 @@
  */
 package com.cloudera.exhibit.mongodb;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import org.bson.BSONObject;
 
 public class BSONObs extends Obs {
@@ -31,6 +31,11 @@ public class BSONObs extends Obs {
   @Override
   public ObsDescriptor descriptor() {
     return descriptor;
+  }
+
+  @Override
+  public int size() {
+    return descriptor().size();
   }
 
   @Override

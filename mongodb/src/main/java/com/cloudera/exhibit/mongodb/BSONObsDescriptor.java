@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class BSONObsDescriptor implements ObsDescriptor {
+public class BSONObsDescriptor extends ObsDescriptor {
 
   private final List<String> names;
   private final List<FieldType> fieldTypes;
@@ -67,6 +67,11 @@ public class BSONObsDescriptor implements ObsDescriptor {
   @Override
   public int size() {
     return names.size();
+  }
+
+  @Override
+  public ObsDescriptor clone() {
+    return new BSONObsDescriptor(this.names, this.fieldTypes);
   }
 
   @Override

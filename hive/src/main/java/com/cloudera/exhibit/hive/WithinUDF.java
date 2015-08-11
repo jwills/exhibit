@@ -14,14 +14,10 @@
  */
 package com.cloudera.exhibit.hive;
 
-import com.cloudera.exhibit.core.Calculator;
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.vector.Vector;
-import com.cloudera.exhibit.sql.SQLCalculator;
+import com.cloudera.exhibit.sql.SQLFunctor;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -37,7 +33,7 @@ import java.util.Map;
 
 public class WithinUDF extends GenericUDF {
 
-  private Calculator calculator;
+  private Functor functor;
   private transient Exhibit exhibit;
 
   public WithinUDF() {
@@ -59,9 +55,10 @@ public class WithinUDF extends GenericUDF {
     }
     Map<String, Vector> vectors = Maps.newHashMap(); // TODO: implement
     this.exhibit = new SimpleExhibit(Obs.EMPTY, frames, vectors);
-    this.calculator = new SQLCalculator(queries);
-    ObsDescriptor od = calculator.initialize(exhibit.descriptor());
-    return HiveUtils.fromDescriptor(od, false);
+    this.functor = new SQLFunctor(queries);
+    ExhibitDescriptor od = functor.initialize(exhibit.descriptor());
+    ObsDescriptor     fd = od.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
+    return HiveUtils.fromDescriptor(fd, false);
   }
 
   @Override
@@ -69,7 +66,9 @@ public class WithinUDF extends GenericUDF {
     for (int i = 1; i < args.length; i++) {
       ((HiveFrame) exhibit.frames().get("T" + i)).updateValues(args[i].get());
     }
-    return getResult(Iterables.getOnlyElement(calculator.apply(exhibit)));
+    Exhibit result    = functor.apply(exhibit);
+    Frame resultFrame = result.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
+    return getResult(Iterables.getOnlyElement(resultFrame));
   }
 
   private Object getResult(Obs obs) {

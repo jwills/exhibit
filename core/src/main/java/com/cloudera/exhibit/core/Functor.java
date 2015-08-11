@@ -14,25 +14,9 @@
  */
 package com.cloudera.exhibit.core;
 
-public class LookupCalculator implements Calculator {
+import com.google.common.base.Function;
 
-  private final String frame;
-
-  public LookupCalculator(String frame) {
-    this.frame = frame;
-  }
-
-  @Override
-  public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
-    return descriptor.frames().get(frame);
-  }
-
-  @Override
-  public void cleanup() {
-  }
-
-  @Override
-  public Iterable<Obs> apply(Exhibit exhibit) {
-    return exhibit.frames().get(frame);
-  }
+public interface Functor extends Function<Exhibit, Exhibit> {
+  public ExhibitDescriptor initialize(ExhibitDescriptor descriptor);
+  public void cleanup();
 }

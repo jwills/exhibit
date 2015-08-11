@@ -20,8 +20,8 @@ import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.cloudera.exhibit.javascript.JSCalculator;
-import com.cloudera.exhibit.sql.SQLCalculator;
+import com.cloudera.exhibit.javascript.JSFunctor;
+import com.cloudera.exhibit.sql.SQLFunctor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -33,7 +33,7 @@ public class JSQLTest {
 
   @Test
   public void testJS2SQL() throws Exception {
-    JSCalculator jsc = new JSCalculator("[{id: 123}]");
+    JSFunctor jsc = new JSFunctor("[{id: 123}]");
     ObsDescriptor od = SimpleObsDescriptor.builder().doubleField("a").booleanField("b").build();
     Obs obs = SimpleObs.of(od, 1729, true);
     Obs one = SimpleObs.of(od, 17, true);
@@ -42,10 +42,10 @@ public class JSQLTest {
     Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
     jsc.initialize(e.descriptor());
     UpdatableExhibit ue = new UpdatableExhibit(e);
-    ue.add("jsres", (Frame) jsc.apply(e));
-    SQLCalculator sql = SQLCalculator.create(null, "SELECT count(*) suma FROM jsres where id > 0");
+    ue.add("jsres", MIGRATION_UTILITIES.eval(jsc,e));
+    SQLFunctor sql = SQLFunctor.create(null, "SELECT count(*) suma FROM jsres where id > 0");
     sql.initialize(ue.descriptor());
-    Iterable<Obs> res = sql.apply(ue);
+    Iterable<Obs> res = MIGRATION_UTILITIES.eval(sql, ue);
     assertEquals(
         new SimpleObs(SimpleObsDescriptor.of("suma", FieldType.LONG), ImmutableList.<Object>of(1L)),
         Iterables.getOnlyElement(res));

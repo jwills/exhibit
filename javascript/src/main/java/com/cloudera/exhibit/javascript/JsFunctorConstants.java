@@ -12,11 +12,8 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.core;
+package com.cloudera.exhibit.javascript;
 
-import com.google.common.base.Function;
-
-public interface Calculator extends Function<Exhibit, Iterable<Obs>> {
-  public ObsDescriptor initialize(ExhibitDescriptor descriptor);
-  public void cleanup();
+public class JsFunctorConstants {
+  public static final String DEFAULT_FIELD_NAME = "res";
 }

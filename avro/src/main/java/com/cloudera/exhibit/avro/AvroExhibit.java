@@ -16,6 +16,7 @@ package com.cloudera.exhibit.avro;
 
 import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.simple.SimpleExhibitDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.cloudera.exhibit.core.vector.Vector;
@@ -52,7 +53,7 @@ public class AvroExhibit {
         }
       }
     }
-    return new ExhibitDescriptor(new SimpleObsDescriptor(fields), frames, vectors);
+    return new SimpleExhibitDescriptor(new SimpleObsDescriptor(fields), frames, vectors);
   }
 
   static boolean isRecordElement(Schema schema) {

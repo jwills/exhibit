@@ -47,6 +47,11 @@ public class Exhibits {
     return defaultValues(descriptor, DV);
   }
 
+  //TODO: refactor method
+  public static Exhibit defaultValues2(ExhibitDescriptor descriptor) {
+    return defaultValues2(descriptor, DV);
+  }
+
   public static Exhibit defaultValues(
       ExhibitDescriptor descriptor, FieldType ft, Object value, Object... args) {
     Map<FieldType, Object> defaults = Maps.newHashMap(DV);
@@ -76,6 +81,30 @@ public class Exhibits {
     for (Map.Entry<String, FieldType> e : descriptor.vectors().entrySet()) {
       FieldType type = e.getValue();
       Vector vector = VectorBuilder.build(type, ImmutableList.of(defaults.get(type)));
+      vectors.put(e.getKey(), vector);
+    }
+    return new SimpleExhibit(attrs, frames, vectors);
+  }
+
+  public static Exhibit defaultValues2(ExhibitDescriptor descriptor, Map<FieldType, Object> defaults) {
+    List<Object> attrValues = Lists.newArrayList();
+    for (ObsDescriptor.Field f : descriptor.attributes()) {
+      attrValues.add(defaults.get(f.type));
+    }
+    Obs attrs = new SimpleObs(descriptor.attributes(), attrValues);
+    Map<String, Frame> frames = Maps.newHashMap();
+    for (Map.Entry<String, ObsDescriptor> e : descriptor.frames().entrySet()) {
+      List<Object> frameValues = Lists.newArrayList();
+      for (ObsDescriptor.Field f : e.getValue()) {
+        frameValues.add(defaults.get(f.type));
+      }
+      Obs frameObs = new SimpleObs(e.getValue(), frameValues);
+      frames.put(e.getKey(), new SimpleFrame(ImmutableList.of(frameObs, frameObs)));
+    }
+    Map<String, Vector> vectors = Maps.newHashMap();
+    for (Map.Entry<String, FieldType> e : descriptor.vectors().entrySet()) {
+      FieldType type = e.getValue();
+      Vector vector = VectorBuilder.build(type, ImmutableList.of(defaults.get(type), defaults.get(type)));
       vectors.put(e.getKey(), vector);
     }
     return new SimpleExhibit(attrs, frames, vectors);

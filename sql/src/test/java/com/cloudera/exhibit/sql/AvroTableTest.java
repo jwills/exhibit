@@ -20,7 +20,6 @@ import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
-import com.cloudera.exhibit.core.vector.DoubleVector;
 import com.cloudera.exhibit.core.vector.Vector;
 import com.cloudera.exhibit.core.vector.VectorBuilder;
 import com.google.common.collect.ImmutableList;
@@ -28,14 +27,11 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
-import org.apache.calcite.rel.core.Collect;
 import org.junit.Test;
 
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class AvroTableTest {
 
@@ -45,9 +41,10 @@ public class AvroTableTest {
       .requiredLong("f3")
       .endRecord();
 
-  private Frame eval(SQLCalculator calc, Exhibit e) {
+  private Frame eval(SQLFunctor calc, Exhibit e) {
     calc.initialize(e.descriptor());
-    Frame frm = calc.apply(e);
+    Exhibit result = calc.apply(e);
+    Frame frm = result.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
     calc.cleanup();
     return frm;
   }
@@ -58,7 +55,7 @@ public class AvroTableTest {
     String[] queries = new String[] {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
-    SQLCalculator calc = new SQLCalculator(queries);
+    SQLFunctor calc = new SQLFunctor(queries);
     Frame frame = eval(calc, SimpleExhibit.of("t1", new AvroFrame(at)));
     assertFalse(frame.size() > 0);
   }
@@ -68,7 +65,7 @@ public class AvroTableTest {
     String[] queries = new String[] {
       "select count(*) as ct from v1"
     };
-    SQLCalculator calc = new SQLCalculator(queries);
+    SQLFunctor calc = new SQLFunctor(queries);
     Vector v = VectorBuilder.doubles(Collections.emptyList());
     Frame frame = eval(calc, SimpleExhibit.of("v1", v));
     assertEquals("Single Record returned", 1, frame.size());
@@ -94,7 +91,7 @@ public class AvroTableTest {
     String[] queries = new String[] {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' and f3 in ("+in+") group by f2"
     };
-    SQLCalculator calc = new SQLCalculator(queries);
+    SQLFunctor calc = new SQLFunctor(queries);
     Frame res = eval(calc, SimpleExhibit.of("t1", frame));
     assertEquals(1, res.size());
     assertEquals(Boolean.TRUE, res.get(0).get(0));
@@ -113,12 +110,12 @@ public class AvroTableTest {
     r2.put("f3", 17L);
     AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2));
     Vector v = VectorBuilder.doubles(ImmutableList.<Object>of(1729.0));
-    SimpleExhibit se = new SimpleExhibit(Obs.EMPTY,
+    Exhibit se = new SimpleExhibit(Obs.EMPTY,
         ImmutableMap.<String, Frame>of("t1", frame), ImmutableMap.of("v1", v));
     String[] queries = new String[] {
         "select * from t1, v1 where t1.f3=v1.c0"
     };
-    SQLCalculator calc = new SQLCalculator(queries);
+    SQLFunctor calc = new SQLFunctor(queries);
     Frame res = eval(calc, se);
     assertEquals(1, res.size());
     assertEquals(Boolean.TRUE, res.get(0).get("f2"));
@@ -138,7 +135,7 @@ public class AvroTableTest {
     String[] queries = new String[] {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' group by f2"
     };
-    SQLCalculator calc = new SQLCalculator(queries);
+    SQLFunctor calc = new SQLFunctor(queries);
     Frame res = eval(calc, SimpleExhibit.of("t1", frame));
     assertTrue(res.size() == 1);
     assertEquals(null, res.get(0).get(0));

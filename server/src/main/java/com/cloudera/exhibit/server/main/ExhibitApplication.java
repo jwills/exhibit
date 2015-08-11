@@ -15,10 +15,10 @@
 package com.cloudera.exhibit.server.main;
 
 import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.ExhibitId;
 import com.cloudera.exhibit.core.ExhibitStore;
-import com.cloudera.exhibit.server.calcs.CalculationStore;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.server.calcs.FunctionStore;
 import com.cloudera.exhibit.server.checks.ExhibitStoresCheck;
 import com.cloudera.exhibit.server.json.ExhibitIdDeserializer;
 import com.cloudera.exhibit.server.json.ExhibitIdSerializer;
@@ -58,7 +58,7 @@ public class ExhibitApplication extends Application<ExhibitConfiguration> implem
     // basic env stuff
     setupMapper(env.getObjectMapper());
     ExhibitStore exhibits = config.getExhibitStores(env, getConf());
-    CalculationStore calcs = new CalculationStore();
+    FunctionStore calcs = new FunctionStore();
 
     // health checks
     env.healthChecks().register("stores", new ExhibitStoresCheck(exhibits));

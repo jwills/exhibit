@@ -14,7 +14,11 @@
  */
 package com.cloudera.exhibit.core;
 
+import com.google.common.collect.Iterables;
+
 import java.io.Serializable;
+import java.util.Iterator;
+import java.util.Objects;
 
 public abstract class Frame implements Iterable<Obs>, Serializable {
   public abstract ObsDescriptor descriptor();
@@ -27,5 +31,36 @@ public abstract class Frame implements Iterable<Obs>, Serializable {
 
   public Column $(String columnName) {
     return Column.create(this, columnName);
+  }
+
+  @Override
+  public int hashCode(){
+    return  descriptor().hashCode()
+         +  3 * Objects.hash(Iterables.toArray((Iterable<? extends Obs>) iterator(), Obs.class));
+  }
+
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == null || !(other instanceof Frame )) {
+      return false;
+    }
+    Frame otherFrame = (Frame)other;
+    if(size()!=otherFrame.size()){
+      return false;
+    }
+    if(!descriptor().equals(otherFrame.descriptor())) {
+      return false;
+    }
+    Iterator<Obs> thisIter  = iterator();
+    Iterator<Obs> otherIter = otherFrame.iterator();
+    while(thisIter.hasNext() && otherIter.hasNext()){
+      Obs thisObs  = thisIter.next();
+      Obs otherObs = otherIter.next();
+      if(!thisObs.equals(otherObs)){
+        return false;
+      }
+    }
+    return thisIter.hasNext() == otherIter.hasNext();
   }
 }

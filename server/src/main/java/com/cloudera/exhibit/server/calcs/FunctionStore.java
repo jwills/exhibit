@@ -22,15 +22,15 @@ import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 
-public class CalculationStore {
+public class FunctionStore {
 
-  private List<Calculation> calculations;
+  private List<Function> functions;
 
-  public CalculationStore() {
+  public FunctionStore() {
     // TODO: remove this
-    this.calculations = Lists.newArrayList();
-    addCalculation("select (sum(yds)/count(distinct gid)) pass_ypg from passes");
-    addCalculation("select (sum(yds)/count(distinct gid)) rush_ypg from rushes");
+    this.functions = Lists.newArrayList();
+    addFunctor("select (sum(yds)/count(distinct gid)) pass_ypg from passes");
+    addFunctor("select (sum(yds)/count(distinct gid)) rush_ypg from rushes");
   }
 
   public synchronized Map<String, Map<String, Object>> computeKPIs(Exhibit exhibit) {
@@ -39,13 +39,13 @@ public class CalculationStore {
       return ret;
     }
 
-    for (Calculation calc : calculations) {
-      Iterable<Obs> frame = calc.apply(exhibit);
+    for (Function func : functions) {
+      Iterable<Obs> frame = func.apply(exhibit);
       for (Obs obs : frame) {
         // TODO: multi row? Real objects, probably?
         for (int i = 0; i < obs.descriptor().size(); i++) {
           Map<String, Object> base = Maps.newHashMap();
-          base.put("id", calc.getId());
+          base.put("id", func.getId());
           base.put("value", obs.get(i));
           ret.put(obs.descriptor().get(i).name, base);
         }
@@ -54,13 +54,13 @@ public class CalculationStore {
     return ret;
   }
 
-  public synchronized void addCalculation(String code) {
-    int id = calculations.size();
-    Calculation c = new Calculation(id, code);
-    calculations.add(c);
+  public synchronized void addFunctor(String code) {
+    int id = functions.size();
+    Function c = new Function(id, code);
+    functions.add(c);
   }
 
   public synchronized String getCode(int id) {
-    return calculations.get(id).getCode();
+    return functions.get(id).getCode();
   }
 }

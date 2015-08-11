@@ -14,18 +14,17 @@
  */
 package com.cloudera.exhibit.etl.config;
 
-import com.cloudera.exhibit.core.Calculator;
-import com.cloudera.exhibit.core.FieldType;
-import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.core.PivotCalculator;
+import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.simple.SimpleExhibitDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.cloudera.exhibit.javascript.JSCalculator;
-import com.cloudera.exhibit.sql.SQLCalculator;
+import com.cloudera.exhibit.javascript.JSFunctor;
+import com.cloudera.exhibit.sql.SQLFunctor;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,7 +50,7 @@ public class FrameConfig implements Serializable {
   // frame format.
   public PivotConfig pivot = null;
 
-  public Calculator getCalculator() {
+  public Functor getFunctor() {
     ObsDescriptor od = null;
     if (descriptor != null && !descriptor.isEmpty()) {
       List<ObsDescriptor.Field> fields = Lists.newArrayList();
@@ -62,23 +61,24 @@ public class FrameConfig implements Serializable {
       od = new SimpleObsDescriptor(fields);
     }
     if ("sql".equalsIgnoreCase(engine)) {
-      SQLCalculator sql = SQLCalculator.create(od, code);
+      SQLFunctor sql = SQLFunctor.create(od, code);
       if (pivot == null) {
         return sql;
       } else {
-        return new PivotCalculator(sql, pivot.by, toKeys(pivot.variables));
+        return new PivotFunctor(SQLFunctor.DEFAULT_RESULT_FRAME, sql, pivot.by, toKeys(pivot.variables));
       }
     } else if ("js".equalsIgnoreCase(engine) || "javascript".equalsIgnoreCase(engine)) {
-      return new JSCalculator(od, code);
+      ExhibitDescriptor ed = new SimpleExhibitDescriptor(od, Collections.EMPTY_MAP, Collections.EMPTY_MAP);
+      return new JSFunctor(ed, code); //TODO: expose exhibit
     } else {
       throw new IllegalStateException("Unknown engine type: " + engine);
     }
   }
 
-  static List<PivotCalculator.Key> toKeys(Map<String, List<String>> vars) {
-    List<PivotCalculator.Key> keys = Lists.newArrayList();
+  static List<PivotFunctor.Key> toKeys(Map<String, List<String>> vars) {
+    List<PivotFunctor.Key> keys = Lists.newArrayList();
     for (Map.Entry<String, List<String>> e : vars.entrySet()) {
-      keys.add(new PivotCalculator.Key(e.getKey(), Sets.newHashSet(e.getValue())));
+      keys.add(new PivotFunctor.Key(e.getKey(), Sets.newHashSet(e.getValue())));
     }
     return keys;
   }

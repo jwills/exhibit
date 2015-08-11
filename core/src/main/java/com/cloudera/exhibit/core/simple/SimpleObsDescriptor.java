@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class SimpleObsDescriptor implements ObsDescriptor {
+public class SimpleObsDescriptor extends ObsDescriptor {
 
   private final List<Field> fields;
   private final Map<String, Integer> indexMap;
@@ -56,6 +56,11 @@ public class SimpleObsDescriptor implements ObsDescriptor {
   }
 
   @Override
+  public Field get(String n) {
+    return get(indexOf(n));
+  }
+
+  @Override
   public int indexOf(String name) {
     Integer im = indexMap.get(name);
     return im == null ? -1 : im;
@@ -72,17 +77,8 @@ public class SimpleObsDescriptor implements ObsDescriptor {
   }
 
   @Override
-  public int hashCode() {
-    return fields.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (other == null || !(other instanceof SimpleObsDescriptor)) {
-      return false;
-    }
-    SimpleObsDescriptor sod = (SimpleObsDescriptor) other;
-    return fields.equals(sod.fields);
+  public ObsDescriptor clone() {
+    return new SimpleObsDescriptor(this.fields);
   }
 
   @Override

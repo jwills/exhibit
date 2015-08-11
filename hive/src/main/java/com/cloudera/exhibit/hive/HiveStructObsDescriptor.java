@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.hive;
 
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -24,7 +25,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import java.util.Iterator;
 import java.util.List;
 
-class HiveStructObsDescriptor implements HiveObsDescriptor {
+class HiveStructObsDescriptor extends HiveObsDescriptor {
   private final StructObjectInspector obji;
 
   public HiveStructObsDescriptor(StructObjectInspector obji) {
@@ -45,6 +46,11 @@ class HiveStructObsDescriptor implements HiveObsDescriptor {
   @Override
   public int size() {
     return obji.getAllStructFieldRefs().size();
+  }
+
+  @Override
+  public ObsDescriptor clone() {
+    return new HiveStructObsDescriptor(this.obji);
   }
 
   @Override
