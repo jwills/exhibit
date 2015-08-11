@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class CompositeObsDescriptor implements ObsDescriptor {
+public class CompositeObsDescriptor extends ObsDescriptor {
 
   private List<ObsDescriptor> components;
   private Map<String, Integer> fieldNames;
@@ -72,6 +72,11 @@ public class CompositeObsDescriptor implements ObsDescriptor {
   }
 
   @Override
+  public Field get(String n) {
+    return get(indexOf(n));
+  }
+
+  @Override
   public int indexOf(String name) {
     Integer ret = fieldNames.get(name);
     return ret == null ? -1 : ret;
@@ -80,6 +85,11 @@ public class CompositeObsDescriptor implements ObsDescriptor {
   @Override
   public int size() {
     return offsets[offsets.length - 1];
+  }
+
+  @Override
+  public ObsDescriptor clone() {
+    return new CompositeObsDescriptor(this.components);
   }
 
   @Override

@@ -16,7 +16,7 @@ package com.cloudera.exhibit.core;
 
 import com.google.common.base.Function;
 
-public interface Calculator extends Function<Exhibit, Iterable<Obs>> {
-  public ObsDescriptor initialize(ExhibitDescriptor descriptor);
+public interface Functor extends Function<Exhibit, Exhibit> {
+  public ExhibitDescriptor initialize(ExhibitDescriptor descriptor);
   public void cleanup();
 }

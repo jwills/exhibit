@@ -14,12 +14,9 @@
  */
 package com.cloudera.exhibit.core;
 
-import com.cloudera.exhibit.core.simple.SimpleFrame;
-import com.cloudera.exhibit.core.simple.SimpleObs;
-import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import com.cloudera.exhibit.core.simple.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
@@ -28,16 +25,18 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 public class PivotTest {
+  public static final String FRAME_NAME = "df";
   public static final ObsDescriptor DESC = SimpleObsDescriptor.builder()
           .booleanField("a")
           .stringField("b")
           .intField("c")
           .build();
+  public static final ExhibitDescriptor EXHIBIT_DESCRIPTOR = SimpleExhibitDescriptor.of(FRAME_NAME, DESC);
 
-  private static final Calculator TEST_FC = new Calculator() {
+  private static final Functor TEST_FC = new Functor() {
     @Override
-    public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
-      return DESC;
+    public ExhibitDescriptor initialize(ExhibitDescriptor descriptor) {
+      return EXHIBIT_DESCRIPTOR;
     }
 
     @Override
@@ -45,43 +44,54 @@ public class PivotTest {
     }
 
     @Override
-    public Frame apply(Exhibit exhibit) {
+    public Exhibit apply(Exhibit exhibit) {
       Obs o1 = new SimpleObs(DESC, ImmutableList.<Object>of(true, "v1", 17));
       Obs o2 = new SimpleObs(DESC, ImmutableList.<Object>of(false, "v2", 29));
-      return new SimpleFrame(DESC, ImmutableList.of(o1, o2));
+      return SimpleExhibit.of(FRAME_NAME, new SimpleFrame(DESC, ImmutableList.of(o1, o2)));
     }
   };
 
   @Test
   public void testPivotOne() throws Exception {
-    PivotCalculator.Key b = new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2"));
-    PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), ImmutableList.of(b));
-    ObsDescriptor od = pc.initialize(null);
+    PivotFunctor.Key b = new PivotFunctor.Key("b", ImmutableSet.of("v1", "v2"));
+    PivotFunctor pc = new PivotFunctor(FRAME_NAME, TEST_FC, ImmutableList.<String>of(), ImmutableList.of(b));
+    ExhibitDescriptor ed = pc.initialize(null);
+    ObsDescriptor od = ed.frames().get(FRAME_NAME);
     System.out.println(od);
-    Obs obs = Iterables.getOnlyElement(pc.apply(null));
+    Frame pivotedFrame = pc.apply(null).frames().get(FRAME_NAME);
+    assertEquals(1, pivotedFrame.size());
+    Obs obs = pivotedFrame.get(0);
     assertEquals(new SimpleObs(od, ImmutableList.<Object>of(true, false, 17, 29)), obs);
   }
 
   @Test
   public void testPivotTwo() throws Exception {
-    List<PivotCalculator.Key> keys = ImmutableList.of(
-        new PivotCalculator.Key("a", ImmutableSet.of("true", "false")),
-        new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2")));
-    PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of(), keys);
-    ObsDescriptor od = pc.initialize(null);
+    List<PivotFunctor.Key> keys = ImmutableList.of(
+        new PivotFunctor.Key("a", ImmutableSet.of("true", "false")),
+        new PivotFunctor.Key("b", ImmutableSet.of("v1", "v2")));
+    PivotFunctor pc = new PivotFunctor(FRAME_NAME, TEST_FC, ImmutableList.<String>of(), keys);
+    ExhibitDescriptor ed = pc.initialize(null);
+    ObsDescriptor od = ed.frames().get(FRAME_NAME);
     System.out.println(od);
-    Obs obs =  Iterables.getOnlyElement(pc.apply(null));
+    Frame pivotedFrame = pc.apply(null).frames().get(FRAME_NAME);
+    assertEquals(1, pivotedFrame.size());
+    Obs obs = pivotedFrame.get(0);
     assertEquals(new SimpleObs(od, Lists.<Object>newArrayList(17, null, null, 29)), obs);
   }
 
   @Test
   public void testPivotId() throws Exception {
-    PivotCalculator.Key b = new PivotCalculator.Key("b", ImmutableSet.of("v1", "v2"));
-    PivotCalculator pc = new PivotCalculator(TEST_FC, ImmutableList.<String>of("a"), ImmutableList.of(b));
-    ObsDescriptor od = pc.initialize(null);
+    PivotFunctor.Key b = new PivotFunctor.Key("b", ImmutableSet.of("v1", "v2"));
+    PivotFunctor pc = new PivotFunctor(FRAME_NAME, TEST_FC, ImmutableList.<String>of("a"), ImmutableList.of(b));
+    ExhibitDescriptor ed = pc.initialize(null);
+    ObsDescriptor od = ed.frames().get(FRAME_NAME);
     System.out.println(od);
+    Frame pivotedFrame = pc.apply(null).frames().get(FRAME_NAME);
+    assertEquals(2, pivotedFrame.size());
+    Obs obs1 = pivotedFrame.get(0);
+    Obs obs2 = pivotedFrame.get(1);
     Obs e1 = new SimpleObs(od, Lists.<Object>newArrayList(false, null, 29));
     Obs e2 = new SimpleObs(od, Lists.<Object>newArrayList(true, 17, null));
-    assertEquals(ImmutableList.of(e1, e2), Lists.newArrayList(pc.apply(null)));
+    assertEquals(ImmutableList.of(e1, e2), Lists.newArrayList(obs1, obs2));
   }
 }

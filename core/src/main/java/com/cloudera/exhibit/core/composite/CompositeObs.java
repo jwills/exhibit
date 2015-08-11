@@ -39,6 +39,11 @@ public class CompositeObs extends Obs {
   }
 
   @Override
+  public int size() {
+    return descriptor().size();
+  }
+
+  @Override
   public Object get(int index) {
     int offsetIndex = descriptor.getOffsetIndex(index);
     int cmpIdx = index - descriptor.getOffset(offsetIndex);
