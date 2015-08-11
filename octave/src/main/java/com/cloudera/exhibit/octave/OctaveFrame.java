@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+ *
+ * Cloudera, Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the
+ * License.
+ */
 package com.cloudera.exhibit.octave;
 
 import com.cloudera.exhibit.core.FieldType;
@@ -5,7 +19,7 @@ import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.google.common.primitives.Ints;
+import com.google.common.base.Preconditions;
 import dk.ange.octave.type.OctaveBoolean;
 import dk.ange.octave.type.OctaveDouble;
 import dk.ange.octave.type.OctaveInt;
@@ -13,9 +27,6 @@ import dk.ange.octave.type.OctaveObject;
 
 import java.util.Iterator;
 
-/**
- * Created by prungta on 8/5/15.
- */
 public class OctaveFrame extends Frame {
   private OctaveObject octaveObject;
   private ObsDescriptor descriptor;
@@ -43,19 +54,14 @@ public class OctaveFrame extends Frame {
   }
 
   private ObsDescriptor buildObsDescriptor(String baseName, FieldType type, int[] dims) {
-    if(dims.length == 1)
-        return new SimpleObsDescriptor.Builder().add(baseName, type).build();
-    if(dims.length == 2 && dims[1] == 1)
-      return new SimpleObsDescriptor.Builder().add(baseName, type).build();
-    if(dims.length == 2 ) {
-      SimpleObsDescriptor.Builder builder = new SimpleObsDescriptor.Builder();
-      for (int i = 0; i < dims[1]; i++) {
-        builder.add(baseName + "$" + i, type);
-      }
-      return  builder.build();
+    Preconditions.checkArgument(dims.length == 2);
+    Preconditions.checkArgument(dims[0] != 1);
+    Preconditions.checkArgument(dims[1] != 1);
+    SimpleObsDescriptor.Builder builder = new SimpleObsDescriptor.Builder();
+    for (int i = 0; i < dims[1]; i++) {
+      builder.add(baseName + "$" + i, type);
     }
-    throw new IllegalArgumentException(
-        "Unsupported size for OctaveObject: "+ Ints.join(",", dims));
+    return  builder.build();
   }
 
   @Override
@@ -90,6 +96,11 @@ public class OctaveFrame extends Frame {
     @Override
     public ObsDescriptor descriptor() {
       return descriptor;
+    }
+
+    @Override
+    public int size() {
+      return descriptor().size();
     }
 
     @Override
