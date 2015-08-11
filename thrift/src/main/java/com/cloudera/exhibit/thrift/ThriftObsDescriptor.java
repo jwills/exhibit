@@ -28,10 +28,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class ThriftObsDescriptor implements ObsDescriptor {
+public class ThriftObsDescriptor extends ObsDescriptor {
   private final List<Field> fields;
   private final List<Short> ids;
   private final Map<String, Integer> fieldNames;
+
+  public ThriftObsDescriptor(Map<String, Integer> fieldNames, List<Field> fields, List<Short> ids) {
+    this.fieldNames = fieldNames;
+    this.fields = fields;
+    this.ids = ids;
+  }
 
   public ThriftObsDescriptor(Class<? extends TBase> thriftClass) {
     Map<? extends TFieldIdEnum, FieldMetaData> mdm = FieldMetaData.getStructMetaDataMap(thriftClass);
@@ -48,6 +54,11 @@ public class ThriftObsDescriptor implements ObsDescriptor {
   @Override
   public int size() {
     return fields.size();
+  }
+
+  @Override
+  public ObsDescriptor clone() {
+    return new ThriftObsDescriptor(this.fieldNames, this.fields, this.ids);
   }
 
   Object getFieldValue(final int i, TBase tBase) {

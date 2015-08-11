@@ -14,8 +14,8 @@
  */
 package com.cloudera.exhibit.thrift;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import org.apache.thrift.TBase;
 
 public class ThriftObs extends Obs {
@@ -31,6 +31,11 @@ public class ThriftObs extends Obs {
   @Override
   public ObsDescriptor descriptor() {
     return descriptor;
+  }
+
+  @Override
+  public int size() {
+    return descriptor().size();
   }
 
   @Override

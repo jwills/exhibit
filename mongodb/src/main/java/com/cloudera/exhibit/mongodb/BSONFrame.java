@@ -14,9 +14,9 @@
  */
 package com.cloudera.exhibit.mongodb;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.bson.BSONObject;
