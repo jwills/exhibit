@@ -14,9 +14,9 @@
  */
 package com.cloudera.exhibit.sql;
 
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.FieldType;
+import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.mongodb.BSONFrame;
 import com.cloudera.exhibit.mongodb.BSONObsDescriptor;
@@ -28,15 +28,14 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class BSONTableTest {
 
-  private Frame eval(SQLCalculator calc, Exhibit e) {
+  private Frame eval(SQLFunctor calc, Exhibit e) {
     calc.initialize(e.descriptor());
-    Frame frm = calc.apply(e);
+    Exhibit result = calc.apply(e);
+    Frame frm = result.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
     return frm;
   }
 
@@ -49,7 +48,7 @@ public class BSONTableTest {
     String[] queries = new String[]{
         "select a, sum(b) as sumb from t1 where c = 'foo' group by a"
     };
-    SQLCalculator calc = new SQLCalculator(queries);
+    SQLFunctor calc = new SQLFunctor(queries);
     Frame res = eval(calc, SimpleExhibit.of("t1", bst));
     assertFalse(res.size() > 0);
   }
@@ -68,7 +67,7 @@ public class BSONTableTest {
     };
 
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
-    Frame res = eval(new SQLCalculator(queries), exhibit);
+    Frame res = eval(new SQLFunctor(queries), exhibit);
     assertTrue(res.size() == 1);
     assertEquals(1729, res.get(0).get("a"));
     assertEquals(1.0, res.get(0).get("sumb", Double.class), 0.001);
@@ -88,7 +87,7 @@ public class BSONTableTest {
         "select sumb + 1 as added from last"
     };
 
-    SQLCalculator calc = new SQLCalculator(queries);
+    SQLFunctor calc = new SQLFunctor(queries);
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
     long start = System.currentTimeMillis();
     Frame res = eval(calc, exhibit);
@@ -99,7 +98,7 @@ public class BSONTableTest {
     start = System.currentTimeMillis();
     bst = new BSONFrame(d, ImmutableList.of(
         new BasicDBObject(ImmutableMap.<String, Object>of("a", 1728, "b", 2.0, "c", "foo"))));
-    res = calc.apply(SimpleExhibit.of("t1", bst));
+    res = eval(calc, SimpleExhibit.of("t1", bst));
     System.out.println("Second = " + (System.currentTimeMillis() - start));
     assertTrue(res.size() == 1);
     assertEquals(3.0, res.get(0).get("added", Double.class), 0.001);
@@ -121,7 +120,7 @@ public class BSONTableTest {
     };
 
     Exhibit exhibit = SimpleExhibit.of("t1", bst);
-    Frame res = eval(new SQLCalculator(queries), exhibit);
+    Frame res = eval(new SQLFunctor(queries), exhibit);
     assertTrue(res.size() == 1);
     assertEquals(1729, res.get(0).get("a"));
     assertEquals(1.0, res.get(0).get("sumb", Double.class), 0.001);

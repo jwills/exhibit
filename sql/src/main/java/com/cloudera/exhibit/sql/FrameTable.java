@@ -15,8 +15,8 @@
 package com.cloudera.exhibit.sql;
 
 import com.cloudera.exhibit.core.FieldType;
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -27,11 +27,7 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.QueryableTable;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.Schemas;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
+import org.apache.calcite.schema.*;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;

@@ -15,9 +15,7 @@
 package com.cloudera.exhibit.sql;
 
 import com.cloudera.exhibit.core.*;
-import com.cloudera.exhibit.core.simple.SimpleFrame;
-import com.cloudera.exhibit.core.simple.SimpleObs;
-import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import com.cloudera.exhibit.core.simple.*;
 import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -27,24 +25,22 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.schema.Table;
 
 import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class SQLCalculator implements Serializable, Calculator {
+public class SQLFunctor implements Serializable, Functor {
 
   private transient ModifiableSchema rootSchema;
   private transient CalciteConnection conn;
   private transient List<PreparedStatement> stmts;
   private final String[] queries;
 
-  public static SQLCalculator create(ObsDescriptor res, String sqlCode) {
+  private final String resultFrame;
+  public static final String DEFAULT_RESULT_FRAME = "LAST";
+
+  public static SQLFunctor create(String resultFrame, ObsDescriptor res, String sqlCode) {
     if (sqlCode == null) {
       return null;
     }
@@ -53,21 +49,29 @@ public class SQLCalculator implements Serializable, Calculator {
     for (String q : Splitter.on(';').trimResults().omitEmptyStrings().split(sqlCode)) {
       ret.add(q);
     }
-    SQLCalculator sc = new SQLCalculator(ret.toArray(new String[0]));
+    SQLFunctor sc = new SQLFunctor(resultFrame, ret.toArray(new String[0]));
     return sc;
   }
+  public static SQLFunctor create(ObsDescriptor res, String sqlCode) {
+    return create(DEFAULT_RESULT_FRAME, res, sqlCode);
+  }
 
-  public SQLCalculator(String[] queries) {
+  public SQLFunctor(String resultFrame, String[] queries){
     try {
       Class.forName("org.apache.calcite.jdbc.Driver");
     } catch (ClassNotFoundException e) {
       throw new IllegalStateException("Could not find Calcite Driver", e);
     }
     this.queries = Preconditions.checkNotNull(queries);
+    this.resultFrame = resultFrame;
+
+  }
+  public SQLFunctor(String[] queries) {
+    this(DEFAULT_RESULT_FRAME, queries);
   }
 
   @Override
-  public ObsDescriptor initialize(ExhibitDescriptor descriptor) {
+  public ExhibitDescriptor initialize(ExhibitDescriptor descriptor) {
     this.rootSchema = new ModifiableSchema();
     rootSchema.getTableMap().put("ATTRS", new FrameTable(descriptor.attributes()));
     for (Map.Entry<String, ObsDescriptor> e : descriptor.frames().entrySet()) {
@@ -88,7 +92,7 @@ public class SQLCalculator implements Serializable, Calculator {
       }
       PreparedStatement result = conn.prepareStatement(queries[queries.length - 1]);
       stmts.add(result);
-      return fromResultSet(result.executeQuery()).descriptor();
+      return SimpleExhibitDescriptor.of(resultFrame, fromResultSet(result.executeQuery()).descriptor());
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -122,7 +126,7 @@ public class SQLCalculator implements Serializable, Calculator {
   }
 
   @Override
-  public Frame apply(Exhibit exhibit) {
+  public Exhibit apply(Exhibit exhibit) {
     rootSchema.getFrame("ATTRS").updateFrame(new SimpleFrame(ImmutableList.of(exhibit.attributes())));
     for (Map.Entry<String, Frame> e : exhibit.frames().entrySet()) {
       rootSchema.getFrame(e.getKey().toUpperCase()).updateFrame(e.getValue());
@@ -138,7 +142,7 @@ public class SQLCalculator implements Serializable, Calculator {
         rootSchema.getTableMap().put("TEMP" + (i + 1), tbl);
         rootSchema.getTableMap().put("LAST", tbl);
       }
-      return fromResultSet(stmts.get(queries.length - 1).executeQuery());
+      return SimpleExhibit.of(resultFrame, fromResultSet(stmts.get(queries.length - 1).executeQuery()));
     } catch (SQLException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
