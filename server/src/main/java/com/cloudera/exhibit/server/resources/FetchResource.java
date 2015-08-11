@@ -17,12 +17,11 @@ package com.cloudera.exhibit.server.resources;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitId;
 import com.cloudera.exhibit.core.ExhibitStore;
-import com.cloudera.exhibit.server.calcs.CalculationStore;
+import com.cloudera.exhibit.server.calcs.FunctionStore;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -37,9 +36,9 @@ public class FetchResource {
   private static final Logger LOG = LoggerFactory.getLogger(FetchResource.class);
 
   private ExhibitStore exhibits;
-  private CalculationStore calcs;
+  private FunctionStore calcs;
 
-  public FetchResource(ExhibitStore exhibits, CalculationStore calcs) {
+  public FetchResource(ExhibitStore exhibits, FunctionStore calcs) {
     this.exhibits = Preconditions.checkNotNull(exhibits);
     this.calcs = Preconditions.checkNotNull(calcs);
   }

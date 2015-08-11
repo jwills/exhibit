@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.google.common.collect.Sets;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 
 public class ExhibitSerializer extends JsonSerializer<Exhibit> {

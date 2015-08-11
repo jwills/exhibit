@@ -15,21 +15,12 @@
 package com.cloudera.exhibit.etl;
 
 import com.cloudera.exhibit.avro.AvroExhibit;
-import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.Functor;
 import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.etl.config.BuildConfig;
-import com.cloudera.exhibit.etl.config.ComputeConfig;
-import com.cloudera.exhibit.etl.config.ConfigHelper;
-import com.cloudera.exhibit.etl.config.OutputConfig;
-import com.cloudera.exhibit.etl.config.SourceConfig;
-import com.cloudera.exhibit.etl.fn.CollectFn;
-import com.cloudera.exhibit.etl.fn.ExCombiner;
-import com.cloudera.exhibit.etl.fn.FilterOutFn;
-import com.cloudera.exhibit.etl.fn.KeyIndexFn;
-import com.cloudera.exhibit.etl.fn.MergeRowsFn;
-import com.cloudera.exhibit.etl.fn.SchemaMapFn;
+import com.cloudera.exhibit.etl.config.*;
+import com.cloudera.exhibit.etl.fn.*;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -37,15 +28,7 @@ import com.google.common.collect.Sets;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.crunch.GroupingOptions;
-import org.apache.crunch.PCollection;
-import org.apache.crunch.PTable;
-import org.apache.crunch.Pair;
-import org.apache.crunch.Pipeline;
-import org.apache.crunch.PipelineExecution;
-import org.apache.crunch.PipelineResult;
-import org.apache.crunch.Target;
-import org.apache.crunch.impl.dist.DistributedPipeline;
+import org.apache.crunch.*;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.io.To;
 import org.apache.crunch.io.parquet.AvroParquetFileTarget;
@@ -116,8 +99,8 @@ public class ExhibitTool extends Configured implements Tool {
       OutputConfig output = config.outputTables.get(i);
       if (output.collect != null) {
         // map-side output
-        Calculator c = output.collect.getCalculator();
-        ObsDescriptor od = c.initialize(descriptor);
+        Functor c = output.collect.getFunctor();
+        ObsDescriptor od = MIGRATION_UTILITIES.initialize(c,descriptor);
         List<Schema.Field> mapsideFields = Lists.newArrayList();
         for (ObsDescriptor.Field f : od) {
           mapsideFields.add(new Schema.Field(f.name, AvroExhibit.getSchema(f.type), "", null));

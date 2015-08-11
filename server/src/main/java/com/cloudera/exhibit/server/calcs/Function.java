@@ -14,24 +14,24 @@
  */
 package com.cloudera.exhibit.server.calcs;
 
-import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Functor;
 import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.sql.SQLCalculator;
+import com.cloudera.exhibit.sql.SQLFunctor;
 
-public class Calculation {
+public class Function {
 
   private int id;
   private String code;
-  private Calculator calculator;
+  private Functor functor;
   private boolean initialized;
 
 
-  public Calculation(int id, String code) {
+  public Function(int id, String code) {
     this.id = id;
     this.code = code;
-    this.calculator = SQLCalculator.create(null, code); //TODO
+    this.functor = SQLFunctor.create(null, code); //TODO
   }
 
   public int getId() {
@@ -44,9 +44,11 @@ public class Calculation {
 
   public Iterable<Obs> apply(Exhibit e) {
     if (!initialized) {
-      calculator.initialize(e.descriptor());
+      functor.initialize(e.descriptor());
       initialized = true;
     }
-    return calculator.apply(e);
+    Exhibit result = functor.apply(e);
+    Frame resultFrame = result.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
+    return resultFrame; //TODO: expose exhibit
   }
 }

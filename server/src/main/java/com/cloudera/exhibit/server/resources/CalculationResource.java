@@ -14,16 +14,11 @@
  */
 package com.cloudera.exhibit.server.resources;
 
-import com.cloudera.exhibit.server.calcs.CalculationStore;
+import com.cloudera.exhibit.server.calcs.FunctionStore;
 import com.google.common.base.Preconditions;
 import io.dropwizard.jersey.params.IntParam;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -32,9 +27,9 @@ import javax.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 public class CalculationResource {
 
-  private CalculationStore calcs;
+  private FunctionStore calcs;
 
-  public CalculationResource(CalculationStore calcs) {
+  public CalculationResource(FunctionStore calcs) {
     this.calcs = Preconditions.checkNotNull(calcs);
   }
 
@@ -45,7 +40,7 @@ public class CalculationResource {
 
   @POST
   public Response save(SaveRequest request) {
-    calcs.addCalculation(request.code);
+    calcs.addFunctor(request.code);
     return Response.ok().build();
   }
 }

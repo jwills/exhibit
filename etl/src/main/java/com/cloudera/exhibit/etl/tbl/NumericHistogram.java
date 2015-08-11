@@ -14,15 +14,13 @@
  */
 package com.cloudera.exhibit.etl.tbl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Collections;
-import java.util.Random;
-
 import com.google.common.collect.Lists;
 import org.apache.avro.generic.GenericData;
-import org.apache.hadoop.hive.serde2.io.DoubleWritable;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 
 /**

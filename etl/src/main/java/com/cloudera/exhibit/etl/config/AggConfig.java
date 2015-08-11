@@ -14,10 +14,10 @@
  */
 package com.cloudera.exhibit.etl.config;
 
-import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.Functor;
 import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.etl.tbl.SumTbl;
+import com.cloudera.exhibit.etl.MIGRATION_UTILITIES;
 import com.cloudera.exhibit.etl.tbl.Tbl;
 import com.cloudera.exhibit.etl.tbl.TblType;
 import com.google.common.collect.Lists;
@@ -49,17 +49,17 @@ public class AggConfig implements Serializable {
   // The maximum number of keys whose aggregate values should be cached in memory.
   public long cacheSize = 5000;
 
-  public Calculator getCalculator() {
+  public Functor getCalculator() {
     if (frame == null) {
       throw new IllegalStateException("Invalid AggConfig: no frame specified");
     }
-    return frame.getCalculator();
+    return frame.getFunctor();
   }
 
   public ObsDescriptor getFrameDescriptor(ExhibitDescriptor ed) {
     if (frame != null) {
-      Calculator c = frame.getCalculator();
-      return c.initialize(ed);
+      Functor c = frame.getFunctor();
+      return MIGRATION_UTILITIES.initialize(c,ed);
     }
     throw new IllegalStateException("Invalid AggConfig: no frame specified");
   }

@@ -14,10 +14,11 @@
  */
 package com.cloudera.exhibit.etl.fn;
 
-import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.Functor;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.etl.MIGRATION_UTILITIES;
 import com.cloudera.exhibit.etl.config.FrameConfig;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
@@ -28,7 +29,7 @@ public class CollectFn extends DoFn<Exhibit, GenericData.Record> {
   private final FrameConfig frame;
   private final String json;
 
-  private transient Calculator calc;
+  private transient Functor calc;
   private transient Schema schema;
   private boolean initialized;
 
@@ -39,7 +40,7 @@ public class CollectFn extends DoFn<Exhibit, GenericData.Record> {
 
   @Override
   public void initialize() {
-    this.calc = frame.getCalculator();
+    this.calc = frame.getFunctor();
     this.schema = (new Schema.Parser()).parse(json);
     this.initialized = false;
   }
@@ -50,7 +51,7 @@ public class CollectFn extends DoFn<Exhibit, GenericData.Record> {
       calc.initialize(exhibit.descriptor());
       initialized = true;
     }
-    for (Obs obs : calc.apply(exhibit)) {
+    for (Obs obs : MIGRATION_UTILITIES.eval(calc, exhibit)){
       GenericData.Record out = new GenericData.Record(schema);
       for (ObsDescriptor.Field f : obs.descriptor()) {
         out.put(f.name, obs.get(f.name));

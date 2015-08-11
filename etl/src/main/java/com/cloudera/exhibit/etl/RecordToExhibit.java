@@ -16,21 +16,16 @@ package com.cloudera.exhibit.etl;
 
 import com.cloudera.exhibit.avro.AvroExhibit;
 import com.cloudera.exhibit.avro.AvroFrame;
-import com.cloudera.exhibit.core.Calculator;
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.ExhibitDescriptor;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.composite.UpdatableExhibit;
 import com.cloudera.exhibit.core.composite.UpdatableExhibitDescriptor;
+import com.cloudera.exhibit.core.simple.SimpleExhibitDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.etl.config.FrameConfig;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.CrunchRuntimeException;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
@@ -60,7 +55,7 @@ public class RecordToExhibit  {
     this.metrics = metrics;
   }
 
-  public ExhibitDescriptor getDescriptor(PType<GenericData.Record> ptype) {
+  public SimpleExhibitDescriptor getDescriptor(PType<GenericData.Record> ptype) {
     Schema schema = ((AvroType) ptype).getSchema();
     return getDescriptor(schema, metrics);
   }
@@ -69,9 +64,9 @@ public class RecordToExhibit  {
     UpdatableExhibitDescriptor descriptor = new UpdatableExhibitDescriptor(
             AvroExhibit.createDescriptor(schema));
     for (int i = 0; i < metrics.size(); i++) {
-      Calculator c = metrics.get(i).getCalculator();
-      ObsDescriptor od = c.initialize(descriptor);
-      descriptor.add(metrics.get(i).name, od);
+      Functor c = metrics.get(i).getFunctor();
+      ObsDescriptor od = MIGRATION_UTILITIES.initialize(c,descriptor);
+      descriptor.addFrame(metrics.get(i).name, od);
     }
     return descriptor;
   }
@@ -99,7 +94,7 @@ public class RecordToExhibit  {
     private final Map<String, ReadableData<GenericData.Record>> readables;
     private final List<FrameConfig> metrics;
     private transient Schema schema;
-    private transient List<Calculator> calcs;
+    private transient List<Functor> calcs;
     private transient UpdatableExhibitDescriptor descriptor;
     private transient Map<String, Frame> readFrames;
 
@@ -122,7 +117,7 @@ public class RecordToExhibit  {
       this.descriptor = getDescriptor(schema, metrics);
       this.calcs = Lists.newArrayList();
       for (FrameConfig mc : metrics) {
-        Calculator c = mc.getCalculator();
+        Functor c = mc.getFunctor();
         c.initialize(descriptor);
         calcs.add(c);
       }
@@ -147,7 +142,7 @@ public class RecordToExhibit  {
       ue.addAllFrames(readFrames);
       for (int i = 0; i < calcs.size(); i++) {
         String name = metrics.get(i).name;
-        Iterable<Obs> res = calcs.get(i).apply(ue);
+        Iterable<Obs> res = MIGRATION_UTILITIES.eval(calcs.get(i),ue);
         if (res instanceof Frame) {
           ue.add(name, (Frame) res);
         } else {

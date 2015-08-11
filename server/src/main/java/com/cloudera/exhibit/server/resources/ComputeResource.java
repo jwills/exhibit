@@ -15,9 +15,9 @@
 package com.cloudera.exhibit.server.resources;
 
 import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.ExhibitStore;
-import com.cloudera.exhibit.sql.SQLCalculator;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.sql.SQLFunctor;
 import com.google.common.base.Preconditions;
 
 import javax.validation.Valid;
@@ -42,9 +42,11 @@ public class ComputeResource {
   @POST
   public Frame compute(@Valid ComputeRequest req) throws SQLException {
     Exhibit exhibit = store.find(req.id).orNull();
-    SQLCalculator calc = SQLCalculator.create(null, req.code); //TODO
+    SQLFunctor calc = SQLFunctor.create(null, req.code); //TODO
     calc.initialize(exhibit.descriptor());
-    return calc.apply(exhibit);
+    Exhibit result = calc.apply(exhibit);
+    Frame resultFrame = result.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
+    return resultFrame; //TOOD: expose exhibit
   }
 
 }

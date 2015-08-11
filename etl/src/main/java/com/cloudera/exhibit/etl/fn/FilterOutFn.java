@@ -15,7 +15,6 @@
 package com.cloudera.exhibit.etl.fn;
 
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
