@@ -31,6 +31,10 @@ public class ScriptableVec extends ScriptableObject {
     return "Vec";
   }
 
+  public Vec getVec(){
+    return this.vec;
+  }
+
   @Override
   public Object get(int index, Scriptable scriptable) {
     return vec.get(index);
