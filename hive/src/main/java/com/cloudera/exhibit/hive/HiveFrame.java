@@ -14,9 +14,9 @@
  */
 package com.cloudera.exhibit.hive;
 
-import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;

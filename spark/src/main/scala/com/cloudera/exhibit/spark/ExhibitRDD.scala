@@ -18,24 +18,24 @@ import java.io.FileNotFoundException
 
 import com.cloudera.exhibit.avro.AvroExhibit
 import com.cloudera.exhibit.core._
-import com.cloudera.exhibit.javascript.JSCalculator
-import com.cloudera.exhibit.sql.SQLCalculator
-
+import com.cloudera.exhibit.javascript.JSFunctor
+import com.cloudera.exhibit.sql.SQLFunctor
 import org.apache.avro.file.DataFileReader
-import org.apache.avro.generic.{GenericRecord, GenericDatumReader}
+import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.mapred.FsInput
-import org.apache.hadoop.fs.{AvroFSInput, FileSystem, Path}
-import org.apache.spark.sql.types._
-import org.apache.spark.{TaskContext, Partition}
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Row, SQLContext, DataFrame}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{DataFrame, Row, SQLContext}
+import org.apache.spark.{Partition, TaskContext}
 
 class ExhibitRDD private[spark](
     @transient val sqlContext: SQLContext,
     @transient val descriptor: ExhibitDescriptor,
     val parent: RDD[Exhibit]) extends RDD[Exhibit](parent) {
   import ExhibitRDD._
+
   import scala.collection.JavaConversions.asScalaIterator
 
   @transient private val schemas = exhibitDescriptor2schemas(descriptor)
@@ -64,21 +64,19 @@ class ExhibitRDD private[spark](
     frameDFs(name)
   }
 
-  def calculate(calc: Calculator): DataFrame = {
-    val schema = obsDescriptor2schema(calc.initialize(descriptor))
+  def calculate(calc: Functor): ExhibitRDD = {
+    val ed = calc.initialize(descriptor)
     val rows = parent.mapPartitions(e => applyCalc(e, calc))
-    sqlContext.createDataFrame(rows, schema)
+    new ExhibitRDD(sqlContext, ed, rows)
   }
 
-  def sql(query: String): DataFrame = sql(Array(query))
+  def sql(query: String): ExhibitRDD = sql(Array(query))
 
-  def sql(queries: Array[String]): DataFrame = {
-    calculate(new SQLCalculator(queries))
+  def sql(queries: Array[String]): ExhibitRDD = {
+    calculate(new SQLFunctor(queries))
   }
 
-  def js(code: String): DataFrame = calculate(new JSCalculator(code))
-
-  def js(od: ObsDescriptor, code: String): DataFrame = calculate(new JSCalculator(od, code))
+  def js(code: String): ExhibitRDD = calculate(new JSFunctor(code))
 
   @DeveloperApi
   override def compute(split: Partition, context: TaskContext): Iterator[Exhibit] = {
@@ -115,29 +113,33 @@ object ExhibitRDD {
     FieldType.TIME -> TimestampType,
     FieldType.TIMESTAMP -> TimestampType)
 
-  private def applyCalc(exhibits: Iterator[Exhibit], calc: Calculator): Iterator[Row] = {
+  private def applyCalc(exhibits: Iterator[Exhibit], calc: Functor): Iterator[Exhibit] = {
     var init = false
-    val ret = exhibits.flatMap(e => {
+    val ret = exhibits.map(e => {
       if (!init) {
         calc.initialize(e.descriptor())
         init = true
       }
-      calc.apply(e).iterator()
-    }).map(obs => obs2row(obs))
+      calc.apply(e)
+    })
     calc.cleanup()
     ret
   }
 
   private def exhibitDescriptor2schemas(ed: ExhibitDescriptor): (StructType, Map[String, StructType]) = {
     val attrSchema = obsDescriptor2schema(ed.attributes())
-    val frameSchemas = ed.frames().toMap.mapValues(od => obsDescriptor2schema(od))
+    val frameSchemas = ed.frames.toMap.mapValues(od => obsDescriptor2schema(od))
     (attrSchema, frameSchemas)
   }
 
   private def obs2row(obs: Obs) = Row(obs.iterator().toArray:_*)
 
+  private def field2Struct(name: String, fieldType: FieldType): StructField = {
+    StructField(name, typeMap(fieldType).asInstanceOf[DataType], true)
+  }
+
   private def obsDescriptor2schema(od: ObsDescriptor): StructType = {
-    new StructType(od.iterator().map(f => StructField(f.name, typeMap(f.`type`).asInstanceOf[DataType], true)).toArray)
+    new StructType(od.iterator().map(f => field2Struct(f.name, f.`type`)).toArray)
   }
 
   private def avroRDD(path: Path, sqlContext: SQLContext) = {

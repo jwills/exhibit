@@ -14,12 +14,13 @@
  */
 package com.cloudera.exhibit.hive;
 
+import com.cloudera.exhibit.core.ObsDescriptor;
 import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 
 import java.util.Iterator;
 
-class HivePrimitiveObsDescriptor implements HiveObsDescriptor {
+class HivePrimitiveObsDescriptor extends HiveObsDescriptor {
 
   private PrimitiveObjectInspector poi;
 
@@ -44,6 +45,11 @@ class HivePrimitiveObsDescriptor implements HiveObsDescriptor {
   @Override
   public int size() {
     return 1;
+  }
+
+  @Override
+  public ObsDescriptor clone() {
+    return new HivePrimitiveObsDescriptor(this.poi);
   }
 
   @Override

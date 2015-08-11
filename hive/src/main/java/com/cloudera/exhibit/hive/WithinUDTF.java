@@ -14,13 +14,10 @@
  */
 package com.cloudera.exhibit.hive;
 
-import com.cloudera.exhibit.core.Exhibit;
-import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
-import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.vector.Vector;
-import com.cloudera.exhibit.sql.SQLCalculator;
+import com.cloudera.exhibit.sql.SQLFunctor;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
@@ -37,7 +34,7 @@ import java.util.Map;
             "query while you query.")
 public class WithinUDTF extends GenericUDTF {
 
-  private SQLCalculator calculator;
+  private SQLFunctor functor;
   private transient Exhibit exhibit;
   private transient Object[] results;
 
@@ -59,9 +56,9 @@ public class WithinUDTF extends GenericUDTF {
     }
     Map<String, Vector> vectors = Maps.newHashMap(); // TODO: implement
     this.exhibit = new SimpleExhibit(Obs.EMPTY, frames, vectors);
-    this.calculator = new SQLCalculator(queries);
-    ObsDescriptor od = calculator.initialize(exhibit.descriptor());
-
+    this.functor = new SQLFunctor(queries);
+    ExhibitDescriptor ed = functor.initialize(exhibit.descriptor());
+    ObsDescriptor     od = ed.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
     this.results = new Object[od.size()];
     return (StructObjectInspector) HiveUtils.fromDescriptor(od, true);
   }
@@ -71,7 +68,8 @@ public class WithinUDTF extends GenericUDTF {
     for (int i = 1; i < args.length; i++) {
       ((HiveFrame) exhibit.frames().get("T" + i)).updateValues(args[i]);
     }
-    Frame res = calculator.apply(exhibit);
+    Exhibit result    = functor.apply(exhibit);
+    Frame res = result.frames().get(SQLFunctor.DEFAULT_RESULT_FRAME);
     for (Obs obs : res) {
       for (int i = 0; i < results.length; i++) {
         results[i] = HiveUtils.asHiveType(obs.get(i));
@@ -82,7 +80,7 @@ public class WithinUDTF extends GenericUDTF {
 
   @Override
   public void close() throws HiveException {
-    calculator.cleanup();
-    calculator = null;
+    functor.cleanup();
+    functor = null;
   }
 }
