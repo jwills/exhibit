@@ -32,7 +32,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 import java.util.Map;
 
-@Description(name = "within",
+@Description(name = "within_table",
     value = "_FUNC_(query_str, ...) - Yo dawg, I heard you liked SQL. So we put SQL in your SQL, so you can " +
             "query while you query.")
 public class WithinUDTF extends GenericUDTF {

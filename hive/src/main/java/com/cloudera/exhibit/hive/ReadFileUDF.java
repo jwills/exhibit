@@ -57,7 +57,7 @@ public class ReadFileUDF extends GenericUDF {
     if (!fileName.contains("/")) {
       fileName = "./" + fileName;
     }
-    String delim = args.length > 1 ? args[1].get().toString() : ";";
+    String delim = args.length > 1 ? args[1].get().toString() : "\n";
     try {
       contents = read(fileName, delim);
     } catch (IOException e) {
