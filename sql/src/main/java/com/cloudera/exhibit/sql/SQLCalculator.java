@@ -24,11 +24,11 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.schema.Table;
 
 import java.io.Serializable;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -58,11 +58,6 @@ public class SQLCalculator implements Serializable, Calculator {
   }
 
   public SQLCalculator(String[] queries) {
-    try {
-      Class.forName("org.apache.calcite.jdbc.Driver");
-    } catch (ClassNotFoundException e) {
-      throw new IllegalStateException("Could not find Calcite Driver", e);
-    }
     this.queries = Preconditions.checkNotNull(queries);
   }
 
@@ -114,7 +109,8 @@ public class SQLCalculator implements Serializable, Calculator {
   }
 
   private CalciteConnection newConnection() throws SQLException {
-    Connection connection = DriverManager.getConnection("jdbc:calcite:");
+    Driver driver = new Driver();
+    Connection connection = driver.connect("jdbc:calcite:", null);
     CalciteConnection oconn = connection.unwrap(CalciteConnection.class);
     oconn.getRootSchema().add("X", rootSchema);
     oconn.setSchema("X");

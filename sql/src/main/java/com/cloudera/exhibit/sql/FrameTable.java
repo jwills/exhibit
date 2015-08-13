@@ -120,11 +120,7 @@ public class FrameTable extends AbstractTable implements QueryableTable {
 
   @Override
   public Type getElementType() {
-    if (descriptor.size() > 1) {
-      return Object[].class;
-    } else {
-      return TYPE_CLASSES.get(descriptor.get(0).type);
-    }
+    return Object[].class;
   }
 
   @Override
