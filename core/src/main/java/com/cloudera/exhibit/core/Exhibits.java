@@ -72,7 +72,7 @@ public class Exhibits {
       Obs frameObs = new SimpleObs(e.getValue(), frameValues);
       frames.put(e.getKey(), new SimpleFrame(ImmutableList.of(frameObs)));
     }
-    Map<String, Vector> vectors = Maps.newHashMap();
+    Map<String, Vec> vectors = Maps.newHashMap();
     for (Map.Entry<String, FieldType> e : descriptor.vectors().entrySet()) {
       FieldType type = e.getValue();
       Vector vector = VectorBuilder.build(type, ImmutableList.of(defaults.get(type)));

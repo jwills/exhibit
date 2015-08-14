@@ -14,16 +14,16 @@
  */
 package com.cloudera.exhibit.sql;
 
-import com.cloudera.exhibit.core.vector.Vector;
+import com.cloudera.exhibit.core.Vec;
 import org.apache.calcite.linq4j.Enumerator;
 
 public class VectorEnumerator implements Enumerator<Object> {
 
-  private final Vector vector;
+  private final Vec vector;
   private Object current;
   private int currentIndex;
 
-  public VectorEnumerator(Vector vector) {
+  public VectorEnumerator(Vec vector) {
     this.vector = vector;
     this.current = null;
     this.currentIndex = -1;

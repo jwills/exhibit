@@ -14,14 +14,21 @@
  */
 package com.cloudera.exhibit.javascript;
 
-import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.Calculator;
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.Exhibits;
+import com.cloudera.exhibit.core.FieldType;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.Vec;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.cloudera.exhibit.core.vector.Vector;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.mozilla.javascript.ClassShutter;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.Function;
@@ -29,6 +36,7 @@ import org.mozilla.javascript.Script;
 import org.mozilla.javascript.Scriptable;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -60,12 +68,6 @@ public class JSCalculator implements Serializable, Calculator {
     }
     if (ctx == null) {
       ctx = Context.enter();
-      ctx.setClassShutter(new ClassShutter() {
-        @Override
-        public boolean visibleToScripts(String className) {
-          return className.startsWith("com.cloudera.exhibit");
-        }
-      });
       this.scope = ctx.initStandardObjects(null, true);
       if (hasReturn) {
         this.func = ctx.compileFunction(scope, "function() {" + src + "}", "<cmd>", 1, null);
@@ -75,16 +77,18 @@ public class JSCalculator implements Serializable, Calculator {
     }
 
     if (this.descriptor == null) {
-      this.descriptor = toObsDescriptor(eval(Exhibits.defaultValues(ed)));
+      this.descriptor = toObsDescriptor(eval(Exhibits.defaultValues(ed), true));
     }
     return descriptor;
   }
 
   @Override
   public Iterable<Obs> apply(Exhibit exhibit) {
-    Object res = eval(exhibit);
+    Object res = eval(exhibit, false);
     List<Obs> ret = Lists.newArrayList();
-    if (res instanceof List) {
+    if (res instanceof ScriptableFrame) {
+      return ((ScriptableFrame) res).frame();
+    } else if (res instanceof List) {
       for (Object obj : (List) res) {
         ret.add(toObs(obj, exhibit));
       }
@@ -95,6 +99,9 @@ public class JSCalculator implements Serializable, Calculator {
   }
 
   Obs toObs(Object obj, Exhibit exhibit) {
+    if (obj instanceof ScriptableObs) {
+      return ((ScriptableObs) obj).obs();
+    }
     List<Object> values = Lists.newArrayListWithExpectedSize(descriptor.size());
     if (obj instanceof Map) {
       Map mres = (Map) obj;
@@ -114,10 +121,11 @@ public class JSCalculator implements Serializable, Calculator {
     return new SimpleObs(descriptor, values);
   }
 
-  Object eval(Exhibit exhibit) {
+  Object eval(Exhibit exhibit, boolean init) {
     Scriptable exhibitScope = ctx.newObject(scope);
     exhibitScope.setPrototype(scope);
     exhibitScope.setParentScope(null);
+    exhibitScope.put("INIT", exhibitScope, init);
 
     Obs attr = exhibit.attributes();
     for (int i = 0; i < attr.descriptor().size(); i++) {
@@ -126,7 +134,7 @@ public class JSCalculator implements Serializable, Calculator {
     for (Map.Entry<String, Frame> e : exhibit.frames().entrySet()) {
       exhibitScope.put(e.getKey(), exhibitScope, new ScriptableFrame(e.getValue()));
     }
-    for (Map.Entry<String, Vector> e : exhibit.vectors().entrySet()) {
+    for (Map.Entry<String, Vec> e : exhibit.vectors().entrySet()) {
       exhibitScope.put(e.getKey(), exhibitScope, new ScriptableVec(e.getValue()));
     }
 
@@ -140,6 +148,13 @@ public class JSCalculator implements Serializable, Calculator {
   ObsDescriptor toObsDescriptor(Object res) {
     if (res == null) {
       throw new IllegalStateException("Null return values are not permitted");
+    } else if (res instanceof ScriptableObs) {
+      return ((ScriptableObs) res).obs().descriptor();
+    } else if (res instanceof ScriptableFrame) {
+      return ((ScriptableFrame) res).frame().descriptor();
+    } else if (res instanceof ScriptableVec) {
+      ObsDescriptor.Field f = new ObsDescriptor.Field("c1", ((ScriptableVec) res).vec().getType());
+      return new SimpleObsDescriptor(ImmutableList.of(f));
     } else if (res instanceof List) {
       return toObsDescriptor(((List) res).get(0));
     } else if (res instanceof Map) {
@@ -150,6 +165,14 @@ public class JSCalculator implements Serializable, Calculator {
         FieldType ft = null;
         if (val == null) {
           throw new IllegalStateException("Null value for key: " + key);
+        } else if(val instanceof Integer) {
+          ft = FieldType.INTEGER;
+        } else if(val instanceof Long) {
+          ft = FieldType.LONG;
+        } else if(val instanceof Float) {
+          ft = FieldType.FLOAT;
+        } else if(val instanceof BigDecimal) {
+          ft = FieldType.DECIMAL;
         } else if (val instanceof Number) {
           ft = FieldType.DOUBLE;
         } else if (val instanceof String) {
@@ -160,6 +183,14 @@ public class JSCalculator implements Serializable, Calculator {
         fields.add(new ObsDescriptor.Field(key, ft));
       }
       return new SimpleObsDescriptor(fields);
+    } else if (res instanceof Integer) {
+      return SimpleObsDescriptor.of("res", FieldType.INTEGER);
+    } else if (res instanceof Long) {
+      return SimpleObsDescriptor.of("res", FieldType.LONG);
+    } else if (res instanceof Float) {
+      return SimpleObsDescriptor.of("res", FieldType.FLOAT);
+    } else if (res instanceof BigDecimal) {
+      return SimpleObsDescriptor.of("res", FieldType.DECIMAL);
     } else if (res instanceof Number) {
       return SimpleObsDescriptor.of("res", FieldType.DOUBLE);
     } else if (res instanceof String) {
@@ -173,7 +204,7 @@ public class JSCalculator implements Serializable, Calculator {
 
   @Override
   public void cleanup() {
-    if( ctx != null ) {
+    if(ctx != null) {
       Context.exit();
       ctx = null;
     }

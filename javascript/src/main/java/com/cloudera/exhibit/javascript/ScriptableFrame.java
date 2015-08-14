@@ -27,6 +27,8 @@ public class ScriptableFrame extends ScriptableObject {
     this.frame = frame;
   }
 
+  public Frame frame() { return frame; }
+
   @Override
   public String getClassName() {
     return "Frame";

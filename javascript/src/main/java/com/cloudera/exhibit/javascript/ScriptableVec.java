@@ -26,6 +26,8 @@ public class ScriptableVec extends ScriptableObject {
     this.vec = vec;
   }
 
+  public Vec vec() { return vec; }
+
   @Override
   public String getClassName() {
     return "Vec";

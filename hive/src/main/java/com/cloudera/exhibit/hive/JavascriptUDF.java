@@ -12,16 +12,10 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.core;
+package com.cloudera.exhibit.hive;
 
-import com.cloudera.exhibit.core.vector.Vector;
-
-import java.io.Serializable;
-import java.util.Map;
-
-public interface Exhibit extends Serializable {
-  ExhibitDescriptor descriptor();
-  Obs attributes();
-  Map<String, Frame> frames();
-  Map<String, Vec> vectors();
+public class JavascriptUDF extends CodeUDF {
+  protected JavascriptUDF() {
+    super("javascript");
+  }
 }

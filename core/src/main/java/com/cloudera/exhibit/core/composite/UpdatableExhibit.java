@@ -14,7 +14,11 @@
  */
 package com.cloudera.exhibit.core.composite;
 
-import com.cloudera.exhibit.core.*;
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.Vec;
 import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.collect.Maps;
 
@@ -24,7 +28,7 @@ public class UpdatableExhibit implements Exhibit {
 
   private final Exhibit base;
   private final Map<String, Frame> frames;
-  private final Map<String, Vector> vectors;
+  private final Map<String, Vec> vectors;
   private UpdatableExhibitDescriptor descriptor;
 
   public UpdatableExhibit(Exhibit base) {
@@ -78,8 +82,8 @@ public class UpdatableExhibit implements Exhibit {
   }
 
   @Override
-  public Map<String, Vector> vectors() {
-    Map<String, Vector> union = Maps.newHashMap();
+  public Map<String, Vec> vectors() {
+    Map<String, Vec> union = Maps.newHashMap();
     union.putAll(base.vectors());
     union.putAll(vectors);
     return union;

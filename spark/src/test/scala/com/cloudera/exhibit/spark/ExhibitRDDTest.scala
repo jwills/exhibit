@@ -89,6 +89,6 @@ class ExhibitRDDTest {
     val defcnt = erdd.js("tbl.length")
     val res = defcnt.collect()
     Assert.assertEquals(1, res.length)
-    Assert.assertEquals(2.0, res(0).getDouble(0), 0.001)
+    Assert.assertEquals(2, res(0).getInt(0))
   }
 }

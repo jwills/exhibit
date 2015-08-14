@@ -15,8 +15,7 @@
 package com.cloudera.exhibit.sql;
 
 import com.cloudera.exhibit.core.FieldType;
-import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.core.vector.Vector;
+import com.cloudera.exhibit.core.Vec;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.calcite.linq4j.Enumerator;
@@ -37,13 +36,13 @@ import java.util.List;
 public class VectorTable extends AbstractTable implements QueryableTable {
 
   private FieldType type;
-  private Vector vector;
+  private Vec vector;
 
   public VectorTable(FieldType type) {
     this.type = type;
   }
 
-  public VectorTable updateVector(Vector vector) {
+  public VectorTable updateVector(Vec vector) {
     this.vector = vector;
     this.type   = vector.getType();
     return this;
@@ -87,7 +86,7 @@ public class VectorTable extends AbstractTable implements QueryableTable {
 
   @Override
   public Type getElementType() {
-    return TypeUtils.FIELD_TYPES_TO_JAVA_TYPES.get(this.type);
+    return Object[].class;
   }
 
   @Override

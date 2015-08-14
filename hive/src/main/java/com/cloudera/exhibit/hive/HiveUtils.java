@@ -14,10 +14,19 @@
  */
 package com.cloudera.exhibit.hive;
 
+import com.cloudera.exhibit.core.Calculator;
+import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.FieldType;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.Vec;
+import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.javascript.JSCalculator;
+import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
@@ -51,30 +60,67 @@ public final class HiveUtils {
       .put(FieldType.STRING, PrimitiveObjectInspectorFactory.javaStringObjectInspector)
       .build();
 
-  public static String[] getQueries(ObjectInspector first) throws UDFArgumentException {
-    String[] queries = null;
-    if (ObjectInspectorUtils.isConstantObjectInspector(first)) {
-      Object wcv = ObjectInspectorUtils.getWritableConstantValue(first);
-
-      if (first instanceof StringObjectInspector) {
-        queries = new String[] { wcv.toString() };
-      } else if (first instanceof ListObjectInspector) {
-        ListObjectInspector lOI = (ListObjectInspector) first;
-        int len = lOI.getListLength(wcv);
-        if (lOI.getListElementObjectInspector() instanceof StringObjectInspector) {
-          StringObjectInspector strOI = (StringObjectInspector) lOI.getListElementObjectInspector();
-          queries = new String[len];
-          for (int i = 0; i < len; i++) {
-            queries[i] = strOI.getPrimitiveJavaObject(lOI.getListElement(wcv, i));
-          }
+  public static Exhibit getExhibit(ObjectInspector[] args) throws UDFArgumentException {
+    Map<String, Frame> frames = Maps.newHashMap();
+    Map<String, Vec> vectors = Maps.newHashMap();
+    for (int i = 1; i < args.length; i++) {
+      String label = "t" + i;
+      ObjectInspector oi = args[i];
+      if (oi.getCategory() == ObjectInspector.Category.LIST) {
+        ListObjectInspector loi = (ListObjectInspector) oi;
+        ObjectInspector inner = loi.getListElementObjectInspector();
+        if (inner.getCategory() == ObjectInspector.Category.STRUCT) {
+          frames.put(label, new HiveFrame(loi));
         } else {
-          throw new UDFArgumentException("Array of queries must be all strings");
+          vectors.put(label, new HiveVector(getFieldType(inner), loi));
         }
       }
-    } else {
-      throw new UDFArgumentException("First argument must be a constant string or array of strings");
     }
-    return queries;
+    return new SimpleExhibit(Obs.EMPTY, frames, vectors);
+  }
+
+  public static void update(Exhibit exhibit, String label, Object newValues) {
+    if (exhibit.frames().containsKey(label)) {
+      ((HiveFrame) exhibit.frames().get(label)).updateValues(newValues);
+    } else if (exhibit.vectors().containsKey(label)) {
+      ((HiveVector) exhibit.vectors().get(label)).updateValues(newValues);
+    } else {
+      throw new IllegalArgumentException("Cannot update exhibit for label: " + label);
+    }
+  }
+
+  public static Calculator getCalculator(ObjectInspector first) throws UDFArgumentException {
+    if (first instanceof ListObjectInspector) {
+      ListObjectInspector loi = (ListObjectInspector) first;
+      Object args = ObjectInspectorUtils.getWritableConstantValue(first);
+      String engine = loi.getListElement(args, 0).toString();
+      if ("js".equalsIgnoreCase(engine) || "javascript".equalsIgnoreCase(engine)) {
+        return new JSCalculator(loi.getListElement(args, 1).toString());
+      }
+    }
+    String[] queries = getCode(first);
+    return new SQLCalculator(queries);
+  }
+
+  private static String[] getCode(ObjectInspector first) throws UDFArgumentException {
+    String[] code = null;
+    Object wcv = ObjectInspectorUtils.getWritableConstantValue(first);
+    if (first instanceof StringObjectInspector) {
+      code = new String[] { wcv.toString() };
+    } else if (first instanceof ListObjectInspector) {
+      ListObjectInspector lOI = (ListObjectInspector) first;
+      int len = lOI.getListLength(wcv);
+      if (lOI.getListElementObjectInspector() instanceof StringObjectInspector) {
+        StringObjectInspector strOI = (StringObjectInspector) lOI.getListElementObjectInspector();
+        code = new String[len];
+        for (int i = 0; i < len; i++) {
+          code[i] = strOI.getPrimitiveJavaObject(lOI.getListElement(wcv, i));
+        }
+      } else {
+        throw new UDFArgumentException("Array of queries must be all strings");
+      }
+    }
+    return code;
   }
 
   private static final Map<Class, FieldType> FIELD_TYPES = ImmutableMap.<Class, FieldType>builder()

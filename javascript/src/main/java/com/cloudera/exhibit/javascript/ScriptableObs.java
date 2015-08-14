@@ -26,6 +26,8 @@ public class ScriptableObs extends ScriptableObject {
     this.obs = obs;
   }
 
+  public Obs obs() { return obs; }
+
   @Override
   public String getClassName() {
     return "Obs";

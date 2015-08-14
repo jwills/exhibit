@@ -144,7 +144,7 @@ public class AvroExhibitTest {
     assertEquals(123, exhibit.attributes().get("id"));
     Frame f = exhibit.frames().get("ifoo");
     assertNull(f);
-    Vector v = exhibit.vectors().get("vec");
+    Vec v = exhibit.vectors().get("vec");
     assertNotNull(v);
     assertEquals("Num obs in Vector", 3, v.size());
     assertEquals(1.0, v.get(0));

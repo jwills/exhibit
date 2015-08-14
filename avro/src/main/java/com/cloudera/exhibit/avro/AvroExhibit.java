@@ -18,7 +18,6 @@ import com.cloudera.exhibit.core.*;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.cloudera.exhibit.core.vector.Vector;
 import com.cloudera.exhibit.core.vector.VectorBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -116,9 +115,9 @@ public class AvroExhibit {
       }
       frames.put(frameName, new AvroFrame((AvroObsDescriptor) desc.frames().get(frameName), recs));
     }
-    Map<String, Vector> vectors = Maps.newHashMap();
-    for (Map.Entry<String, FieldType> v: desc.vectors().entrySet()) {
-      List vals = Arrays.asList((Object[])record.get(v.getKey()));
+    Map<String, Vec> vectors = Maps.newHashMap();
+    for (Map.Entry<String, FieldType> v : desc.vectors().entrySet()) {
+      List vals = Arrays.asList((Object[]) record.get(v.getKey()));
       vectors.put(v.getKey(), VectorBuilder.build(v.getValue(), vals));
     }
     return new SimpleExhibit(new SimpleObs(desc.attributes(), attrValues), frames, vectors);

@@ -123,7 +123,7 @@ public class SQLCalculator implements Serializable, Calculator {
     for (Map.Entry<String, Frame> e : exhibit.frames().entrySet()) {
       rootSchema.getFrame(e.getKey().toUpperCase()).updateFrame(e.getValue());
     }
-    for (Map.Entry<String, Vector> e : exhibit.vectors().entrySet()) {
+    for (Map.Entry<String, Vec> e : exhibit.vectors().entrySet()) {
       rootSchema.getVector(e.getKey().toUpperCase()).updateVector(e.getValue());
     }
     conn.getRootSchema().add("X", rootSchema);

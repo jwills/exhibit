@@ -25,10 +25,10 @@ public class SimpleExhibit implements Exhibit {
 
   private final Obs attributes;
   private final Map<String, Frame> frames;
-  private final Map<String, Vector> vectors;
+  private final Map<String, Vec> vectors;
 
-  public static SimpleExhibit of(String name, Vector vec, Object... args) {
-    Map<String, Vector>   v = Maps.newHashMap();
+  public static SimpleExhibit of(String name, Vec vec, Object... args) {
+    Map<String, Vec> v = Maps.newHashMap();
     Map<String, Frame> m = Maps.newHashMap();
     v.put(name, vec);
     for (int i = 0; i < args.length; i += 2) {
@@ -38,7 +38,7 @@ public class SimpleExhibit implements Exhibit {
   }
 
   public static SimpleExhibit of(String name, Frame frame, Object... args) {
-    Map<String, Vector>   v = Maps.newHashMap();
+    Map<String, Vec> v = Maps.newHashMap();
     Map<String, Frame> m = Maps.newHashMap();
     m.put(name, frame);
     for (int i = 0; i < args.length; i += 2) {
@@ -53,7 +53,7 @@ public class SimpleExhibit implements Exhibit {
     this.vectors = Maps.newHashMap();
   }
 
-  public SimpleExhibit(Obs attributes, Map<String, Frame> frames, Map<String, Vector> vectors) {
+  public SimpleExhibit(Obs attributes, Map<String, Frame> frames, Map<String, Vec> vectors) {
     this.attributes = attributes;
     this.frames = frames;
     this.vectors = vectors;
@@ -68,9 +68,9 @@ public class SimpleExhibit implements Exhibit {
           return frame.descriptor();
         }
       }),
-      Maps.transformValues(vectors, new Function<Vector, FieldType>() {
+      Maps.transformValues(vectors, new Function<Vec, FieldType>() {
         @Override
-        public FieldType apply(Vector vector) {
+        public FieldType apply(Vec vector) {
           return vector.getType();
         }
       })
@@ -88,7 +88,7 @@ public class SimpleExhibit implements Exhibit {
   }
 
   @Override
-  public Map<String, Vector> vectors() {
+  public Map<String, Vec> vectors() {
     return vectors;
   }
 
@@ -106,8 +106,8 @@ public class SimpleExhibit implements Exhibit {
       sb.append("]");
     }
     sb.append("\n");
-    for (Map.Entry<String, Vector> e : vectors.entrySet()) {
-      sb.append("Vector ").append(e.getKey()).append(": [\n");
+    for (Map.Entry<String, Vec> e : vectors.entrySet()) {
+      sb.append("Vec ").append(e.getKey()).append(": [\n");
       for (Object obs : e.getValue()) {
         sb.append(obs.toString()).append(",\n");
       }

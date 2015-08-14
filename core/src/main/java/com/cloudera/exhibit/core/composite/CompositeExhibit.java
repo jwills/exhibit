@@ -14,8 +14,13 @@
  */
 package com.cloudera.exhibit.core.composite;
 
-import com.cloudera.exhibit.core.*;
-import com.cloudera.exhibit.core.vector.Vector;
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.FieldType;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.Vec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -27,7 +32,7 @@ public class CompositeExhibit implements Exhibit {
   private ExhibitDescriptor descriptor;
   private Obs attributes;
   private Map<String, Frame> frames;
-  private Map<String, Vector> vectors;
+  private Map<String, Vec> vectors;
 
   public static CompositeExhibit create(List<Exhibit> components) {
     List<ObsDescriptor> descs = Lists.newArrayList();
@@ -43,7 +48,7 @@ public class CompositeExhibit implements Exhibit {
 
   public static CompositeExhibit create(ExhibitDescriptor descriptor, List<Exhibit> components) {
     Map<String, Frame> frames = Maps.newHashMap();
-    Map<String, Vector> vectors = Maps.newHashMap();
+    Map<String, Vec> vectors = Maps.newHashMap();
     List<Obs> attrs = Lists.newArrayList();
     for (Exhibit e : components) {
       attrs.add(e.attributes());
@@ -54,11 +59,11 @@ public class CompositeExhibit implements Exhibit {
     return new CompositeExhibit(descriptor, new CompositeObs(cod, attrs), frames, vectors);
   }
 
-  CompositeExhibit(ExhibitDescriptor descriptor, Obs attributes, Map<String, Frame> frames, Map<String, Vector> vectors) {
+  CompositeExhibit(ExhibitDescriptor descriptor, Obs attributes, Map<String, Frame> frames, Map<String, Vec> vectors) {
     this.descriptor = descriptor;
     this.attributes = attributes;
     this.frames = frames;
-    this.vectors= vectors;
+    this.vectors = vectors;
   }
 
   @Override
@@ -77,7 +82,7 @@ public class CompositeExhibit implements Exhibit {
   }
 
   @Override
-  public Map<String, Vector> vectors() {
+  public Map<String, Vec> vectors() {
     return vectors;
   }
 }

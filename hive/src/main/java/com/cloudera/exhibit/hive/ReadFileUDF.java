@@ -25,6 +25,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 import java.io.File;
@@ -48,16 +49,29 @@ public class ReadFileUDF extends GenericUDF {
     if (args.length < 1 || args.length > 2) {
       throw new UDFArgumentLengthException("The read_file UDF takes at least 1 and no more than 2 args");
     }
+    if (ObjectInspectorUtils.isConstantObjectInspector(args[0]) &&
+        ObjectInspectorUtils.isConstantObjectInspector(args[1])) {
+      String fileName = ObjectInspectorUtils.getWritableConstantValue(args[0]).toString();
+      String delim = ObjectInspectorUtils.getWritableConstantValue(args[1]).toString();
+      boolean success = true;
+      try {
+        loadContents(fileName, delim);
+      } catch (Exception e) {
+        success = false;
+      }
+      if (success) {
+        return ObjectInspectorFactory.getStandardConstantListObjectInspector(
+            PrimitiveObjectInspectorFactory.javaStringObjectInspector, contents);
+      }
+    }
     return ObjectInspectorFactory.getStandardListObjectInspector(
-            PrimitiveObjectInspectorFactory.javaStringObjectInspector);
+        PrimitiveObjectInspectorFactory.javaStringObjectInspector);
   }
 
-  private void loadContents(DeferredObject[] args) throws HiveException {
-    String fileName = args[0].get().toString();
+  private void loadContents(String fileName, String delim) throws HiveException {
     if (!fileName.contains("/")) {
       fileName = "./" + fileName;
     }
-    String delim = args.length > 1 ? args[1].get().toString() : "\n";
     try {
       contents = read(fileName, delim);
     } catch (IOException e) {
@@ -68,7 +82,7 @@ public class ReadFileUDF extends GenericUDF {
   @Override
   public Object evaluate(DeferredObject[] args) throws HiveException {
     if (contents == null) {
-      loadContents(args);
+      loadContents(args[0].get().toString(), args[1].get().toString());
     }
     return contents;
   }

@@ -19,8 +19,8 @@ import com.cloudera.exhibit.avro.AvroObsDescriptor;
 import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.Vec;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
-import com.cloudera.exhibit.core.vector.DoubleVector;
 import com.cloudera.exhibit.core.vector.Vector;
 import com.cloudera.exhibit.core.vector.VectorBuilder;
 import com.google.common.collect.ImmutableList;
@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
-import org.apache.calcite.rel.core.Collect;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -112,7 +111,7 @@ public class AvroTableTest {
     r2.put("f2", true);
     r2.put("f3", 17L);
     AvroFrame frame = new AvroFrame(ImmutableList.of(r1, r2));
-    Vector v = VectorBuilder.doubles(ImmutableList.<Object>of(1729.0));
+    Vec v = VectorBuilder.doubles(ImmutableList.<Object>of(1729.0));
     SimpleExhibit se = new SimpleExhibit(Obs.EMPTY,
         ImmutableMap.<String, Frame>of("t1", frame), ImmutableMap.of("v1", v));
     String[] queries = new String[] {
