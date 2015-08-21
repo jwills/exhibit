@@ -27,6 +27,7 @@ import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Vec;
+import com.cloudera.exhibit.core.vector.VectorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -128,7 +129,7 @@ public class OctaveCalculator implements Calculator, Serializable{
     if (result.frames().containsKey(varName)) {
       return result.frames().get(varName);
     } else if (result.vectors().containsKey(varName)) {
-      return result.vectors().get(varName).asFrame();
+      return VectorUtils.asFrame(result.vectors().get(varName));
     } else {
       return ImmutableList.of(result.attributes());
     }

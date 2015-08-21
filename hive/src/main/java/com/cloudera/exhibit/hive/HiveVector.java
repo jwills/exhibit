@@ -19,9 +19,9 @@ import com.cloudera.exhibit.core.Vec;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 
-import java.util.Iterator;
+import java.util.AbstractList;
 
-public class HiveVector implements Vec {
+public class HiveVector extends AbstractList<Object> implements Vec {
 
   private final FieldType fieldType;
   private final ListObjectInspector listOI;
@@ -48,12 +48,6 @@ public class HiveVector implements Vec {
   @Override
   public int size() {
     return listOI.getListLength(values);
-  }
-
-  @Override
-  public Iterator<Object> iterator() {
-    //TODO
-    return null;
   }
 
   public HiveVector updateValues(Object values) {

@@ -22,15 +22,4 @@ public abstract class Vector implements Vec {
   public FieldType getType(){
     return this.type;
   }
-
-  @Override
-  public Frame asFrame() {
-    final SimpleObsDescriptor od = SimpleObsDescriptor.of("c1", this.type);
-    return new SimpleFrame(od, Lists.transform(Lists.newArrayList(this), new Function<Object, Obs>() {
-      @Override
-      public Obs apply(Object o) {
-        return new SimpleObs(od, ImmutableList.of(o));
-      }
-    }));
-  }
 }

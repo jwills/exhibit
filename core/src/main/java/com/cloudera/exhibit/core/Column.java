@@ -55,15 +55,4 @@ public class Column extends AbstractList<Object> implements Vec {
   public int size() {
     return frame.size();
   }
-
-  @Override
-  public Frame asFrame() {
-    final ObsDescriptor od = SimpleObsDescriptor.of("c1", getType());
-    return new SimpleFrame(od, Lists.transform(this, new Function<Object, Obs>() {
-      @Override
-      public Obs apply(Object o) {
-        return new SimpleObs(od, ImmutableList.of(o));
-      }
-    }));
-  }
 }
