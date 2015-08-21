@@ -16,15 +16,13 @@ package com.cloudera.exhibit.avro;
 
 import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
-import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import org.apache.avro.Schema;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 
-public class AvroObsDescriptor implements ObsDescriptor {
+public class AvroObsDescriptor extends ObsDescriptor {
 
   private static Schema NULL = Schema.create(Schema.Type.NULL);
 
@@ -91,16 +89,6 @@ public class AvroObsDescriptor implements ObsDescriptor {
   @Override
   public int size() {
     return schema.getFields().size();
-  }
-
-  @Override
-  public Iterator<Field> iterator() {
-    return Iterators.transform(schema.getFields().iterator(), new Function<Schema.Field, Field>() {
-      @Override
-      public Field apply(Schema.Field f) {
-        return new Field(f.name(), getFieldType(f.schema()));
-      }
-    });
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {

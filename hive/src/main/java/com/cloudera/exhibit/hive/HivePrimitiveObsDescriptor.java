@@ -19,7 +19,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 
 import java.util.Iterator;
 
-class HivePrimitiveObsDescriptor implements HiveObsDescriptor {
+class HivePrimitiveObsDescriptor extends HiveObsDescriptor {
 
   private PrimitiveObjectInspector poi;
 

@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class SimpleObsDescriptor implements ObsDescriptor {
+public class SimpleObsDescriptor extends ObsDescriptor {
 
   private final List<Field> fields;
   private final Map<String, Integer> indexMap;

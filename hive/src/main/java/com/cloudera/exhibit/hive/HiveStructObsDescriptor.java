@@ -24,7 +24,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import java.util.Iterator;
 import java.util.List;
 
-class HiveStructObsDescriptor implements HiveObsDescriptor {
+class HiveStructObsDescriptor extends HiveObsDescriptor {
   private final StructObjectInspector obji;
 
   public HiveStructObsDescriptor(StructObjectInspector obji) {

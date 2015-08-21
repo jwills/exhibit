@@ -16,6 +16,6 @@ package com.cloudera.exhibit.hive;
 
 import com.cloudera.exhibit.core.ObsDescriptor;
 
-interface HiveObsDescriptor extends ObsDescriptor {
-  Object[] convert(Object rawObs);
+abstract class HiveObsDescriptor extends ObsDescriptor {
+  abstract Object[] convert(Object rawObs);
 }

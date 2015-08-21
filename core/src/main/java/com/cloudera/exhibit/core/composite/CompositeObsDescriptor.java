@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class CompositeObsDescriptor implements ObsDescriptor {
+public class CompositeObsDescriptor extends ObsDescriptor {
 
   private List<ObsDescriptor> components;
   private Map<String, Integer> fieldNames;

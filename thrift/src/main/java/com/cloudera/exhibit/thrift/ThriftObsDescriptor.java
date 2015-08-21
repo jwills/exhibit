@@ -28,7 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class ThriftObsDescriptor implements ObsDescriptor {
+public class ThriftObsDescriptor extends ObsDescriptor {
   private final List<Field> fields;
   private final List<Short> ids;
   private final Map<String, Integer> fieldNames;

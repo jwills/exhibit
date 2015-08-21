@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class BSONObsDescriptor implements ObsDescriptor {
+public class BSONObsDescriptor extends ObsDescriptor {
 
   private final List<String> names;
   private final List<FieldType> fieldTypes;

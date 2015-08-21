@@ -17,12 +17,13 @@ package com.cloudera.exhibit.core;
 import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
+import java.util.AbstractList;
 import java.util.Collections;
 import java.util.Iterator;
 
-public interface ObsDescriptor extends Iterable<ObsDescriptor.Field>, Serializable {
+public abstract class ObsDescriptor extends AbstractList<ObsDescriptor.Field> implements Serializable {
 
-  static class Field implements Serializable {
+  public static class Field implements Serializable {
     public final String name;
     public final FieldType type;
 
@@ -50,11 +51,7 @@ public interface ObsDescriptor extends Iterable<ObsDescriptor.Field>, Serializab
     }
   }
 
-  Field get(int i);
-
-  int indexOf(String name);
-
-  int size();
+  public abstract int indexOf(String name);
 
   public static final ObsDescriptor EMPTY = new ObsDescriptor() {
     @Override
