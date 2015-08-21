@@ -14,12 +14,9 @@
  */
 package com.cloudera.exhibit.core;
 
-import java.io.Serializable;
-import java.util.Map;
+import com.google.common.base.Function;
 
-public interface Exhibit extends Serializable {
-  ExhibitDescriptor descriptor();
-  Obs attributes();
-  Map<String, Frame> frames();
-  Map<String, Vec> vectors();
+public interface Functor extends Function<Exhibit, Exhibit> {
+  public ExhibitDescriptor initialize(ExhibitDescriptor descriptor);
+  public void cleanup();
 }

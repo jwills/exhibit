@@ -12,7 +12,13 @@
  * the specific language governing permissions and limitations under the
  * License.
  */
-package com.cloudera.exhibit.core;
+package com.cloudera.exhibit.core.calculators;
+
+import com.cloudera.exhibit.core.Calculator;
+import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitDescriptor;
+import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.ObsDescriptor;
 
 public class LookupCalculator implements Calculator {
 

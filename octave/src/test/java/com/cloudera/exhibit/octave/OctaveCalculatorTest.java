@@ -4,6 +4,7 @@ import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.Vec;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
@@ -45,7 +46,7 @@ public class OctaveCalculatorTest {
     Obs two = SimpleObs.of(od, 4.0, 5.0);
     Obs three = SimpleObs.of(od, 7.0, 8.0);
     Frame frame = SimpleFrame.of(one, two, three);
-    Vector vector = VectorBuilder.doubles(ImmutableList.<Object>of(3.0, 6.0, 9.0));
+    Vec vector = VectorBuilder.doubles(ImmutableList.<Object>of(3.0, 6.0, 9.0));
     Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame), ImmutableMap.of("v1", vector));
     ObsDescriptor resultDescriptor = SimpleObsDescriptor.builder()
         .doubleField("d$0").doubleField("d$1").doubleField("d$2").build();
@@ -88,7 +89,7 @@ public class OctaveCalculatorTest {
 
   @Test
   public void testLong() throws Exception {
-    String func =  "d = v;";
+    String func = "d = v;";
     OctaveCalculator osc = new OctaveCalculator(func);
     Vector vector = VectorBuilder.longs(ImmutableList.<Object>of(1L, 2L, 3L));
     Exhibit e = SimpleExhibit.of("v", vector);

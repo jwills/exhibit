@@ -1,6 +1,9 @@
 package com.cloudera.exhibit.core.vector;
 
 import com.cloudera.exhibit.core.FieldType;
+import com.cloudera.exhibit.core.Frame;
+import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 
 import java.util.Collections;
 import java.util.Iterator;

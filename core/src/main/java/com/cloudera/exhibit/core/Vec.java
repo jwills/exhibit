@@ -26,4 +26,6 @@ public interface Vec extends Iterable<Object>, Serializable {
   Object get(int index);
 
   int size();
+
+  Frame asFrame();
 }

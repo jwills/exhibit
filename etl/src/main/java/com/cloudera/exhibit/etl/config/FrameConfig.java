@@ -17,7 +17,7 @@ package com.cloudera.exhibit.etl.config;
 import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
-import com.cloudera.exhibit.core.PivotCalculator;
+import com.cloudera.exhibit.core.calculators.PivotCalculator;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.cloudera.exhibit.javascript.JSCalculator;
 import com.cloudera.exhibit.sql.SQLCalculator;

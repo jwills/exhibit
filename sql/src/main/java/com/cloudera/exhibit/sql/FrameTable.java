@@ -14,11 +14,9 @@
  */
 package com.cloudera.exhibit.sql;
 
-import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Frame;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -34,15 +32,10 @@ import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.lang.reflect.Type;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.util.List;
-import java.util.Map;
 
 public class FrameTable extends AbstractTable implements QueryableTable {
 
@@ -66,29 +59,6 @@ public class FrameTable extends AbstractTable implements QueryableTable {
     return Statistics.of(frame.size(), ImmutableList.<ImmutableBitSet>of());
   }
 
-  private static Map<FieldType, SqlTypeName> TYPE_NAMES = ImmutableMap.<FieldType, SqlTypeName>builder()
-      .put(FieldType.DATE, SqlTypeName.DATE)
-      .put(FieldType.TIMESTAMP, SqlTypeName.TIMESTAMP)
-      .put(FieldType.BOOLEAN, SqlTypeName.BOOLEAN)
-      .put(FieldType.DOUBLE, SqlTypeName.DOUBLE)
-      .put(FieldType.FLOAT, SqlTypeName.FLOAT)
-      .put(FieldType.INTEGER, SqlTypeName.INTEGER)
-      .put(FieldType.LONG, SqlTypeName.BIGINT)
-      .build();
-
-  private static Map<FieldType, Class> TYPE_CLASSES = ImmutableMap.<FieldType, Class>builder()
-      .put(FieldType.DATE, Date.class)
-      .put(FieldType.TIMESTAMP, Timestamp.class)
-      .put(FieldType.DECIMAL, BigDecimal.class)
-      .put(FieldType.SHORT, Short.class)
-      .put(FieldType.BOOLEAN, Boolean.class)
-      .put(FieldType.DOUBLE, Double.class)
-      .put(FieldType.FLOAT, Float.class)
-      .put(FieldType.INTEGER, Integer.class)
-      .put(FieldType.LONG, Long.class)
-      .put(FieldType.STRING, String.class)
-      .build();
-
   @Override
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     List<String> names = Lists.newArrayListWithExpectedSize(descriptor.size());
@@ -96,10 +66,11 @@ public class FrameTable extends AbstractTable implements QueryableTable {
     for (int i = 0; i < descriptor.size(); i++) {
       ObsDescriptor.Field f = descriptor.get(i);
       names.add(f.name.toUpperCase());
-      if (TYPE_NAMES.containsKey(f.type)) {
-        relTypes.add(typeFactory.createTypeWithNullability(typeFactory.createSqlType(TYPE_NAMES.get(f.type)), true));
+      if (TypeUtils.FIELD_TYPES_TO_SQL_TYPES.containsKey(f.type)) {
+        relTypes.add(typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(TypeUtils.FIELD_TYPES_TO_SQL_TYPES.get(f.type)), true));
       } else {
-        relTypes.add(typeFactory.createJavaType(TYPE_CLASSES.get(f.type)));
+        relTypes.add(typeFactory.createJavaType(TypeUtils.FIELD_TYPES_TO_JAVA_TYPES.get(f.type)));
       }
     }
     return typeFactory.createStructType(relTypes, names);

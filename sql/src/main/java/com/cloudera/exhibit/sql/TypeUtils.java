@@ -48,25 +48,25 @@ public class TypeUtils {
 
   private static final Map<Integer, FieldType> SQL_TYPES_TO_FIELD_TYPES =
       ImmutableMap.<Integer, FieldType>builder()
-              .put(Types.BIGINT, FieldType.LONG)
-              .put(Types.BIT, FieldType.BOOLEAN)
-              .put(Types.BOOLEAN, FieldType.BOOLEAN)
-              .put(Types.CHAR, FieldType.STRING)
-              .put(Types.DATE, FieldType.DATE)
-              .put(Types.DECIMAL, FieldType.DECIMAL)
-              .put(Types.DOUBLE, FieldType.DOUBLE)
-              .put(Types.FLOAT, FieldType.DOUBLE) // Note: Yes, this is right.
-              .put(Types.INTEGER, FieldType.INTEGER)
-              .put(Types.LONGVARCHAR, FieldType.STRING)
-              .put(Types.REAL, FieldType.FLOAT)
-              .put(Types.SMALLINT, FieldType.SHORT)
-              .put(Types.TIME, FieldType.TIME)
-              .put(Types.TIMESTAMP, FieldType.TIMESTAMP)
-              .put(Types.TINYINT, FieldType.SHORT)
-              .put(Types.VARCHAR, FieldType.STRING)
-              .build();
+          .put(Types.BIGINT, FieldType.LONG)
+          .put(Types.BIT, FieldType.BOOLEAN)
+          .put(Types.BOOLEAN, FieldType.BOOLEAN)
+          .put(Types.CHAR, FieldType.STRING)
+          .put(Types.DATE, FieldType.DATE)
+          .put(Types.DECIMAL, FieldType.DECIMAL)
+          .put(Types.DOUBLE, FieldType.DOUBLE)
+          .put(Types.FLOAT, FieldType.DOUBLE) // Note: Yes, this is right.
+          .put(Types.INTEGER, FieldType.INTEGER)
+          .put(Types.LONGVARCHAR, FieldType.STRING)
+          .put(Types.REAL, FieldType.FLOAT)
+          .put(Types.SMALLINT, FieldType.SHORT)
+          .put(Types.TIME, FieldType.TIME)
+          .put(Types.TIMESTAMP, FieldType.TIMESTAMP)
+          .put(Types.TINYINT, FieldType.SHORT)
+          .put(Types.VARCHAR, FieldType.STRING)
+          .build();
 
-  protected static Map<FieldType, SqlTypeName> FIELD_TYPES_TO_SQL_TYPES = ImmutableMap.<FieldType, SqlTypeName>builder()
+  public static Map<FieldType, SqlTypeName> FIELD_TYPES_TO_SQL_TYPES = ImmutableMap.<FieldType, SqlTypeName>builder()
       .put(FieldType.DATE, SqlTypeName.DATE)
       .put(FieldType.TIMESTAMP, SqlTypeName.TIMESTAMP)
       .put(FieldType.BOOLEAN, SqlTypeName.BOOLEAN)
@@ -76,7 +76,7 @@ public class TypeUtils {
       .put(FieldType.LONG, SqlTypeName.BIGINT)
       .build();
 
-  protected static Map<FieldType, Class> FIELD_TYPES_TO_JAVA_TYPES = ImmutableMap.<FieldType, Class>builder()
+  public static Map<FieldType, Class> FIELD_TYPES_TO_JAVA_TYPES = ImmutableMap.<FieldType, Class>builder()
       .put(FieldType.DATE, Date.class)
       .put(FieldType.TIMESTAMP, Timestamp.class)
       .put(FieldType.DECIMAL, BigDecimal.class)

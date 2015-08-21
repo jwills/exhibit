@@ -14,6 +14,7 @@
  */
 package com.cloudera.exhibit.core;
 
+import com.cloudera.exhibit.core.calculators.PivotCalculator;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;

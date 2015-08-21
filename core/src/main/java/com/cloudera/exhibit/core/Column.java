@@ -14,6 +14,12 @@
  */
 package com.cloudera.exhibit.core;
 
+import com.cloudera.exhibit.core.simple.SimpleFrame;
+import com.cloudera.exhibit.core.simple.SimpleObs;
+import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 
@@ -48,5 +54,16 @@ public class Column extends AbstractList<Object> implements Vec {
   @Override
   public int size() {
     return frame.size();
+  }
+
+  @Override
+  public Frame asFrame() {
+    final ObsDescriptor od = SimpleObsDescriptor.of("c1", getType());
+    return new SimpleFrame(od, Lists.transform(this, new Function<Object, Obs>() {
+      @Override
+      public Obs apply(Object o) {
+        return new SimpleObs(od, ImmutableList.of(o));
+      }
+    }));
   }
 }

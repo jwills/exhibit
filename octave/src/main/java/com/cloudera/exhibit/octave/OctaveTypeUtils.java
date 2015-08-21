@@ -1,23 +1,136 @@
+/*
+ * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+ *
+ * Cloudera, Inc. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"). You may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the
+ * License.
+ */
 package com.cloudera.exhibit.octave;
 
+import com.cloudera.exhibit.core.Exhibit;
 import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.ObsDescriptor;
+import com.cloudera.exhibit.core.Vec;
+import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.simple.SimpleObs;
+import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.cloudera.exhibit.core.vector.BooleanVector;
 import com.cloudera.exhibit.core.vector.DoubleVector;
 import com.cloudera.exhibit.core.vector.IntVector;
 import com.cloudera.exhibit.core.vector.Vector;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import dk.ange.octave.OctaveEngine;
 import dk.ange.octave.type.OctaveBoolean;
 import dk.ange.octave.type.OctaveDouble;
 import dk.ange.octave.type.OctaveInt;
 import dk.ange.octave.type.OctaveObject;
+import dk.ange.octave.type.matrix.AbstractGenericMatrix;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-/**
- * Created by prungta on 8/5/15.
- */
 public class OctaveTypeUtils {
+
+  public static class OctaveConverter{
+    OctaveEngine octaveEngine;
+    List<Object> attrValues;
+    List<ObsDescriptor.Field> attrDesc;
+    Map<String, Frame> frames;
+    Map<String, Vec> vectors;
+
+    public OctaveConverter(OctaveEngine octaveEngine) {
+      this.octaveEngine = octaveEngine;
+      this.attrValues = Lists.newArrayListWithExpectedSize(10);
+      this.attrDesc = Lists.newArrayListWithExpectedSize(10);
+      this.frames = Maps.newHashMap();
+      this.vectors = Maps.newHashMap();
+    }
+
+    private OctaveConverter addVar(String var){
+      OctaveObject octaveObject = octaveEngine.get(var);
+      if(!(octaveObject instanceof AbstractGenericMatrix)){
+        throw new IllegalArgumentException("Unsupported Type: " +octaveObject.toString());
+      }
+      AbstractGenericMatrix mat = (AbstractGenericMatrix) octaveObject;
+      int [] dims = mat.getSize();
+      if( dims.length < 1 || dims.length > 2) {
+        throw new IllegalArgumentException("Unsupported dimensions: " + Arrays.asList(dims).toString());
+      }
+      if(dims[0]==1 && (dims.length == 1 || (dims.length == 2 && dims[1] == 1))){
+        return addAttribute(var, octaveObject);
+      } else if(dims.length == 1 || (dims.length == 2 && dims[1] == 1)){
+        return addVector(var, octaveObject);
+      } else if(dims.length == 2) {
+        return addFrame(var, octaveObject);
+      }
+      return this;
+    }
+
+    private OctaveConverter addVector(String var, OctaveObject octaveObject) {
+      if(octaveObject instanceof OctaveDouble){
+        OctaveDouble od = (OctaveDouble)octaveObject;
+        vectors.put(var, new DoubleVector(od.getData()));
+      } else if(octaveObject instanceof OctaveInt){
+        OctaveInt oi = (OctaveInt)octaveObject;
+        vectors.put(var, new IntVector(oi.getData()));
+      } else if(octaveObject instanceof OctaveBoolean){
+        OctaveBoolean ob = (OctaveBoolean)octaveObject;
+        vectors.put(var, new BooleanVector(ob.getData()));
+      } else {
+        throw new IllegalArgumentException("Unsupported Type: " + octaveObject.toString());
+      }
+      return this;
+    }
+
+    private OctaveConverter addFrame(String var, OctaveObject octaveObject) {
+      frames.put(var, new OctaveFrame(var, octaveObject));
+      return this;
+    }
+
+    private OctaveConverter addAttribute(String name, FieldType type, Object value) {
+      attrDesc.add(new ObsDescriptor.Field(name, type));
+      attrValues.add(value);
+      return this;
+    }
+
+    private OctaveConverter addAttribute(String var, OctaveObject octaveObject) {
+      if(octaveObject instanceof OctaveDouble){
+        OctaveDouble od = (OctaveDouble)octaveObject;
+        return addAttribute(var, FieldType.DOUBLE, od.get(1,1));
+      } else if(octaveObject instanceof OctaveInt){
+        OctaveInt oi = (OctaveInt)octaveObject;
+        return addAttribute(var, FieldType.INTEGER, oi.get(1,1));
+      } else if(octaveObject instanceof OctaveBoolean){
+        OctaveBoolean oi = (OctaveBoolean)octaveObject;
+        return addAttribute(var, FieldType.BOOLEAN, oi.get(1,1));
+      }
+      throw new IllegalArgumentException("Unsupported Type: " +octaveObject.toString());
+    }
+
+    public OctaveConverter addVars(Iterable<String> vars){
+      for(String var: vars){
+        addVar(var);
+      }
+      return this;
+    }
+
+    public Exhibit convert(){
+      ObsDescriptor od = new SimpleObsDescriptor(attrDesc);
+      return new SimpleExhibit(new SimpleObs(od, attrValues), frames, vectors);
+    }
+  }
+
 
   public static boolean isSupportedType(ObsDescriptor od){
     if(od.size() == 0){
@@ -68,7 +181,7 @@ public class OctaveTypeUtils {
     throw new UnsupportedOperationException("Unsupported Type: " +originalType.toString());
   }
 
-  public static OctaveObject convertToOctaveObject(FieldType originalType, Vector v) {
+  public static OctaveObject convertToOctaveObject(FieldType originalType, Vec v) {
     switch(originalType){
       case BOOLEAN:
         return new OctaveBoolean(((BooleanVector)v).getData(),v.size(),1);

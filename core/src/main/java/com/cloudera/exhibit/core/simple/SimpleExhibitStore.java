@@ -20,7 +20,6 @@ import com.cloudera.exhibit.core.ExhibitStore;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 
 import java.util.Map;
 import java.util.Set;
