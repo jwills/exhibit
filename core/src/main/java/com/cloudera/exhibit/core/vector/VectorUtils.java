@@ -27,12 +27,12 @@ import com.google.common.collect.Lists;
 
 public class VectorUtils {
 
-  public static ObsDescriptor asObsDescriptor(FieldType vectorType) {
-    return SimpleObsDescriptor.of("c1", vectorType);
+  public static ObsDescriptor asObsDescriptor(String name, FieldType vectorType) {
+    return SimpleObsDescriptor.of(name, vectorType);
   }
 
-  public static Frame asFrame(Vec vec) {
-    final ObsDescriptor od = asObsDescriptor(vec.getType());
+  public static Frame asFrame(String name, Vec vec) {
+    final ObsDescriptor od = asObsDescriptor(name, vec.getType());
     return new SimpleFrame(od, Lists.transform(Lists.newArrayList(vec), new Function<Object, Obs>() {
       @Override
       public Obs apply(Object o) {

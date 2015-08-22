@@ -46,7 +46,7 @@ public class OctaveCalculator implements Calculator, Serializable{
       return res.attributes();
     } else if (!res.vectors().isEmpty()) {
       this.varName = Iterables.getOnlyElement(res.vectors().keySet());
-      return VectorUtils.asObsDescriptor(res.vectors().get(varName));
+      return VectorUtils.asObsDescriptor(varName, res.vectors().get(varName));
     } else if (!res.frames().isEmpty()) {
       this.varName = Iterables.getOnlyElement(res.frames().keySet());
       return res.frames().get(varName);
@@ -69,7 +69,7 @@ public class OctaveCalculator implements Calculator, Serializable{
     if (result.frames().containsKey(varName)) {
       return result.frames().get(varName);
     } else if (result.vectors().containsKey(varName)) {
-      return VectorUtils.asFrame(result.vectors().get(varName));
+      return VectorUtils.asFrame(varName, result.vectors().get(varName));
     } else {
       return ImmutableList.of(result.attributes());
     }

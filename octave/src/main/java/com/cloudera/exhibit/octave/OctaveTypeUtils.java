@@ -25,7 +25,6 @@ import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.cloudera.exhibit.core.vector.BooleanVector;
 import com.cloudera.exhibit.core.vector.DoubleVector;
 import com.cloudera.exhibit.core.vector.IntVector;
-import com.cloudera.exhibit.core.vector.Vector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import dk.ange.octave.OctaveEngine;
@@ -57,21 +56,19 @@ public class OctaveTypeUtils {
       this.vectors = Maps.newHashMap();
     }
 
-    private OctaveConverter addVar(String var){
+    private OctaveConverter addVar(String var) {
       OctaveObject octaveObject = octaveEngine.get(var);
-      if(!(octaveObject instanceof AbstractGenericMatrix)){
+      if(!(octaveObject instanceof AbstractGenericMatrix)) {
         throw new IllegalArgumentException("Unsupported Type: " +octaveObject.toString());
       }
       AbstractGenericMatrix mat = (AbstractGenericMatrix) octaveObject;
-      int [] dims = mat.getSize();
-      if( dims.length < 1 || dims.length > 2) {
+      int[] dims = mat.getSize();
+      if(dims.length < 1 || dims.length > 2) {
         throw new IllegalArgumentException("Unsupported dimensions: " + Arrays.asList(dims).toString());
       }
-      if(dims[0]==1 && (dims.length == 1 || (dims.length == 2 && dims[1] == 1))){
-        return addAttribute(var, octaveObject);
-      } else if(dims.length == 1 || (dims.length == 2 && dims[1] == 1)){
+      if (dims.length == 1 || (dims.length == 2 && dims[1] == 1)) {
         return addVector(var, octaveObject);
-      } else if(dims.length == 2) {
+      } else if (dims.length == 2) {
         return addFrame(var, octaveObject);
       }
       return this;
@@ -79,16 +76,16 @@ public class OctaveTypeUtils {
 
     private OctaveConverter addVector(String var, OctaveObject octaveObject) {
       if(octaveObject instanceof OctaveDouble){
-        OctaveDouble od = (OctaveDouble)octaveObject;
+        OctaveDouble od = (OctaveDouble) octaveObject;
         vectors.put(var, new DoubleVector(od.getData()));
       } else if(octaveObject instanceof OctaveInt){
-        OctaveInt oi = (OctaveInt)octaveObject;
+        OctaveInt oi = (OctaveInt) octaveObject;
         vectors.put(var, new IntVector(oi.getData()));
       } else if(octaveObject instanceof OctaveBoolean){
-        OctaveBoolean ob = (OctaveBoolean)octaveObject;
+        OctaveBoolean ob = (OctaveBoolean) octaveObject;
         vectors.put(var, new BooleanVector(ob.getData()));
       } else {
-        throw new IllegalArgumentException("Unsupported Type: " + octaveObject.toString());
+        throw new IllegalArgumentException("Unsupported Type: " + octaveObject);
       }
       return this;
     }
@@ -98,57 +95,36 @@ public class OctaveTypeUtils {
       return this;
     }
 
-    private OctaveConverter addAttribute(String name, FieldType type, Object value) {
-      attrDesc.add(new ObsDescriptor.Field(name, type));
-      attrValues.add(value);
-      return this;
-    }
-
-    private OctaveConverter addAttribute(String var, OctaveObject octaveObject) {
-      if(octaveObject instanceof OctaveDouble){
-        OctaveDouble od = (OctaveDouble)octaveObject;
-        return addAttribute(var, FieldType.DOUBLE, od.get(1,1));
-      } else if(octaveObject instanceof OctaveInt){
-        OctaveInt oi = (OctaveInt)octaveObject;
-        return addAttribute(var, FieldType.INTEGER, oi.get(1,1));
-      } else if(octaveObject instanceof OctaveBoolean){
-        OctaveBoolean oi = (OctaveBoolean)octaveObject;
-        return addAttribute(var, FieldType.BOOLEAN, oi.get(1,1));
-      }
-      throw new IllegalArgumentException("Unsupported Type: " +octaveObject.toString());
-    }
-
-    public OctaveConverter addVars(Iterable<String> vars){
-      for(String var: vars){
+    public OctaveConverter addVars(Iterable<String> vars) {
+      for(String var: vars) {
         addVar(var);
       }
       return this;
     }
 
-    public Exhibit convert(){
+    public Exhibit convert() {
       ObsDescriptor od = new SimpleObsDescriptor(attrDesc);
       return new SimpleExhibit(new SimpleObs(od, attrValues), frames, vectors);
     }
   }
 
 
-  public static boolean isSupportedType(ObsDescriptor od){
-    if(od.size() == 0){
+  public static boolean isSupportedType(ObsDescriptor od) {
+    if (od.size() == 0) {
       return false;
     }
     FieldType ft = od.get(0).type;
     Iterator<ObsDescriptor.Field> it = od.iterator();
-    while(it.hasNext()) {
-      if( it.next().type != ft ) {
+    while (it.hasNext()) {
+      if (it.next().type != ft) {
         return false;
       }
     }
     return isSupportedType(ft);
   }
 
-  public static boolean isSupportedType(FieldType f){
-    switch (f)
-    {
+  public static boolean isSupportedType(FieldType f) {
+    switch (f) {
       case BOOLEAN:
       case INTEGER:
       case SHORT:
@@ -156,44 +132,39 @@ public class OctaveTypeUtils {
       case FLOAT:
       case DOUBLE:
         return true;
-      case STRING:
-      case DATE:
-      case TIME:
-      case TIMESTAMP:
-      case DECIMAL:
+      default:
         return false;
     }
-    return false;
   }
 
   public static OctaveObject convertToOctaveObject(FieldType originalType, Object o) {
     switch(originalType){
       case BOOLEAN:
-        return new OctaveBoolean(new boolean[]{(Boolean)o},1,1);
+        return new OctaveBoolean(new boolean[] { (Boolean)o }, 1, 1);
       case SHORT:
       case INTEGER:
-        return new OctaveInt(new int[]{(Integer)o},1,1);
+        return new OctaveInt(new int[] { (Integer)o }, 1, 1);
       case LONG:
       case FLOAT:
       case DOUBLE:
-        return new OctaveDouble(new double[]{(Double)o},1,1);
+        return new OctaveDouble(new double[] { (Double)o }, 1, 1);
     }
-    throw new UnsupportedOperationException("Unsupported Type: " +originalType.toString());
+    throw new UnsupportedOperationException("Unsupported Type: " + originalType);
   }
 
   public static OctaveObject convertToOctaveObject(FieldType originalType, Vec v) {
-    switch(originalType){
+    switch(originalType) {
       case BOOLEAN:
-        return new OctaveBoolean(((BooleanVector)v).getData(),v.size(),1);
+        return new OctaveBoolean(((BooleanVector)v).getData(), v.size(), 1);
       case SHORT:
       case INTEGER:
-        return new OctaveInt(((IntVector)v).getData(),v.size(),1);
+        return new OctaveInt(((IntVector)v).getData(), v.size(), 1);
       case LONG:
       case FLOAT:
       case DOUBLE:
-        return new OctaveDouble(((DoubleVector)v).getData(),v.size(),1);
+        return new OctaveDouble(((DoubleVector)v).getData(), v.size(), 1);
     }
-    throw new UnsupportedOperationException("Unsupported Type: " +originalType.toString());
+    throw new UnsupportedOperationException("Unsupported Type: " + originalType);
   }
 
   public static OctaveObject convertToOctaveObject(FieldType originalType, Frame f) {
@@ -209,7 +180,7 @@ public class OctaveTypeUtils {
       case DOUBLE:
         return new OctaveDouble(convertFrameToDouble(f), f.size(), od.size());
     }
-    throw new UnsupportedOperationException("Unsupported Type: " +originalType.toString());
+    throw new UnsupportedOperationException("Unsupported Type: " + originalType);
   }
 
   private static int[] convertFrameToInt(Frame f) {
