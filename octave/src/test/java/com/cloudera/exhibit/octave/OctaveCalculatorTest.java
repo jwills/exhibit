@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import dk.ange.octave.OctaveEngineFactory;
 import org.junit.Test;
 
 import java.util.List;
@@ -23,8 +24,22 @@ import static org.junit.Assert.assertEquals;
 
 public class OctaveCalculatorTest {
 
+  private boolean hasOctave;
+
+  public OctaveCalculatorTest() {
+    hasOctave = true;
+    try {
+      new OctaveEngineFactory().getScriptEngine();
+    } catch (Throwable t) {
+      hasOctave = false;
+    }
+  }
+
   @Test
   public void testObs() throws Exception {
+    if (!hasOctave) {
+      return;
+    }
     ObsDescriptor resultDescriptor = SimpleObsDescriptor.builder().doubleField("d").build();
     OctaveCalculator osc = new OctaveCalculator("d = sum(v(:));");
     Vector vector = VectorBuilder.doubles(ImmutableList.<Object>of(1.0, 2.0, 3.0));
@@ -38,6 +53,9 @@ public class OctaveCalculatorTest {
 
   @Test
   public void testFrame() throws Exception {
+    if (!hasOctave) {
+      return;
+    }
     String func = "d = [df v1];";
     OctaveCalculator osc = new OctaveCalculator(func);
     ObsDescriptor od = SimpleObsDescriptor.builder().doubleField("a").doubleField("b").build();
@@ -65,6 +83,9 @@ public class OctaveCalculatorTest {
 
   @Test
   public void testFunction() throws Exception {
+    if (!hasOctave) {
+      return;
+    }
     String func = ""
         + "function res = my_func(a)\n"
         + " res = 2 * a;\n"
@@ -89,6 +110,9 @@ public class OctaveCalculatorTest {
 
   @Test
   public void testLong() throws Exception {
+    if (!hasOctave) {
+      return;
+    }
     String func = "d = v;";
     OctaveCalculator osc = new OctaveCalculator(func);
     Vector vector = VectorBuilder.longs(ImmutableList.<Object>of(1L, 2L, 3L));
