@@ -14,8 +14,16 @@
  */
 package com.cloudera.exhibit.hive;
 
+import com.google.common.base.Joiner;
+
 public class JavascriptUDF extends CodeUDF {
   protected JavascriptUDF() {
     super("javascript");
+  }
+
+  @Override
+  public String getDisplayString(String[] args) {
+    assert (args.length > 1);
+    return "js(" + Joiner.on(',').join(args) + ")";
   }
 }

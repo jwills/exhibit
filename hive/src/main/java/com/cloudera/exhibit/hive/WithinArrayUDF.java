@@ -31,6 +31,7 @@ import java.util.List;
 
 public class WithinArrayUDF extends GenericUDF {
   private Calculator calculator;
+  private ObjectInspector[] inspectors;
   private transient Exhibit exhibit;
 
   public WithinArrayUDF() {
@@ -42,6 +43,7 @@ public class WithinArrayUDF extends GenericUDF {
       throw new UDFArgumentLengthException("The 'within_array' function takes at least two arguments");
     }
 
+    this.inspectors = args;
     this.calculator = HiveUtils.getCalculator(args[0]);
     this.exhibit = HiveUtils.getExhibit(args);
     ObsDescriptor od = calculator.initialize(exhibit.descriptor());
@@ -50,9 +52,7 @@ public class WithinArrayUDF extends GenericUDF {
 
   @Override
   public Object evaluate(GenericUDF.DeferredObject[] args) throws HiveException {
-    for (int i = 1; i < args.length; i++) {
-      HiveUtils.update(exhibit, "t" + i, args[i].get());
-    }
+    HiveUtils.update(exhibit, inspectors, args);
     List<Object> results = Lists.newArrayList();
     for (Obs obs : calculator.apply(exhibit)) {
       results.add(getResult(obs));

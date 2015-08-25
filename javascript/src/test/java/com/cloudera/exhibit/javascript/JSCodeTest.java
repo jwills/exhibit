@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class JSCalculatorTest {
+public class JSCodeTest {
 
   ObsDescriptor res1 = SimpleObsDescriptor.builder()
       .doubleField("a")
@@ -109,5 +109,21 @@ public class JSCalculatorTest {
     jsc.initialize(e.descriptor());
     assertEquals(frame, jsc.apply(e));
     jsc.cleanup();
+  }
+
+  @Test
+  public void testFunctor() throws Exception {
+    JSFunctor jsf = new JSFunctor("var a = function() { return [{a: df[0].a, b: true}]; }; f = a(); b = ['', 'a']; c = 1;");
+    ObsDescriptor od = SimpleObsDescriptor.builder().doubleField("a").booleanField("b").build();
+    Obs one = SimpleObs.of(od, 17, true);
+    Obs two = SimpleObs.of(od, 12, false);
+    Frame frame = SimpleFrame.of(one, two);
+    Exhibit e = new SimpleExhibit(Obs.EMPTY, ImmutableMap.of("df", frame));
+    jsf.initialize(e.descriptor());
+    Exhibit res = jsf.apply(e);
+    assertEquals(1.0, (Double) res.attributes().get("c"), 0.001);
+    assertEquals("a", res.vectors().get("b").get(1));
+    assertEquals(Boolean.TRUE, res.frames().get("f").get(0).get(1));
+    jsf.cleanup();
   }
 }

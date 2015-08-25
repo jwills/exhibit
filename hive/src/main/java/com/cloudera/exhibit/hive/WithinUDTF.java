@@ -32,6 +32,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 public class WithinUDTF extends GenericUDTF {
 
   private Calculator calculator;
+  private ObjectInspector[] inspectors;
+
   private transient Exhibit exhibit;
   private transient Object[] results;
 
@@ -44,6 +46,7 @@ public class WithinUDTF extends GenericUDTF {
       throw new UDFArgumentLengthException("The 'within' function takes at least two arguments");
     }
 
+    this.inspectors = args;
     this.calculator = HiveUtils.getCalculator(args[0]);
     this.exhibit = HiveUtils.getExhibit(args);
     ObsDescriptor od = calculator.initialize(exhibit.descriptor());
@@ -54,9 +57,7 @@ public class WithinUDTF extends GenericUDTF {
 
   @Override
   public void process(Object[] args) throws HiveException {
-    for (int i = 1; i < args.length; i++) {
-      HiveUtils.update(exhibit, "t" + i, args[i]);
-    }
+    HiveUtils.update(exhibit, inspectors, args);
     Iterable<Obs> res = calculator.apply(exhibit);
     for (Obs obs : res) {
       for (int i = 0; i < results.length; i++) {

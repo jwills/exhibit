@@ -28,7 +28,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspe
 
 import java.util.List;
 
-public class CodeUDF extends GenericUDF {
+public abstract class CodeUDF extends GenericUDF {
 
   private String engine;
 
@@ -38,8 +38,8 @@ public class CodeUDF extends GenericUDF {
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] args) throws UDFArgumentException {
-    if (args.length < 1 || args.length > 2) {
-      throw new UDFArgumentLengthException("Code UDFs take at least 1 and no more than 2 args");
+    if (args.length != 1) {
+      throw new UDFArgumentLengthException("Code UDFs take exactly one argument");
     }
     ObjectInspector codeOI = args[0];
     if (!ObjectInspectorUtils.isConstantObjectInspector(codeOI)) {
@@ -65,10 +65,5 @@ public class CodeUDF extends GenericUDF {
   @Override
   public Object evaluate(DeferredObject[] args) throws HiveException {
     return Lists.newArrayList(engine, args[0].get());
-  }
-
-  @Override
-  public String getDisplayString(String[] args) {
-    return null;
   }
 }

@@ -16,13 +16,16 @@ package com.cloudera.exhibit.hive;
 
 import com.cloudera.exhibit.core.Calculator;
 import com.cloudera.exhibit.core.Exhibit;
+import com.cloudera.exhibit.core.ExhibitDescriptor;
 import com.cloudera.exhibit.core.FieldType;
 import com.cloudera.exhibit.core.Frame;
-import com.cloudera.exhibit.core.Obs;
+import com.cloudera.exhibit.core.Functor;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Vec;
 import com.cloudera.exhibit.core.simple.SimpleExhibit;
+import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
 import com.cloudera.exhibit.javascript.JSCalculator;
+import com.cloudera.exhibit.javascript.JSFunctor;
 import com.cloudera.exhibit.sql.SQLCalculator;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -30,11 +33,15 @@ import com.google.common.collect.Maps;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
 
@@ -63,20 +70,72 @@ public final class HiveUtils {
   public static Exhibit getExhibit(ObjectInspector[] args) throws UDFArgumentException {
     Map<String, Frame> frames = Maps.newHashMap();
     Map<String, Vec> vectors = Maps.newHashMap();
+    List<ObsDescriptor.Field> fields = Lists.newArrayList();
+    List<PrimitiveObjectInspector> pois = Lists.newArrayList();
     for (int i = 1; i < args.length; i++) {
-      String label = "t" + i;
       ObjectInspector oi = args[i];
       if (oi.getCategory() == ObjectInspector.Category.LIST) {
         ListObjectInspector loi = (ListObjectInspector) oi;
         ObjectInspector inner = loi.getListElementObjectInspector();
+        String label = "t" + i;
         if (inner.getCategory() == ObjectInspector.Category.STRUCT) {
           frames.put(label, new HiveFrame(loi));
         } else {
           vectors.put(label, new HiveVector(getFieldType(inner), loi));
         }
+      } else if (oi.getCategory() == ObjectInspector.Category.STRUCT) {
+        StructObjectInspector soi = (StructObjectInspector) oi;
+        for (StructField sf : soi.getAllStructFieldRefs()) {
+          if (sf.getFieldObjectInspector().getCategory() == ObjectInspector.Category.LIST) {
+            ListObjectInspector loi = (ListObjectInspector) sf.getFieldObjectInspector();
+            ObjectInspector inner = loi.getListElementObjectInspector();
+            if (inner.getCategory() == ObjectInspector.Category.STRUCT) {
+              frames.put(sf.getFieldName(), new HiveFrame(loi));
+            } else {
+              vectors.put(sf.getFieldName(), new HiveVector(getFieldType(inner), loi));
+            }
+          } else if (sf.getFieldObjectInspector().getCategory() == ObjectInspector.Category.PRIMITIVE) {
+            PrimitiveObjectInspector poi = (PrimitiveObjectInspector) sf.getFieldObjectInspector();
+            FieldType ft = getFieldType(poi);
+            if (ft != null) {
+              fields.add(new ObsDescriptor.Field(sf.getFieldName(), ft));
+              pois.add(poi);
+            }
+          }
+        }
       }
     }
-    return new SimpleExhibit(Obs.EMPTY, frames, vectors);
+    ObsDescriptor attrDesc = new SimpleObsDescriptor(fields);
+    return new SimpleExhibit(new HiveAttributes(attrDesc, pois), frames, vectors);
+  }
+
+  public static void update(Exhibit exhibit, ObjectInspector[] inspectors, GenericUDF.DeferredObject[] args)
+      throws HiveException {
+    for (int i = 1; i < args.length; i++) {
+      if (inspectors[i].getCategory() == ObjectInspector.Category.LIST) {
+        update(exhibit, "t" + i, args[i].get());
+      } else if (inspectors[i].getCategory() == ObjectInspector.Category.STRUCT) {
+        StructObjectInspector soi = (StructObjectInspector) inspectors[i];
+        Object base = args[i].get();
+        for (StructField sf : soi.getAllStructFieldRefs()) {
+          update(exhibit, sf.getFieldName(), soi.getStructFieldData(base, sf));
+        }
+      }
+    }
+  }
+
+  public static void update(Exhibit exhibit, ObjectInspector[] inspectors, Object[] args) {
+    for (int i = 1; i < args.length; i++) {
+      if (inspectors[i] instanceof ListObjectInspector) {
+        update(exhibit, "t" + i, args[i]);
+      } else if (inspectors[i] instanceof StructObjectInspector) {
+        StructObjectInspector soi = (StructObjectInspector) inspectors[i];
+        Object base = args[i];
+        for (StructField sf : soi.getAllStructFieldRefs()) {
+          update(exhibit, sf.getFieldName(), soi.getStructFieldData(base, sf));
+        }
+      }
+    }
   }
 
   public static void update(Exhibit exhibit, String label, Object newValues) {
@@ -85,7 +144,12 @@ public final class HiveUtils {
     } else if (exhibit.vectors().containsKey(label)) {
       ((HiveVector) exhibit.vectors().get(label)).updateValues(newValues);
     } else {
-      throw new IllegalArgumentException("Cannot update exhibit for label: " + label);
+      int attrIndex = exhibit.attributes().descriptor().indexOf(label);
+      if (attrIndex >= 0) {
+        ((HiveAttributes) exhibit.attributes()).update(attrIndex, newValues);
+      } else {
+        throw new IllegalArgumentException("Unknown exhibit field name: " + label);
+      }
     }
   }
 
@@ -144,16 +208,7 @@ public final class HiveUtils {
         return ft;
       }
     }
-    throw new IllegalArgumentException("Unsupported object inspector type = " + oi);
-  }
-
-  public static HiveFrame getHiveFrame(ObjectInspector oi) throws UDFArgumentException {
-    if (oi.getCategory() == ObjectInspector.Category.LIST) {
-      ListObjectInspector loi = (ListObjectInspector) oi;
-      return new HiveFrame(loi);
-    } else {
-      throw new UDFArgumentException("Only arrays of structs/primitives are supported at this time");
-    }
+    return null;
   }
 
   public static Object asJavaType(Object v) {
@@ -186,5 +241,37 @@ public final class HiveUtils {
     } else {
       return FIELD_TYPES_TO_OI.get(descriptor.get(0).type);
     }
+  }
+
+  public static StructObjectInspector fromDescriptor(ExhibitDescriptor descriptor) {
+    List<String> names = Lists.newArrayList();
+    List<ObjectInspector> inspectors = Lists.newArrayList();
+    for (ObsDescriptor.Field f : descriptor.attributes()) {
+      names.add(f.name);
+      inspectors.add(FIELD_TYPES_TO_OI.get(f.type));
+    }
+    for (Map.Entry<String, FieldType> ve : descriptor.vectors().entrySet()) {
+      names.add(ve.getKey());
+      inspectors.add(ObjectInspectorFactory.getStandardListObjectInspector(FIELD_TYPES_TO_OI.get(ve.getValue())));
+    }
+    for (Map.Entry<String, ObsDescriptor> fe : descriptor.frames().entrySet()) {
+      names.add(fe.getKey());
+      inspectors.add(fromDescriptor(fe.getValue(), true));
+    }
+    return ObjectInspectorFactory.getStandardStructObjectInspector(names, inspectors);
+  }
+
+  public static Functor getFunctor(ObjectInspector first) {
+    if (first.getCategory() != ObjectInspector.Category.LIST) {
+      throw new IllegalArgumentException("Functors must have a code type: js, m, etc.");
+    }
+    ListObjectInspector loi = (ListObjectInspector) first;
+    Object args = ObjectInspectorUtils.getWritableConstantValue(first);
+    String engine = loi.getListElement(args, 0).toString();
+    String code = loi.getListElement(args, 1).toString();
+    if ("js".equalsIgnoreCase(engine) || "javascript".equalsIgnoreCase(engine)) {
+      return new JSFunctor(code);
+    }
+    throw new IllegalArgumentException("Unknown engine type: " + engine);
   }
 }

@@ -32,6 +32,8 @@ import java.util.List;
 public class WithinUDF extends GenericUDF {
 
   private Calculator calculator;
+  private ObjectInspector[] inspectors;
+
   private transient Exhibit exhibit;
 
   public WithinUDF() {
@@ -42,7 +44,7 @@ public class WithinUDF extends GenericUDF {
     if (args.length <= 1) {
       throw new UDFArgumentLengthException("The 'within' function takes at least two arguments");
     }
-
+    this.inspectors = args;
     this.calculator = HiveUtils.getCalculator(args[0]);
     this.exhibit = HiveUtils.getExhibit(args);
     ObsDescriptor od = calculator.initialize(exhibit.descriptor());
@@ -51,9 +53,7 @@ public class WithinUDF extends GenericUDF {
 
   @Override
   public Object evaluate(DeferredObject[] args) throws HiveException {
-    for (int i = 1; i < args.length; i++) {
-      HiveUtils.update(exhibit, "t" + i, args[i].get());
-    }
+    HiveUtils.update(exhibit, inspectors, args);
     return getResult(Iterables.getOnlyElement(calculator.apply(exhibit)));
   }
 

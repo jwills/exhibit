@@ -21,6 +21,8 @@ import com.cloudera.exhibit.core.Frame;
 import com.cloudera.exhibit.core.Obs;
 import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.Vec;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -34,19 +36,28 @@ public class CompositeExhibit implements Exhibit {
   private Map<String, Frame> frames;
   private Map<String, Vec> vectors;
 
-  public static CompositeExhibit create(List<Exhibit> components) {
+  public static ExhibitDescriptor createDescriptor(Iterable<ExhibitDescriptor> descriptors) {
     List<ObsDescriptor> descs = Lists.newArrayList();
     Map<String, ObsDescriptor> frameDescs = Maps.newHashMap();
     Map<String, FieldType> vectorDescs = Maps.newHashMap();
-    for (Exhibit e : components) {
-      descs.add(e.descriptor().attributes());
-      frameDescs.putAll(e.descriptor().frames());
-      vectorDescs.putAll(e.descriptor().vectors());
+    for (ExhibitDescriptor ed : descriptors) {
+      descs.add(ed.attributes());
+      frameDescs.putAll(ed.frames());
+      vectorDescs.putAll(ed.vectors());
     }
-    return create(new ExhibitDescriptor(new CompositeObsDescriptor(descs), frameDescs, vectorDescs), components);
+    return new ExhibitDescriptor(new CompositeObsDescriptor(descs), frameDescs, vectorDescs);
   }
 
-  public static CompositeExhibit create(ExhibitDescriptor descriptor, List<Exhibit> components) {
+  public static CompositeExhibit create(Iterable<Exhibit> components) {
+    return create(createDescriptor(Iterables.transform(components, new Function<Exhibit, ExhibitDescriptor>() {
+      @Override
+      public ExhibitDescriptor apply(Exhibit exhibit) {
+        return exhibit.descriptor();
+      }
+    })), components);
+  }
+
+  public static CompositeExhibit create(ExhibitDescriptor descriptor, Iterable<Exhibit> components) {
     Map<String, Frame> frames = Maps.newHashMap();
     Map<String, Vec> vectors = Maps.newHashMap();
     List<Obs> attrs = Lists.newArrayList();

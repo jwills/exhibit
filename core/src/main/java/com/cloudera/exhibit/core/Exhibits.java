@@ -19,14 +19,18 @@ import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.vector.Vector;
 import com.cloudera.exhibit.core.vector.VectorBuilder;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Exhibits {
 
@@ -45,6 +49,18 @@ public class Exhibits {
 
   public static Exhibit defaultValues(ExhibitDescriptor descriptor) {
     return defaultValues(descriptor, DV);
+  }
+
+  public static Set<String> nameSet(ExhibitDescriptor descriptor) {
+    Set<String> names = Sets.newHashSet(Iterables.transform(descriptor.attributes(), new Function<ObsDescriptor.Field, String>() {
+      @Override
+      public String apply(ObsDescriptor.Field field) {
+        return field.name;
+      }
+    }));
+    names.addAll(descriptor.frames().keySet());
+    names.addAll(descriptor.vectors().keySet());
+    return names;
   }
 
   public static Exhibit defaultValues(
