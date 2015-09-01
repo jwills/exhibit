@@ -20,16 +20,23 @@ import org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CollectAllUDAF extends AbstractGenericUDAFResolver {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CollectAllUDAF.class);
+
   @Override
   public GenericUDAFEvaluator getEvaluator(TypeInfo[] typeInfo) throws SemanticException {
     if (typeInfo.length != 1) {
       throw new UDFArgumentException("Only one argument expected to collect_all method");
     }
     if (typeInfo[0].getCategory() == ObjectInspector.Category.LIST) {
+      LOG.info("Using CollectArrayEvaluator");
       return new AbstractCollectArrayEvaluator.Lists();
     }
+    LOG.info("Using CollectEvaluator");
     return new AbstractCollectEvaluator.Lists();
   }
 }
