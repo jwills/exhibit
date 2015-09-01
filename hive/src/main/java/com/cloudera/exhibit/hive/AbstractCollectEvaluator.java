@@ -16,10 +16,14 @@ package com.cloudera.exhibit.hive;
 
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
+import org.apache.hadoop.hive.serde2.lazy.LazyArray;
+import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,6 +31,8 @@ import java.util.HashSet;
 import java.util.List;
 
 public abstract class AbstractCollectEvaluator extends GenericUDAFEvaluator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractCollectEvaluator.class);
 
   private ObjectInspector originalOI;
   private ListObjectInspector outputOI;
@@ -65,11 +71,15 @@ public abstract class AbstractCollectEvaluator extends GenericUDAFEvaluator {
   @Override
   public ObjectInspector init(Mode mode, ObjectInspector[] args) throws HiveException {
     super.init(mode, args);
+    LOG.info("Running CollectEvaluator in mode = " + mode);
+    LOG.info("ObjectInspector Type = " + args[0].getTypeName());
     if (mode == Mode.PARTIAL1 || !(args[0] instanceof ListObjectInspector)) {
       this.originalOI = args[0];
+      LOG.info("Running CollectEvaluator for PARTIAL1/COMPLETE");
       return ObjectInspectorFactory.getStandardListObjectInspector(
           ObjectInspectorUtils.getStandardObjectInspector(originalOI));
     } else {
+      LOG.info("Running CollectEvaluator for PARTIAL2/FINAL");
       this.mergeOI = (ListObjectInspector) args[0];
       this.originalOI = mergeOI.getListElementObjectInspector();
       this.outputOI = (ListObjectInspector) ObjectInspectorUtils.getStandardObjectInspector(mergeOI);
@@ -89,7 +99,18 @@ public abstract class AbstractCollectEvaluator extends GenericUDAFEvaluator {
 
   @Override
   public void iterate(AggregationBuffer buf, Object[] args) throws HiveException {
-    ((CollectionBuffer) buf).add(args[0], originalOI);
+    Object arg = args[0];
+    if (arg == null) {
+      return;
+    }
+    if (arg instanceof LazyBinaryArray) {
+      LazyBinaryArray lba = (LazyBinaryArray) arg;
+      for (int i = 0; i < lba.getListLength(); i++) {
+        ((CollectionBuffer) buf).add(lba.getListElementObject(i), originalOI);
+      }
+    } else {
+      ((CollectionBuffer) buf).add(arg, originalOI);
+    }
   }
 
   @Override
