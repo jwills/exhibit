@@ -94,10 +94,16 @@ public class AvroTableTest {
         "select f2, sum(f3) as sumf3 from t1 where f1 = 'foo' and f3 in ("+in+") group by f2"
     };
     SQLCalculator calc = new SQLCalculator(queries);
-    Frame res = eval(calc, SimpleExhibit.of("t1", frame));
-    assertEquals(1, res.size());
-    assertEquals(Boolean.TRUE, res.get(0).get(0));
-    assertEquals(1729L, res.get(0).get(1));
+    Exhibit e = SimpleExhibit.of("t1", frame);
+    calc.initialize(e.descriptor());
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < 1000; i++) {
+      Frame res = calc.apply(e);
+      assertEquals(1, res.size());
+      assertEquals(Boolean.TRUE, res.get(0).get(0));
+      assertEquals(1729L, res.get(0).get(1));
+    }
+    System.out.println("Runtime: " + (System.currentTimeMillis() - start));
   }
 
   @Test

@@ -44,8 +44,12 @@ public class JSCodeTest {
     Frame frame = SimpleFrame.of(one, two);
     Exhibit e = new SimpleExhibit(obs, ImmutableMap.of("df", frame));
     jsc.initialize(e.descriptor());
-    Obs res = Iterables.getOnlyElement(jsc.apply(e));
-    assertEquals(SimpleObs.of(res1, 17.0, true), res);
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < 1000; i++) {
+      Obs res = Iterables.getOnlyElement(jsc.apply(e));
+      assertEquals(SimpleObs.of(res1, 17.0, true), res);
+    }
+    System.out.println("Runtime: " + (System.currentTimeMillis() - start));
     jsc.cleanup();
   }
 

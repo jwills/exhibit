@@ -24,7 +24,6 @@ import com.cloudera.exhibit.etl.config.AggConfig;
 import com.cloudera.exhibit.etl.config.OutputConfig;
 import com.cloudera.exhibit.etl.tbl.Tbl;
 import com.cloudera.exhibit.etl.tbl.TblCache;
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -38,9 +37,7 @@ import org.apache.crunch.Pair;
 import org.apache.crunch.types.avro.AvroType;
 import org.apache.crunch.types.avro.Avros;
 
-import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.cloudera.exhibit.etl.SchemaUtil.unionValueSchema;
@@ -152,7 +149,7 @@ public class OutputGen {
     }
     AvroType<GenericData.Record> kt = Avros.generics(keySchema);
     AvroType<GenericData.Record> vt = Avros.generics(unionValueSchema("OutGen" + id, interSchemas));
-    return exhibits.parallelDo(new MapOutFn(id, config, keySchema, schemaProviders),
+    return exhibits.parallelDo(new MapOutFn(id, config, keySchema, schemaProviders, config.debug),
         Avros.tableOf(kt, Avros.pairs(Avros.ints(), vt)));
   }
 
@@ -162,16 +159,18 @@ public class OutputGen {
     private final OutputConfig config;
     private final String keyJson;
     private final List<SchemaProvider> providers;
+    private final boolean debug;
     private transient Schema key;
     private transient List<TblCache> tblCaches;
     private transient List<Calculator> calcs;
     private boolean initialized = false;
 
-    public MapOutFn(int outputId, OutputConfig config, Schema keySchema, List<SchemaProvider> providers) {
+    public MapOutFn(int outputId, OutputConfig config, Schema keySchema, List<SchemaProvider> providers, boolean debug) {
       this.outputId = outputId;
       this.config = config;
       this.keyJson = keySchema.toString();
       this.providers = providers;
+      this.debug = debug;
     }
 
     @Override
@@ -196,8 +195,12 @@ public class OutputGen {
         initialized = true;
       }
 
+      if (debug) {
+        increment("ExhibitPerf", "Records_" + outputId);
+      }
       for (int i = 0; i < calcs.size(); i++) {
         AggConfig ac = config.aggregates.get(i);
+        long start = System.currentTimeMillis();
         for (Obs obs : calcs.get(i).apply(exhibit)) {
           List<String> keys = getKeys(ac, config);
           GenericData.Record keyRec = new GenericData.Record(key);
@@ -209,6 +212,9 @@ public class OutputGen {
             keyRec.put(config.keys.get(j), obs.get(keys.get(j)));
           }
           tblCaches.get(i).update(keyRec, obs);
+        }
+        if (debug) {
+          increment("ExhibitPerf", "Time_" + outputId + "_" + i, System.currentTimeMillis() - start);
         }
       }
     }

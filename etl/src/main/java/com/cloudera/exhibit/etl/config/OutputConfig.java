@@ -43,4 +43,7 @@ public class OutputConfig implements Serializable {
 
   // The aggregations to perform by the attrs/keys specified above.
   public List<AggConfig> aggregates = Lists.newArrayList();
+
+  // Enable debug counters for this output and its aggregations
+  public boolean debug = false;
 }
