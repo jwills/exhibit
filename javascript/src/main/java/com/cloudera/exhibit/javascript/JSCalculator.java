@@ -24,10 +24,8 @@ import com.cloudera.exhibit.core.ObsDescriptor;
 import com.cloudera.exhibit.core.simple.SimpleFrame;
 import com.cloudera.exhibit.core.simple.SimpleObs;
 import com.cloudera.exhibit.core.simple.SimpleObsDescriptor;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.mozilla.javascript.ClassShutter;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.Function;
@@ -41,13 +39,6 @@ public class JSCalculator implements Calculator {
 
   static {
     ContextFactory.initGlobal(new ExhibitContextFactory());
-    Context ctx = Context.enter();
-    ctx.setClassShutter(new ClassShutter() {
-      @Override
-      public boolean visibleToScripts(String className) {
-        return className.startsWith("com.cloudera.exhibit");
-      }
-    });
   }
 
   private final String src;
