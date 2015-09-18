@@ -35,6 +35,12 @@ public enum TblType {
       return new PercentileTbl(values, options);
     }
   },
+  RATIO {
+    @Override
+    public Tbl create(Map<String, String> values, Map<String, Object> options) {
+      return new RatioTbl(values, options);
+    }
+  },
   TOP_LIST {
     @Override
     public Tbl create(Map<String, String> values, Map<String, Object> options) {
